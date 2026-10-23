@@ -44,4 +44,4 @@ the air.** Licensed under the [MIT License](LICENSE).
 
 * Choose the project name.
 * Test over the air on two radios.
-* Tell the maintainers of the firmwares this builds on before announcing anything.
+* Once it works over the air, open a PR to richonguzman/LoRa_APRS_iGate that links here for the format details.
