@@ -16,7 +16,7 @@ the air.** Licensed under the [MIT License](LICENSE).
 | [03 Implicit acks and smarter digipeating](spec/03-implicit-ack-and-digipeating.md) | Ideas for recommended practice, no format change |
 | [04 Message path learning](spec/04-message-path-learning.md) | Idea |
 | [05 Reach-aware repeating](spec/05-reach-aware-repeating.md) | Idea: measured reach, not height, decides who repeats |
-| [06 Advertising radio parameters](spec/06-radio-parameters.md) | Idea: frequency, SF/BW/CR (LoRa) or baud rate (VHF), TX and RX separately |
+| [06 Advertising radio parameters](spec/06-radio-parameters.md) | Idea, with a proposed 2-byte binary form: role, compression support, SF/BW/CR (LoRa) or baud/framing (VHF), channel preset |
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Idea: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |

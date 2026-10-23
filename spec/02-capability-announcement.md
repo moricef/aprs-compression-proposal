@@ -14,8 +14,11 @@ Options to work out:
   and trackers that cannot afford to receive. Mitigation: send a plain frame every Nth transmission.
 * **Explicit marker.** A field in an existing beacon or status packet saying which model versions
   and roles the station supports. Needs a place in the text that existing software ignores.
+  A proposed 2-byte binary form that carries role, highest model version decoded, and the radio
+  settings together is in 06 ("Binary form"), with a LoRa frame type and an APRS text token to
+  carry it.
 
-Open questions: marker syntax; whether a digipeater should advertise on behalf of the iGate it
+Open questions: whether listen-and-switch, the explicit marker, or both; whether a digipeater should advertise on behalf of the iGate it
 feeds; how long to remember a capable station.
 
 See also 05 (reach, which gives a better signal than "I heard it") and 06 (radio parameters, which a capability announcement would naturally carry).
