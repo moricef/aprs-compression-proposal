@@ -5,7 +5,7 @@ same APRS packets in fewer bytes, and borrowing neighbour-discovery and routing 
 Meshtastic and MeshCore. It extends APRS; it does not replace it.
 
 **This is a draft by one person. It is not a standard, and the on-air format has not been tested over
-the air.** The licence is not chosen yet (see TODO).
+the air.** Licensed under the [MIT License](LICENSE).
 
 ## Parts
 
@@ -42,7 +42,6 @@ the air.** The licence is not chosen yet (see TODO).
 
 ## TODO
 
-* Pick a licence (MIT/Apache-2.0 suggested for a spec plus reference code that GPL projects can include).
 * Choose the project name.
 * Test over the air on two radios.
 * Tell the maintainers of the firmwares this builds on before announcing anything.
