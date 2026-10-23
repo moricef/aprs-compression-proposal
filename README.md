@@ -15,6 +15,7 @@ the air.** The licence is not chosen yet (see TODO).
 | [02 Capability announcement](spec/02-capability-announcement.md) | Idea |
 | [03 Implicit acks and smarter digipeating](spec/03-implicit-ack-and-digipeating.md) | Ideas for recommended practice, no format change |
 | [04 Message path learning](spec/04-message-path-learning.md) | Idea |
+| [05 Reach-aware repeating](spec/05-reach-aware-repeating.md) | Idea: measured reach, not height, decides who repeats |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |
 
 ## Layout
