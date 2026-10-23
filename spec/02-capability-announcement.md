@@ -17,3 +17,5 @@ Options to work out:
 
 Open questions: marker syntax; whether a digipeater should advertise on behalf of the iGate it
 feeds; how long to remember a capable station.
+
+See also 05 (reach, which gives a better signal than "I heard it") and 06 (radio parameters, which a capability announcement would naturally carry).

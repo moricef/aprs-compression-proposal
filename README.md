@@ -16,6 +16,7 @@ the air.** The licence is not chosen yet (see TODO).
 | [03 Implicit acks and smarter digipeating](spec/03-implicit-ack-and-digipeating.md) | Ideas for recommended practice, no format change |
 | [04 Message path learning](spec/04-message-path-learning.md) | Idea |
 | [05 Reach-aware repeating](spec/05-reach-aware-repeating.md) | Idea: measured reach, not height, decides who repeats |
+| [06 Advertising radio parameters](spec/06-radio-parameters.md) | Idea: frequency, SF/BW/CR (LoRa) or baud rate (VHF), TX and RX separately |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |
 
 ## Layout
