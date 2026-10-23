@@ -17,6 +17,8 @@ the air.** Licensed under the [MIT License](LICENSE).
 | [04 Message path learning](spec/04-message-path-learning.md) | Idea |
 | [05 Reach-aware repeating](spec/05-reach-aware-repeating.md) | Idea: measured reach, not height, decides who repeats |
 | [06 Advertising radio parameters](spec/06-radio-parameters.md) | Idea: frequency, SF/BW/CR (LoRa) or baud rate (VHF), TX and RX separately |
+| [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Idea: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
+| [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |
 
 ## Layout

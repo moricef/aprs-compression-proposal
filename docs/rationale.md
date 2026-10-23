@@ -46,6 +46,12 @@ field. On 555 RF-heard VHF position packets:
 longer than 438's 28-character limit). Only 44% of the VHF paths fit 438's four path codes. The 438
 sizes are the documented layout, not output from a real encoder.
 
+## VHF (AX.25) framing
+
+On VHF only the info field can be compressed, because digipeaters must read the binary address
+fields. On 834 held-out VHF packets: info field 52.3 B -> 34.4 B (34%), whole AX.25 frame 79.0 B ->
+61.1 B (23%), 0.53 s -> 0.41 s at 1200 baud (TXDELAY and preamble not counted). See spec/07.
+
 ## Airtime (SF12 / BW125 / CR4:5, one position beacon with a 19-character comment)
 
 | Form | Bytes | SF12 | SF11 |

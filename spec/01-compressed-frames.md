@@ -2,6 +2,9 @@
 
 **Status: draft. Implemented in a reference C codec and in one firmware fork; not tested over the air yet.**
 
+This part defines the codec and the **LoRa binding**. The same codec and model carry over to VHF APRS
+through an AX.25 binding: see 07-ax25-binding.md.
+
 ## What it is
 
 A way to send an ordinary APRS text packet in roughly half the bytes on a LoRa link. It is not a
