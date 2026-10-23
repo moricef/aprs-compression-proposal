@@ -19,6 +19,7 @@ the air.** Licensed under the [MIT License](LICENSE).
 | [06 Advertising radio parameters](spec/06-radio-parameters.md) | Idea: frequency, SF/BW/CR (LoRa) or baud rate (VHF), TX and RX separately |
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Idea: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
+| [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |
 
 ## Layout
@@ -26,7 +27,7 @@ the air.** Licensed under the [MIT License](LICENSE).
     spec/        the drafts
     reference/   plain-C codec (integer-only, C99)
     model/       frozen model v1 table + SHA-256
-    tools/       train_model.py (retrain from an APRS-IS capture)
+    tools/       train_model.py (retrain), capture_aprsis.py (read-only APRS-IS capture)
     test/        test vectors (fabricated packets) and the tool that checks them
     docs/        measurements, notes
 
