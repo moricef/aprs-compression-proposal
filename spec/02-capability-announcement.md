@@ -4,7 +4,7 @@
 |---|---|
 | Status | **Proposal draft by an individual. Not a standard. Not implemented or tested.** |
 | Depends on | 01 Compressed frames |
-| Changes to existing APRS | None for the baseline method; the optional explicit marker is open |
+| Changes to existing APRS | None for the baseline method; the optional explicit marker and binary form are new frame/token types |
 
 ## Summary
 
@@ -41,11 +41,69 @@ supports. It needs a place in the text that existing software ignores or display
 that is not yet found; `<` is already an APRS data-type identifier for station capabilities, so
 reusing it needs care. Not proposed until a placement is tested against existing software.
 
-A compact form has been drafted: a 2-byte binary word carrying role, the highest model version the
-station decodes, and its radio settings together, with a LoRa frame type and an APRS text token
-(`<` capabilities packet) to carry it. It is in the phase 2 repo, `aprs-smarts`,
-`drafts/radio-parameters.md` ("Binary form"), because it also covers radio settings. It is an
-untested proposal.
+A compact binary form is specified below.
+
+## Binary form (proposal)
+
+One 16-bit word, sent most significant byte first. It carries the station's role and compression
+support as well as its radio settings, so one announcement answers both "can you decode me"
+and "where do I find you".
+
+    bits    LoRa                              VHF/UHF (AFSK/FSK)
+    15-14   role                              role
+    13-12   compression                       compression
+    11-9    SF: 0-7 = SF5..SF12               reserved, send 0
+    8-7     BW: 62.5 / 125 / 250 / 500 kHz    baud: 300 / 1200 / 9600 / reserved
+    6-5     CR: 4/5 / 4/6 / 4/7 / 4/8         framing: AX.25 / FX.25 / IL2P / reserved
+    4-0     preset                            preset
+
+**Role** (bits 15-14): 0 = transmit only (a tracker that does not receive), 1 = listens (a tracker or
+client that receives), 2 = digipeater, 3 = iGate.
+
+**Compression** (bits 13-12): the highest model version from 01 that the station decodes. 0 = none,
+1-3 = model v1-v3. Whether a station also *sends* compressed frames is not carried; a receiver
+sees that by hearing one.
+
+**Preset** (bits 4-0) names the channel, and the preset decides which column above applies:
+
+    0       the channel this announcement was heard on (family = how it was received)
+    1       144.390 MHz, AFSK. Fixed; never reassigned.
+    2-29    table, to be defined (see open questions)
+    30      explicit frequency follows, LoRa
+    31      explicit frequency follows, AFSK/FSK
+
+**Explicit frequency** (presets 30 and 31 only): 3 bytes, unsigned, most significant first, in
+units of 500 Hz. That reaches 8.39 GHz and represents half-kHz channels such as 439.9125 MHz.
+
+Two escapes rather than one, so a receiver always knows whether to read bits 11-5 as SF/BW/CR or as
+baud/framing, even when the frequency is not in the table. On VHF the coding-rate bits carry the
+framing instead, because a receiver cannot decode FX.25 or IL2P without knowing to expect it.
+
+Preset 0 is only meaningful over RF. An iGate gating an announcement to APRS-IS, or a station whose
+announcement is likely to be read there, should use a numbered preset or an explicit frequency.
+
+SF5 and SF6 are included because SX126x-class radios (for example the STM32WLE5) support them, even
+though SX127x radios use SF6 only in implicit-header mode and current LoRa APRS uses SF7-SF12.
+
+### Examples
+
+    1200-baud AX.25 iGate on 144.390                  C0 81              (2 bytes)
+    listening tracker, decodes v1, SF7/125/4:5,
+        same channel as heard                         54 80              (2 bytes)
+    iGate, decodes v1, SF12/125/4:5 on 433.775 MHz    DE 9E 0D 3C DE     (5 bytes)
+    9600-baud AX.25 iGate on 445.925 MHz              C1 1F 0D 9B CA     (5 bytes)
+
+### Where it is carried
+
+* **LoRa, binary.** A frame type of its own: `3C FF` + a type byte + the word (+ frequency). The type
+  byte cannot be 0x01 (plain LoRa APRS) or 0x80-0xFF (compressed frames, 01). 0x02 is the obvious
+  candidate. Not yet checked against what other LoRa APRS firmware does with third bytes other than
+  0x01. Legacy receivers that check for exactly `3C FF 01` drop it, which is fine: they could not
+  use it anyway.
+* **APRS text** (VHF, APRS-IS, and plain LoRa frames). Raw bytes do not survive APRS-IS, so the word
+  is written as printable characters, for example 4 hex digits in a station-capabilities (`<`)
+  packet: `<IGATE,RF=DE9E0D3CDE`. Token name, and hex versus base-91 (3 characters for the word), are
+  undecided.
 
 ## Compatibility with legacy stations
 
@@ -62,7 +120,14 @@ station.
 1. Whether listen-and-switch, the explicit marker, or both. Marker syntax and placement, if any.
 2. Whether a digipeater may advertise on behalf of the iGate it feeds.
 3. How long to remember a capable station.
-4. Radio parameters (frequency, spreading factor, baud rate) would naturally travel with a
-   capability announcement; they are drafted separately in the phase 2 repo (`aprs-smarts`,
-   `drafts/radio-parameters.md`) because they are a larger change.
-5. Reach is a better signal than "I heard it"; see `drafts/reach-aware-repeating.md` in phase 2.
+4. The preset table (2-29): which channels, who maintains it, how it is versioned. A preset can also
+   name an RX/TX pair for gateways that listen and answer on different channels.
+5. RX and TX that differ and are not in the table: send the word twice (TX first, then RX)?
+6. Transmit power is not in the word; an optional extra byte is one option.
+7. Two bits of model version run out at v3. Either models change rarely, or 3 means "v3 or later,
+   see my status".
+8. Where the field lives so existing software ignores it: this part proposes a LoRa frame type and
+   a `<` text token, neither tested against existing firmware.
+9. The reasons to advertise radio settings at all are discussed in the phase 2 repo
+   (`aprs-smarts`, `drafts/radio-parameters.md`).
+10. Reach is a better signal than "I heard it"; see `drafts/reach-aware-repeating.md` in phase 2.
