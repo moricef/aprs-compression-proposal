@@ -16,6 +16,7 @@ the air.** Licensed under the [MIT License](LICENSE).
 | [01 Compressed frames (APRS-PPM)](spec/01-compressed-frames.md) | Spec + C reference codec + frozen model v1 + test vectors. Host-tested only |
 | [02 Capability announcement](spec/02-capability-announcement.md) | Proposal draft: how a sender learns a station can decode compressed frames |
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
+| [08 Priming with a station's previous packet](spec/08-priming-from-previous-packet.md) | Idea + simulation: about 62-66% saved on VHF whole-packet frames, against 41% for the static table |
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
 | [Compression by country (rough estimate)](docs/per-country-estimate.md) | Estimate per country and device type, LoRa and VHF, from one hour of capture; to be replaced by the 8-hour run |
