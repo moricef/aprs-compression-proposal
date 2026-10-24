@@ -35,9 +35,36 @@ reference codec, which is round-trip tested separately.
 * The whole-packet frame with a standard FCS parses as a frame with garbage addresses. Whether the
   iGate would pass that on depends on the same check and was not tested.
 
+## The real Direwolf, with its iGate and a KISS client
+
+`tools/direwolf_legacy_harness.py` feeds the same audio to a running Direwolf (not `atest`) set up as
+a plain iGate: channel 0, MYCALL `TEST-9`, a made-up passcode, `IGSERVER 127.0.0.1`. The script plays
+the APRS-IS server on localhost, so no real callsign, passcode or internet server is involved, and
+it also connects a KISS TCP client. Direwolf waits about 10 s after login before sending to the
+server, so the audio is fed after that.
+
+| Variant | Logged by Direwolf | Received by KISS client | Sent to the (dummy) APRS-IS |
+|---|---|---|---|
+| plain | 6 | 6 | **5** (the sixth has `TCPIP` in its path and is correctly not gated) |
+| infopid | 6, with binary junk as the info | 6 | **0** |
+| hybrid | 6, junk | 6 | **0** |
+| whole (standard FCS) | 6, shown as `(Not AX.25)` plus junk | 6 | **0** |
+| wholefcs (different CRC) | **0** | **0** | **0** |
+
+* The plain frames are gated, which shows the setup works. None of the compressed variants was sent
+  on to APRS-IS, so a Direwolf iGate does not put them on the internet. That matches the check
+  Direwolf makes (control 3, PID 0xF0, correct CRC).
+* A running Direwolf does log the junk for the first three compressed variants, and it hands those
+  frames to KISS clients. An application on the other end of KISS (for example APRSdroid) would
+  receive them, and what it does with them was not tested.
+* A different CRC makes the frame invisible at every level: not logged, not passed to KISS, not gated.
+
+Why the first control run showed zero gated frames: Direwolf waits seven seconds after sending its
+login before it starts sending packets to the server. The earlier runs fed audio too soon.
+
 ## Limits
 
-* One decoder (Direwolf `atest`, built from a branch whose AFSK decode path is unchanged from
+* One decoder (Direwolf `atest` and the full `direwolf`, built from a branch whose AFSK decode path is unchanged from
   upstream), clean synthetic audio, six packets. Not tested: aprx, APRSdroid, hardware TNCs, the
   real iGate path, noisy or weak audio, or a real radio.
 * The audio generator is simple (phase-continuous AFSK, 40 flags of preamble) and is not a model of
