@@ -42,8 +42,10 @@ because the preamble does not shrink). Full table and caveats in
   the table format and the model.
 * How often to send a full frame is a trade between saving and being decodable by receivers that missed the previous packet; the proposed default is every 2nd transmission for moving stations and every 4th to 8th for stationary ones (spec 08).
 * The figures do not add up, because the methods overlap.
-* **None of this has been tested over the air.** Simulation uses ideal coding length for the priming
-  figures, an assumed TXDELAY for VHF airtime, and one evening of data (three hours, Europe).
+* **Over the air, so far, only one short link has been tested** (24 October 2026, an ESP32 sender to a Direwolf
+  receiver, 12 of 12 average-sized positions decoded exactly; see `docs/over-the-air-test.md`). The other figures
+  come from simulation, which uses ideal coding length for the priming figures, an assumed TXDELAY for VHF
+  airtime, and one evening of data (three hours, Europe).
 
 See [docs/per-country-estimate.md](docs/per-country-estimate.md) for the result by country and device
 type, and [docs/legacy-decoder-test.md](docs/legacy-decoder-test.md) for what a stock Direwolf does with
@@ -53,12 +55,13 @@ the new VHF frames.
 
 Most LoRa APRS devices are ESP32 boards, so this order favours what fits and what pays off there. Each
 layer works alone and adds to the one before. All savings are from simulation or arithmetic on captured
-packets (see "Results so far"); nothing has been tested over the air.
+packets (see "Results so far"); one LoRa link has been tested over the air (see
+`docs/over-the-air-test.md`), the VHF binding has not.
 
 1. **Static order-3 frame ([spec 01](spec/01-compressed-frames.md)) with capability learning
    ([spec 02](spec/02-capability-announcement.md)).** About 41% saved at a 144 KB table, 43% at 202 KB.
-   Built into the iGate firmware branch (receive always, transmit opt-in). *Next: the two-board
-   over-the-air test.* It is stateless: a receiver needs nothing it heard earlier.
+   Built into the iGate firmware branch (receive always, transmit opt-in). *Tested over the air once, ESP32
+   to Direwolf: 12 of 12 decoded exactly. Next: two-board and weak-signal tests.* It is stateless: a receiver needs nothing it heard earlier.
 2. **A structured header for position packets ([draft 09](spec/09-structured-header-layout.md)).**
    Callsign, path, type and position in a compact layout; the comment with the order-3 model. About 6 to
    7 B smaller than layer 1 on a position packet (arithmetic, not built), and the biggest help for the
@@ -70,8 +73,9 @@ packets (see "Results so far"); nothing has been tested over the air.
    table had not seen, a primed frame averaged 21 B against 33 B for a full frame and 60 B plain (65% against
    45% saved, real codec bytes). In simulation, about 66 to 70% overall; 53% with a full frame every 2nd
    transmission for moving stations, and 60 to 64% with one every 4th to 8th for stationary ones. Needs the
-   receiver to have heard the reference, and about 13 KB of RAM for the two packet stores on the ESP32. Not yet
-   tested over the air.
+   receiver to have heard the reference, and about 13 KB of RAM for the two packet stores on the ESP32. Tested
+   over the air once (ESP32 to Direwolf): primed frames 13.8 B, full frames 38.0 B, against 75 B plain for
+   an average-sized position, 65% smaller overall.
 
 Alongside, no new code needed: send the comment less often or shorten it (33% on one measured beacon).
 
@@ -129,5 +133,6 @@ position packets fit; it has no comment field; and its position field is the ord
 ## TODO
 
 * Reframed as proposal drafts. Any project or extension name is left to whoever adopts it; no branding chosen.
-* Test over the air on two radios (full and primed frames, `docs/over-the-air-test.md`).
+* Done once, 24 October 2026: ESP32 sender to Direwolf receiver, full and primed frames (`docs/over-the-air-test.md`).
+  Still to do: two ESP32 units, a weak-signal run with lost frames, and a mixed network with a stock unit.
 * Once it works over the air, bring the proposal to the APRS Foundation (contact form / aprssig) and open a PR to richonguzman/LoRa_APRS_iGate that links here for the format details.

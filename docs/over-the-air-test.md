@@ -7,7 +7,9 @@ Goal: show that a compressed frame sent by one radio is received and expanded to
 text by another, for a range of packet types, before proposing the code to anyone.
 
 Status of the code under test: the firmware fork builds and the codec passes a PC round trip and
-agrees byte-for-byte with the C reference. **No compressed frame has crossed the air yet.**
+agrees byte-for-byte with the C reference. **Compressed frames have now crossed the air once, from an
+ESP32 sender to a Direwolf receiver (24 October 2026, see "Result of the first over-the-air run" below).**
+The checklist tests A-D (two boards) and E-I (VHF) have not been run as written.
 
 ## What you need
 
@@ -153,10 +155,71 @@ the wrong text is a codec bug; report it with the bytes.
 
 Record each run in the table below, with the marker used, the radio, the baud rate and the receiver.
 
+## Result of the first over-the-air run (24 October 2026)
+
+This was not tests A-D as written (no second ESP32). It used a different pairing: an ESP32 sender with
+the iGate firmware fork, and a Raspberry Pi running the Direwolf branch with the LoRa HAT driver and the
+compressed-frame receive code, on a hill site about 2 miles away with line of sight. It answers the same
+question as test B: does a compressed frame sent by one radio arrive and expand to exactly the same text?
+
+**Setup.** Sender: TTGO LoRa32 V2.1-class board (433 MHz, hand-soldered SMA connector, large
+outdoor antenna), 433.775 MHz, SF12, BW 125 kHz, CR 4/5, 20 dBm, sync word 0x12. Receiver: a Raspberry Pi
+with an SX1262 LoRa HAT running a separate build of the Direwolf branch (`feature/lora-compression`, built in
+its own folder), same radio settings. The test sender used a build option (`APRS_PPM_SELFTEST`
+with `APRS_PPM_ONESHOT` or `APRS_PPM_POSTEST`) that sends a fixed list of packets with a 30 s spacing
+and then stops.
+
+**Precautions, because the receiver belongs to a live iGate.** The live Direwolf service was stopped for
+the length of each run (10 minutes) and restarted automatically afterwards; the test configuration had
+the iGate server login switched off; every test packet carried `RFONLY` in its path; the first run used
+status packets with no position at all; and the position run sent compressed frames only (a plain
+position would be readable by every LoRa iGate in range). A bridge that forwards unparsed LoRa lines to a public map was
+switched off for the first transmissions. All positions are made up (about 34 N 118 W).
+
+**Run 1: status packets** (`K6ATV-14>APLRG1,RFONLY:>PPM link test N`, 16 packets, 4 plain, 8 compressed, 4 plain).
+Every packet decoded to the exact text sent. Primed frames were 9-10 B on air against 42 B as a plain frame,
+full frames 29 B. Signal -68 to -73 dBm, SNR 4-9 dB.
+
+**Run 2: average-sized position packets.** The size of the test packet came from the capture of real LoRa APRS
+traffic (25,403 position packets in 3 hours): comment mean 30.6 characters, median 27, 14 % with no comment,
+payload mean 45.8 B. Test packet: an uncompressed position with a 29-character comment and a battery reading that
+changes every packet (`K6ATV-14>APLRG1,RFONLY:=3412.34N/11823.45W>LoRa APRS tracker, batt 3.92V`, 75 B as a plain
+frame including the 3-byte LoRa header). 12 packets, 30 s apart, positions moving slowly, compressed only
+(full and primed alternating, `compressFullEvery` 2).
+
+| Frame type | Packets | On air (B) | Plain frame (B) | Smaller than plain |
+|---|---|---|---|---|
+| Full | 6 | 38, 39, 38, 39, 38, 36 (average 38.0) | 75 | 49 % |
+| Primed | 6 | 14, 13, 13, 15, 14, 14 (average 13.8) | 75 | 82 % |
+| Alternating pair | 12 | average 25.9 | 75 | 65 % |
+
+All 12 decoded to exactly the text sent (position digits and battery value included). The receiver's
+reported on-air size equalled the sender's computed size for every packet. Signal -68 to -72 dBm,
+SNR about 5-6 dB. The 12 packets used 311 B on air against 900 B as plain frames.
+
+**What a stock decoder did.** Before the new receive code was installed, the unmodified Direwolf on the
+same Pi logged each compressed frame as `loraspi: failed to parse: <binary bytes>  RSSI=... SNR=...` and carried on. It did not
+crash and did not gate the frame. It only logs: any tool that reads those log lines and forwards them
+(a public LoRa map feed in this case) needs to reject binary lines; we did not test that tool.
+A side effect worth knowing: a compressed frame holds no callsign text, so searching a log for the sender's
+callsign does not find it; search for `failed to parse` and the time instead.
+
+**Not covered yet.**
+* One sender, one receiver, a strong clean link. No weak-signal run (test C), no lost-frame run, so the
+  "primed frame dropped when its reference was lost" path has not been seen on air.
+* No second ESP32 receiver (tests A and B as written), no mixed-network run (test D).
+* Packets were fixed, made-up text, not live traffic from several stations; a primed frame depends on the
+  previous packet of the same station, so the 82 % figure for primed frames is the best case for
+  near-identical consecutive packets. The measurement on real packets was 21 B primed, 33 B full against
+  60 B plain (66 % overall in simulation).
+* The VHF binding (tests E-I) is untouched.
+
 ## Record results
 
 | Date | Units / frequency / SF (or radio, baud, marker) | Test | Packets sent | OK | Mismatch | Notes |
 |---|---|---|---|---|---|---|
+| 2026-10-24 | ESP32 sender to Pi (Direwolf branch), 433.775 MHz SF12 BW125, 2 mi LOS | status packets, 4 plain + 8 compressed + 4 plain | 16 | 16 | 0 | primed 9-10 B vs 42 B plain |
+| 2026-10-24 | same | average position + 29-char comment, compressed only | 12 | 12 | 0 | full 38.0 B, primed 13.8 B, pair 25.9 B vs 75 B (65 %) |
 |  |  |  |  |  |  |  |
 
 ## When it passes
