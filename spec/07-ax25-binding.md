@@ -45,11 +45,12 @@ A VHF APRS packet is an AX.25 frame:
            7 bytes       7 bytes  7 bytes        7 bytes        2 bytes         ~46 bytes          2 bytes
 
 Each address is exactly 7 bytes (six characters and an SSID/flags byte) however short the callsign.
-In 4,948 held-out RF-heard packets (20 minutes of multi-country capture, see
-`docs/per-country-estimate.md`) the average frame is 73.6 bytes: the addresses, control/PID and FCS
-are 27.8 bytes (38%) and the info field is 45.8 bytes. The packets carry 1.4 digipeater addresses
-on average, about 10 bytes. Only the info field is compressed, so a 39% cut on the info is 24% of
-the frame. The most that compressing only the info could ever save is 62% (the info's share).
+In 30,872 held-out RF-heard packets (a three-hour multi-country capture, see
+`docs/per-country-estimate.md`) the average frame is 73.5 bytes: the addresses, control/PID and FCS
+are 28.8 bytes (39%) and the info field is 44.7 bytes. The packets carry 1.55 digipeater addresses
+on average, about 11 bytes. Only the info field is compressed, so a 33% cut on the info (30.0 B including
+2 bytes of overhead, against 44.7 B) is 20% of the frame. The most that compressing only the info could
+ever save is 61% (the info's share).
 
 The addresses stay uncompressed because a digipeater works by reading them in a fixed layout: it
 checks whether its callsign is next in the path, decrements the hop count (`WIDE2-2` to `WIDE2-1`),
@@ -60,15 +61,17 @@ digipeater that does not implement the compressed format also cannot repeat a co
 accept that on LoRa because the base is new and its firmware is updated often. VHF has a very large
 installed base of digipeaters.
 
-### Measured with the 20-minute data
+### Measured on the three-hour data
 
-Whole AX.25 frame, 4,948 held-out VHF packets, min-count 8:
+Whole AX.25 frame, 30,872 held-out VHF packets, 144 KB table (min-count 48):
 
 | Variant | Saved |
 |---|---|
-| Current: info compressed, 2 bytes of overhead | 24.0% |
-| A table trained only on VHF info fields, 2 bytes overhead | 24.0% (no gain from specialising) |
-| Current table, overhead removed (version in the marker, no length byte) | 26.4% |
+| Current: info compressed, 2 bytes of overhead | 20.1% |
+| Current table, overhead removed (version in the marker, no length byte) | 22.4% |
+
+An earlier test on one hour of data found that a table trained only on VHF info fields did no better than
+the global table (24.0% against 24.0%); that was not repeated.
 
 Overhead means the version and length bytes that start the compressed info field. A registered marker
 (a PID or tocall) can carry the version, and an end-of-data symbol can replace the length.
@@ -81,25 +84,25 @@ address field to preserve. The same could be done on VHF with a frame type of it
     flag | marker + version | length | range-coded TNC2 text (SRC>DEST,PATH:info) | FCS | flag
 
 The marker would be a PID value or a reserved tocall. This is the same codec and model, applied to
-the whole packet. Estimated on the same 4,948 held-out packets (global table), against the
+the whole packet. Estimated on the same 30,872 held-out packets (global table), against the
 plain AX.25 frame:
 
 | Packets | Plain AX.25 | Whole-packet | Saved | With no length byte |
 |---|---|---|---|---|
-| All VHF | 73.6 B | 40.6 B | 45% | 47% |
-| No digipeater in the path | 66.0 B | 39.2 B | 41% | 44% |
-| 1 digipeater | 74.5 B | 38.5 B | 48% | 51% |
-| 2 or more digipeaters | 75.3 B | 43.1 B | 43% | 45% |
+| All VHF | 73.5 B | 44.5 B | 39% | 42% |
+| No digipeater in the path | 65.4 B | 44.0 B | 33% | 36% |
+| 1 digipeater | 73.9 B | 41.6 B | 44% | 46% |
+| 2 or more digipeaters | 75.0 B | 46.9 B | 37% | 40% |
 
-That is close to the LoRa figure (about 49%). Dropping the AX.25 addresses without compressing does not help: a plain text frame in the LoRa style (marker, the text packet, 2-byte checksum) averages 76.8 B on these packets, 4% larger than AX.25 (73.6 B), because text callsigns are longer than 7-byte addresses. A **hybrid** that keeps the source and destination
+That is close to the LoRa figure (about 41%). Dropping the AX.25 addresses without compressing does not help: a plain text frame in the LoRa style (marker, the text packet, 2-byte checksum) averages 76.8 B on the earlier 20-minute sample, 4% larger than AX.25 (73.6 B there), because text callsigns are longer than 7-byte addresses. A **hybrid** that keeps the source and destination
 addresses (so the frame is still valid AX.25 with a readable callsign) and a marker PID, and
-compresses the path and info, saves about 30% (51.5 B). It is a rough estimate: the compressed text
-used placeholder callsigns.
+compresses the path and info, saves about 30% (51.5 B on the earlier 20-minute sample). It is a rough estimate: the compressed text
+used placeholder callsigns, and it was not rerun on the three-hour data.
 
-Airtime at 1200 baud: 73.6 B is 0.49 s, 55.9 B (current method) is 0.37 s, 40.6 B (whole-packet)
-is 0.27 s. TXDELAY and preamble do not shrink; if they take 0.3 s per transmission (an assumption,
-settings vary), total airtime goes from 0.79 s to 0.67 s (15% less) with the current method and to
-0.57 s (28% less) with whole-packet compression.
+Airtime at 1200 baud: 73.5 B is 0.49 s, 58.8 B (current method) is 0.39 s, 44.5 B (whole-packet)
+is 0.30 s. TXDELAY and preamble do not shrink; if they take 0.3 s per transmission (an assumption,
+settings vary), total airtime goes from 0.79 s to 0.69 s (12% less) with the current method and to
+0.60 s (24% less) with whole-packet compression.
 
 ### Reliability: a shorter frame is more likely to arrive
 
@@ -108,13 +111,13 @@ means fewer chances for noise. The FCS itself is the same strength at any length
 reduced exposure. Rough estimate, assuming independent bit errors (real fading comes in bursts, which
 a shorter frame also dodges more often):
 
-| Bit error rate | Plain AX.25, 73.6 B arrives | Whole-packet, 40.6 B arrives |
+| Bit error rate | Plain AX.25, 73.5 B arrives | Whole-packet, 44.5 B arrives |
 |---|---|---|
-| 1 in 10,000 | 94% | 97% |
-| 1 in 1,000 | 56% | 72% |
-| 3 in 1,000 | 17% | 38% |
+| 1 in 10,000 | 94% | 96% |
+| 1 in 1,000 | 56% | 70% |
+| 3 in 1,000 | 17% | 34% |
 
-The gain is largest on a weak link, where a frame about 45% shorter can roughly double the share that
+The gain is largest on a weak link, where a frame about 40% shorter can roughly double the share that
 arrives, and small on a strong one. A shorter frame also occupies the channel less, which lowers the
 chance of a collision roughly in proportion. Compression does not make a frame tougher: one flipped
 bit still fails the FCS. Error correction (FX.25, IL2P) is a separate gain that adds to it. These
@@ -208,10 +211,10 @@ replaces, so on its own it takes less airtime. The channel gets busier only if a
 same information more than once.
 
 **Rule: do not send both.** A station MUST NOT send a plain frame and a compressed frame carrying the
-same information as a matter of course. As arithmetic, using the VHF estimates above (73.8 B frame,
+same information as a matter of course. As arithmetic, using the VHF estimates above (73.5 B frame,
 1200 baud, 0.3 s assumed setup): a plain frame takes about 0.79 s and an info-only compressed frame
-about 0.69 s (13% less). If a fraction `a` of stations adopted info-only compression, total load would
-be about `1 - 0.13a` if they send compressed only, and `1 + 0.87a` if each sent both. These are
+about 0.69 s (12% less). If a fraction `a` of stations adopted info-only compression, total load would
+be about `1 - 0.12a` if they send compressed only, and `1 + 0.87a` if each sent both. These are
 calculations, not measurements. Sending both is worse than not adopting at all.
 
 **What a sender does instead**

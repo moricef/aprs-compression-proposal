@@ -24,7 +24,7 @@ implement it. That rules out a lot of methods before any numbers.
 | Fixed per-character codes (PSK31 Varicode, PACTOR Huffman) | A fixed code per character | Not measured; expected near static Huffman | Same limit as static Huffman |
 | Old modem compressors (V.42bis, MNP5) | Adaptive dictionary | Not measured; adaptive, so expected to do poorly on short packets | Same reason as zlib |
 | Larger or neural models (context mixing, language models) | Many models blended, or a trained network | Not tried | Far too big and slow for the target microcontrollers, and hard to make bit-exact across devices |
-| **Trained context model + range coder (this repo)** | A fixed table of "what usually follows these 3 characters", coded with an arithmetic coder | **43% on LoRa, 21% on VHF (info field only), 41% on VHF as a whole-packet frame** at a 127 KB table; 47% at 226 KB | Chosen; see below |
+| **Trained context model + range coder (this repo)** | A fixed table of "what usually follows these 3 characters", coded with an arithmetic coder | **41% on LoRa, 20% on VHF (info field only), 39% on VHF as a whole-packet frame** at a 144 KB table; 43% and 22% at 202 KB | Chosen; see below |
 | APRS's own compact formats (base-91 compressed position, Mic-E) | Part of the APRS 1.0.1 specification: position in fewer characters | Already used by many trackers (see below) | Not an alternative: this repo's compression works on top of them |
 | APRS 438 | A hand-designed fixed 17-byte binary layout for a position beacon | See the comparison below | Different scope: position only, no comment |
 
@@ -38,7 +38,7 @@ APRS already has two ways to shrink a position. The base-91 compressed position 
 longitude in 13 characters instead of 19 or so. Mic-E packs the position into the destination field.
 They are a different thing from this proposal and they combine with it. In the captured data, 99% of
 the packets from one common ESP32 LoRa tracker already use the base-91 position and a short comment
-(5 bytes on average), and the table still saves about 33% on them (`docs/per-country-estimate.md`).
+(5 bytes on average), and the table still saves about 29% on them (`docs/per-country-estimate.md`).
 Mic-E encoding would save only a few bytes more than base-91 on a LoRa packet (Direwolf's notes).
 
 ## APRS 438
@@ -101,7 +101,7 @@ exclusive: the like-for-like table shows a 438-style header and position with th
 ## Limits of this comparison
 
 * The context-model figures for orders 1 to 4 come from an early, small corpus. Current figures are
-  lower (about 43% on LoRa at a 127 KB table), and the corpus is a three-hour evening capture (the tables use its first hour).
+  lower (about 41% on LoRa at a 144 KB table), and the corpus is a three-hour evening capture in Europe.
 * The 438 comparison used an earlier, smaller model and the documented 438 layout, not a 438 encoder.
 * SMAZ/SMAZ2, Varicode, PACTOR and V.42bis were looked at but not run on the packets. Their rows are
   judgements, not measurements.
