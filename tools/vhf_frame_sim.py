@@ -7,6 +7,7 @@ unmodified decoder (for example Direwolf's atest) does with them. No radio neede
 Writes one WAV per frame variant:
   plain      ordinary AX.25 UI frame (control: legacy must decode these)
   infopid    addresses as normal, PID 0xF1, info = [version][length][range-coded info]
+  infof0     the same but PID 0xF0, so it looks like an ordinary APRS UI frame (marker inside the info)
   hybrid     source/destination as normal, PID 0xF1, payload = compressed path + info
   whole      no AX.25 addresses: [version][length][range-coded SRC>DEST,PATH:info], standard FCS
   wholefcs   same as whole but with a different CRC, so a legacy TNC sees a bad checksum
@@ -100,7 +101,7 @@ def main():
     whole = ppm_payloads(a.ppm, [p[4] for p in pk])
     hyb = ppm_payloads(a.ppm, ["A>A" + ("," + ",".join(p[2]) if p[2] else "") + ":" + p[3] for p in pk])
     infoc = ppm_payloads(a.ppm, [p[3] for p in pk])
-    sets = {k: [] for k in ("plain", "infopid", "hybrid", "whole", "wholefcs")}
+    sets = {k: [] for k in ("plain", "infopid", "infof0", "hybrid", "whole", "wholefcs")}
     used = 0
     for p, w, h, i in zip(pk, whole, hyb, infoc):
         src, dst, digis, info, text = p
@@ -109,6 +110,7 @@ def main():
         def std(body): return hdlc_bits(body + struct.pack("<H", crc16(body)))
         sets["plain"].append(std(ax25(src, dst, digis, 0xF0, info.encode("latin1"))))
         sets["infopid"].append(std(ax25(src, dst, digis, 0xF1, i)))
+        sets["infof0"].append(std(ax25(src, dst, digis, 0xF0, i)))
         sets["hybrid"].append(std(ax25(src, dst, [], 0xF1, h)))
         sets["whole"].append(std(w))
         alt = w + struct.pack("<H", crc16(w, init=0x0000, xorout=0x0000))

@@ -82,6 +82,42 @@ and `Digipeater.hpp`. What they show:
 Other TNCs: closed-source TNCs (Kantronics, Kenwood radio TNCs, OpenTracker, Byonics) cannot be read.
 The NinoTNC firmware repository I found (`M0LTE/ninotnc-firmwares`) was not examined.
 
+## Does a Direwolf digipeater repeat the frames? (run)
+
+`tools/direwolf_digi_harness.py` feeds the same audio to a Direwolf set up as an APRS digipeater
+(`docs/direwolf-digi.conf`: callsign TEST-9, `DIGIPEAT` from channel 0 to a KISS-TCP channel the script
+listens on, so no transmit audio device is needed). It counts the frames Direwolf sends on that
+channel. A first attempt with a null audio output repeated nothing, not even a plain control frame;
+that was a harness problem and is fixed. Six frames per file; only the four with a `WIDE1-1` or
+`WIDE2-1` path are eligible to be repeated.
+
+| Variant | PID | Repeated by the digipeater | Sent to the (dummy) APRS-IS by an iGate |
+|---|---|---|---|
+| plain | 0xF0 | **4** of 4 eligible, with `TEST-9*` inserted | 5 |
+| infopid | 0xF1 | **0** | 0 |
+| infof0 (looks like an ordinary APRS frame, marker inside the info) | 0xF0 | **4** | **5**, i.e. junk is gated |
+| hybrid (no digipeater address) | 0xF1 | 0 | 0 |
+| whole (no AX.25 addresses) | none | 0 | 0 |
+
+So in Direwolf, a PID marker stops both repeating and gating; an in-band marker with PID 0xF0 allows
+both, including gating junk to APRS-IS. This is the digipeating-versus-gating tension in spec 07, now
+shown by a run, not only by reading the code.
+
+## Other software read from source: aprx
+
+Not run (building external code was not permitted in this session). In `ax25.c` aprx marks a packet
+as APRS only for a UI frame (control 0x03) with PID 0xF0; a UI frame with another PID is passed on
+with its PID recorded and `is_aprs` left at 0. The digipeater's main path in `digipeater.c`
+(`digipeater_receive`) is under `if (pb->is_aprs)`. I did not trace what happens to a frame with
+`is_aprs` 0, so I cannot say whether aprx repeats a PID 0xF1 frame.
+
+## Not examined
+
+* NinoTNC: the repository found (`M0LTE/ninotnc-firmwares`) holds only compiled `.hex` files, so
+  there is nothing to read.
+* multimon-ng: cloned but not built or run.
+* Kantronics, Kenwood and Yaesu radio TNCs, OpenTracker, Byonics: closed source.
+
 ## Limits
 
 * One decoder (Direwolf `atest` and the full `direwolf`, built from a branch whose AFSK decode path is unchanged from

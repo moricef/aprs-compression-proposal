@@ -228,8 +228,10 @@ keep legacy iGates from gating junk, is also not repeated by that digipeater. Ma
 protects APRS-IS and loses legacy digipeating. Keeping PID 0xF0 and putting the marker in the info
 field gets digipeating and loses the protection, unless the marker begins with something iGates
 discard (Direwolf's iGate drops a leading `?`, a generic query; whether other iGates and the APRS-IS
-servers do is untested). This was read from the code; an actual digipeater run was attempted and
-failed to repeat even a plain control frame, so it is not a test result.
+servers do is untested). This was confirmed by running Direwolf as a digipeater and an iGate on generated audio
+(`docs/legacy-decoder-test.md`): a PID 0xF1 frame was neither repeated nor gated; the same frame with
+PID 0xF0 was repeated (4 of 4 eligible) and gated (5 of 6). aprx, read from source, treats only
+control 0x03 with PID 0xF0 as APRS.
 
 **Which form to use in a mixed area**
 | Form | Legacy digipeaters | Legacy iGates | Use |
