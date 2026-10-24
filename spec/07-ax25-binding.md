@@ -101,6 +101,25 @@ is 0.27 s. TXDELAY and preamble do not shrink; if they take 0.3 s per transmissi
 settings vary), total airtime goes from 0.79 s to 0.67 s (15% less) with the current method and to
 0.57 s (28% less) with whole-packet compression.
 
+### Reliability: a shorter frame is more likely to arrive
+
+A frame is accepted only if every bit survives (the 16-bit FCS drops it otherwise), so fewer bits
+means fewer chances for noise. The FCS itself is the same strength at any length; the gain is the
+reduced exposure. Rough estimate, assuming independent bit errors (real fading comes in bursts, which
+a shorter frame also dodges more often):
+
+| Bit error rate | Plain AX.25, 73.6 B arrives | Whole-packet, 40.6 B arrives |
+|---|---|---|
+| 1 in 10,000 | 94% | 97% |
+| 1 in 1,000 | 56% | 72% |
+| 3 in 1,000 | 17% | 38% |
+
+The gain is largest on a weak link, where a frame about 45% shorter can roughly double the share that
+arrives, and small on a strong one. A shorter frame also occupies the channel less, which lowers the
+chance of a collision roughly in proportion. Compression does not make a frame tougher: one flipped
+bit still fails the FCS. Error correction (FX.25, IL2P) is a separate gain that adds to it. These
+are calculations, not measurements.
+
 ### Would it break legacy APRS?
 
 Plain frames stay as they are, and a station that does not implement the new frame type sends and
@@ -129,8 +148,18 @@ packets themselves.
 
 A legacy TNC drops a frame whose checksum does not match, silently. A new frame type could use a
 different CRC polynomial or seed, or a distinct start pattern instead of the flag run, so legacy
-equipment never sees it (confirmed with stock Direwolf in simulation: 0 of 6 decoded). It does not
-help reach (legacy digipeaters still cannot repeat the frame) or station identification.
+equipment never sees it (confirmed with stock Direwolf in simulation: 0 of 6 decoded, nothing logged,
+nothing passed to KISS clients). It does not help reach (legacy digipeaters still cannot repeat the
+frame) or station identification.
+
+It is not a free choice, because many stations use a **hardware KISS TNC**. A KISS TNC computes and
+checks the FCS itself: the host sends and receives frames without it. Such a TNC cannot send a
+non-standard FCS, and it drops incoming frames whose FCS does not match, so a station behind one could
+neither send nor receive the alternative-FCS frame. Only software modems (Direwolf, a sound-card
+modem) can use it. So the baseline needs to work with the **standard FCS and a PID marker**, which
+any TNC passes through. Tested with a running Direwolf (`docs/legacy-decoder-test.md`): such frames
+are logged as junk and handed to KISS clients, but not gated to APRS-IS. The alternative FCS is an
+option for stations where both ends use software modems.
 
 ## Marker: how a receiver knows the info is compressed
 
