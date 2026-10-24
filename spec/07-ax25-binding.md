@@ -91,7 +91,7 @@ plain AX.25 frame:
 | 1 digipeater | 74.5 B | 38.5 B | 48% | 51% |
 | 2 or more digipeaters | 75.3 B | 43.1 B | 43% | 45% |
 
-That is close to the LoRa figure (about 49%). A **hybrid** that keeps the source and destination
+That is close to the LoRa figure (about 49%). Dropping the AX.25 addresses without compressing does not help: a plain text frame in the LoRa style (marker, the text packet, 2-byte checksum) averages 76.8 B on these packets, 4% larger than AX.25 (73.6 B), because text callsigns are longer than 7-byte addresses. A **hybrid** that keeps the source and destination
 addresses (so the frame is still valid AX.25 with a readable callsign) and a marker PID, and
 compresses the path and info, saves about 30% (51.5 B). It is a rough estimate: the compressed text
 used placeholder callsigns.
@@ -160,6 +160,43 @@ modem) can use it. So the baseline needs to work with the **standard FCS and a P
 any TNC passes through. Tested with a running Direwolf (`docs/legacy-decoder-test.md`): such frames
 are logged as junk and handed to KISS clients, but not gated to APRS-IS. The alternative FCS is an
 option for stations where both ends use software modems.
+
+## Checksum and error protection
+
+Which checksum a compressed VHF frame carries decides who can send it, who can receive it, and what
+legacy equipment does with it. Four options:
+
+| Option | Hardware KISS TNCs | Legacy decoders see | Extra bytes |
+|---|---|---|---|
+| A. Standard AX.25 FCS plus a PID marker | Send and receive | Junk in the log and to KISS clients; not gated to APRS-IS | 0 |
+| B. A different 16-bit checksum | Cannot send or receive | Nothing (not logged, not passed to KISS, not gated) | 0 |
+| C. Standard FCS inside FX.25 error correction | Send and receive if the TNC passes it | The ordinary frame inside (to be tested with a compressed frame) | 16, 32 or 64 check bytes |
+| D. A stronger checksum, for example CRC-32 | Cannot send or receive | Nothing | 2 |
+
+What has been tested (Direwolf, simulated audio, `docs/legacy-decoder-test.md`): option A frames are
+decoded by stock Direwolf as junk and handed to KISS clients but not sent to APRS-IS; option B frames
+are not decoded at all. Options C and D were not tested.
+
+Why a different checksum is not the baseline: a hardware KISS TNC computes and checks the FCS itself.
+It cannot send a non-standard one and it drops incoming frames that do not match its own, so a
+station behind one could neither send nor receive options B or D. Only software modems (Direwolf,
+sound-card modems) can use them.
+
+The checksum is not the weak point of reliability. A 16-bit FCS detects errors equally well at any
+frame length; the benefit of a shorter frame is fewer bits to corrupt (see Reliability above). Error
+correction, which recovers frames that are dropped today, would be a larger and separate gain.
+FX.25 wraps an ordinary AX.25 frame in Reed-Solomon check bytes in a way that is meant to let legacy
+receivers still decode the frame inside. That is from the FX.25 design as I remember it, and has not
+been tried with a compressed frame. IL2P is a different frame format that legacy cannot decode.
+
+**Proposal:**
+1. Baseline: option A. It passes through every TNC, is not gated by a Direwolf iGate, and costs no
+   bytes.
+2. Optional: FX.25 on top for reliability, once tested with a compressed frame.
+3. Option B only for a pair of software modems that want legacy equipment not to see the frame at all.
+
+Open: whether legacy equipment other than Direwolf mishandles a PID 0xF1 frame; whether hardware TNCs
+pass FX.25 frames to the host unchanged; how often the junk in a legacy log is a nuisance.
 
 ## Marker: how a receiver knows the info is compressed
 
