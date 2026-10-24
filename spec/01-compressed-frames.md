@@ -156,7 +156,7 @@ published and retired would be for a standards body to set.
 3. Training data is one corpus (a few hours of APRS-IS over two days); a broader, ideally
    community-contributed corpus would be needed before a model is treated as final.
 4. Whether to ship one model or several (for example per-region or LoRa-only).
-5. Interaction with the other draft parts (02-06), which are ideas only.
+5. Interaction with capability announcement (02), and with the phase 2 drafts in the companion repo `aprs-smarts`, which are ideas only.
 
 ## Implementations and tests
 
