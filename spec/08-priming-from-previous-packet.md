@@ -175,7 +175,7 @@ when the sender knows reception is marginal.
 * The receiver is assumed to hold the reference. Loss is not simulated.
 * A beacon heard by two iGates with a different path can still look like a new packet, so some gain
   may be overstated; the result does not depend on a clock, because the captures carry no timestamps.
-* One hour, one evening in Europe, one table. The 8-hour capture should repeat it.
+* The simulation used the first hour of a three-hour capture (one evening in Europe) and one table. It was not repeated on all three hours.
 
 ## Costs and risks
 

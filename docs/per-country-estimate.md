@@ -1,13 +1,16 @@
-# Compression by country: estimate from one hour of capture
+# Compression by country: estimate from a three-hour capture
 
-**Status: preliminary. Superseded when the 8-hour multi-country capture has been analysed.** One hour
-(10:21-11:21 PDT, an evening in Europe) plus a 5-minute pilot; many countries are still small cells.
-Earlier versions of this page used 5 and 20 minutes. Do not quote these as final numbers.
+**Status: preliminary.** A three-hour read-only capture (10:21-13:21 PDT, an evening in Europe) plus a
+5-minute pilot: 135,299 unique packets. The country, device and priming tables below were built from the
+**first hour** of it (57,883 packets, run before the rest was collected); the full three hours were used
+for the head-to-head check in "Table size now limits the result", which found no gain from more data.
+Many countries are still small cells. Earlier versions of this page used 5 and 20 minutes. Do not quote
+these as final numbers.
 
 ## Method
 
 * Read-only APRS-IS captures, filtered by callsign prefix for about 25 countries, one connection:
-  a 5-minute pilot plus the first hour of a longer run. 57,883 unique packets used: every LoRa packet
+  a 5-minute pilot plus the first hour of the three-hour capture. 57,883 unique packets used: every LoRa packet
   (destination `APL*`) plus VHF packets an iGate heard over the air (`qAR`/`qAO`).
 * Country assigned from the source callsign's prefix. Approximate: portable and travelling stations
   are misfiled.
@@ -33,22 +36,29 @@ falls. Table sizes are the trainer's flash estimate; v1 is about 125 KB.
 The ESP32 build had about 130 KB spare and the STM32 tracker about 148 KB, so only the smaller table
 is realistic on those devices.
 
-**More data did not raise the saving at a fixed table size.** The same test set (the hour-1 held-out
-stations) scored against a table trained on the earlier 20 minutes of data (15,936 training packets):
+**More data did not raise the saving at a fixed table size.** The same 41,713 test packets (stations
+held out of every model, taken from all three hours) scored against tables trained on the first hour
+(40,239 packets) and on all three hours (93,586 packets):
 
-| Training data | Table size | LoRa saved | VHF saved |
-|---|---|---|---|
-| 20 minutes | 57 KB | 40% | 18% |
-| 20 minutes | 82 KB | 42% | 20% |
-| 20 minutes | 106 KB | 44% | 21% |
-| 1 hour | 127 KB | 43% | 21% |
-| 20 minutes | 153 KB | 46% | 23% |
-| 1 hour | 226 KB | 47% | 24% |
+| Trained on | Min-count | Table size | LoRa saved | VHF saved |
+|---|---|---|---|---|
+| 1 hour | 12 | 226 KB | 46% | 23% |
+| 1 hour | 16 | 178 KB | 44% | 22% |
+| 1 hour | 20 | 148 KB | 43% | 21% |
+| 1 hour | 24 | 127 KB | 42% | 21% |
+| 1 hour | 32 | 99 KB | 40% | 19% |
+| 1 hour | 48 | 69 KB | 38% | 17% |
+| 3 hours | 32 | 202 KB | 43% | 22% |
+| 3 hours | 40 | 168 KB | 42% | 21% |
+| 3 hours | 48 | 144 KB | 41% | 20% |
 
-At about the same size the hour of data does no better than the 20 minutes. The saving is set by
-how large a table you keep, and the extra data mostly makes the same table bigger. A better result
-needs a different model (fields modelled separately, a larger context only where it pays), not just
-more packets of the same kind. The format's 16-bit offsets also cap what can be stored.
+At about the same table size the three hours do no better than the first hour, and slightly worse: 144 KB
+from three hours gives 41% and 20%, against 43% and 21% for 148 KB from one hour. With three times the
+data the format's 16-bit offsets only fit at min-count 32 or more (min-count 12 to 24 no longer fit), so
+the extra data forces harder pruning and gains nothing. The saving is set by how large a table you keep.
+A better result needs a different model (fields modelled separately, a larger context only where it
+pays) or a more compact table format, not more packets of the same kind. This is also why a longer
+capture was not needed.
 
 The per-country tables below use the 127 KB table (min-count 24), the size that fits a device.
 
@@ -256,8 +266,8 @@ packet and the rest compresses as usual.
 * The country-to-country spread is smaller than the effect of table size and device mix.
 * A new country starts a few points behind; capping the vote costs about 4 points overall.
 * Still missing: confidence intervals; countries with too few packets; non-ASCII encodings by country
-  (Japan, Russia); a traffic-weighted airtime-saved-per-day figure; the full 8-hour run (all times of day).
+  (Japan, Russia); a traffic-weighted airtime-saved-per-day figure; other times of day (the capture covers three evening hours in Europe only).
 
 ## Next
 
-Re-run on the full 8-hour capture, add airtime saved per day and intervals, and replace this page.
+Rebuild the country, device and priming tables from all three hours, add airtime saved per day and intervals, and replace this page.

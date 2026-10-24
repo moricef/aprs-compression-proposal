@@ -46,7 +46,7 @@ already carry a repeated comment and path for almost nothing.
 
 | Estimate | Basis | Main weakness |
 |---|---|---|
-| Static compression, LoRa and VHF | 57,883 unique packets from one hour of capture (a European evening), held-out stations | One window; the table is now limited by its format, not by data |
+| Static compression, LoRa and VHF | 57,883 unique packets from the first hour of a three-hour capture (a European evening); a three-hour check found no gain from more data, held-out stations | One window; the table is now limited by its format, not by data |
 | Priming | Python simulation of ideal coding on 3,000 sampled packets; consecutive identical packets removed | Assumes the receiver holds the reference; real receivers often do not (spec 08); not real codec bytes |
 | Airtime | Line fit (LoRa), assumed TXDELAY (VHF) | Ignores channel access and collisions |
 | Overall | None of it is on-air | The over-the-air test is not done |

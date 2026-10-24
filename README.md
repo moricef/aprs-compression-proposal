@@ -11,7 +11,7 @@ the air.** Licensed under the [MIT License](LICENSE).
 
 ## Results so far (simulation on captured packets, nothing on air yet)
 
-**The test data.** About an hour of read-only APRS-IS captures (plus a 5-minute pilot) for about 25
+**The test data.** A three-hour read-only APRS-IS capture (plus a 5-minute pilot) for about 25
 countries, taken on an evening in Europe: 57,883 unique packets, of which 4,656 LoRa and 12,988 VHF
 packets were held out for testing. LoRa packets were chosen by device type, so they come mostly from
 Europe; VHF packets are those an iGate heard over the air. The model is trained on 70% of stations and
@@ -43,7 +43,7 @@ smaller because the preamble does not shrink). Full table and caveats in
 * How often to send a full frame is a trade between saving and being decodable by receivers that missed the previous packet; the proposed default is every 2nd transmission for moving stations and every 4th to 8th for stationary ones (spec 08).
 * The figures do not add up, because the methods overlap.
 * **None of this has been tested over the air.** Simulation uses ideal coding length for the priming
-  figures, an assumed TXDELAY for VHF airtime, and one hour of data.
+  figures, an assumed TXDELAY for VHF airtime, and one evening of data (three hours, Europe).
 
 See [docs/per-country-estimate.md](docs/per-country-estimate.md) for the result by country and device
 type, and [docs/legacy-decoder-test.md](docs/legacy-decoder-test.md) for what a stock Direwolf does with
@@ -91,7 +91,7 @@ position packets fit; it has no comment field; and its position field is the ord
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [Other methods considered, APRS 438, and why APRS-PPM was chosen](docs/alternatives-considered.md) | Comparison table and the reasoning |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
-| [Compression by country (rough estimate)](docs/per-country-estimate.md) | Estimate per country and device type, LoRa and VHF, from one hour of capture; to be replaced by the 8-hour run |
+| [Compression by country (rough estimate)](docs/per-country-estimate.md) | Estimate per country and device type, LoRa and VHF, from the first hour of a three-hour capture, with a three-hour check; to be rebuilt on all three hours |
 | [Legacy decoder test (no radio)](docs/legacy-decoder-test.md) | What stock Direwolf does with compressed VHF frames, using generated audio |
 | [Proposed implementations and how much they cut](docs/proposed-implementations.md) | One table: LoRa and VHF, bytes and airtime, with status |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |

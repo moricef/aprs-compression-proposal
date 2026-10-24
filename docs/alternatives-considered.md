@@ -101,7 +101,7 @@ exclusive: the like-for-like table shows a 438-style header and position with th
 ## Limits of this comparison
 
 * The context-model figures for orders 1 to 4 come from an early, small corpus. Current figures are
-  lower (about 43% on LoRa at a 127 KB table), and the corpus is one hour of capture.
+  lower (about 43% on LoRa at a 127 KB table), and the corpus is a three-hour evening capture (the tables use its first hour).
 * The 438 comparison used an earlier, smaller model and the documented 438 layout, not a 438 encoder.
 * SMAZ/SMAZ2, Varicode, PACTOR and V.42bis were looked at but not run on the packets. Their rows are
   judgements, not measurements.
