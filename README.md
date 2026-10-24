@@ -64,10 +64,14 @@ packets (see "Results so far"); nothing has been tested over the air.
    7 B smaller than layer 1 on a position packet (arithmetic, not built), and the biggest help for the
    short tracker beacons that layer 1 compresses least (about 29%). The comment-only table is about half
    the size, which helps trackers. Still stateless.
-3. **Priming with the station's previous packet ([spec 08](spec/08-priming-from-previous-packet.md)).**
-   About 66 to 70% overall; 53% with a full frame every 2nd transmission for moving stations, and 60 to 64%
-   with one every 4th to 8th for stationary ones. Needs the receiver to have heard the reference, and a few KB of RAM per
-   station. The biggest saving, and the one to try last.
+3. **Priming with the station's last full packet ([spec 08](spec/08-priming-from-previous-packet.md)).**
+   **Built** in the C reference codec and the iGate firmware branch (second frame type `3C FF 0xC1`; a full frame
+   at least every Nth packet per station, `compressFullEvery`, default 2). On real packets from stations the
+   table had not seen, a primed frame averaged 21 B against 33 B for a full frame and 60 B plain (65% against
+   45% saved, real codec bytes). In simulation, about 66 to 70% overall; 53% with a full frame every 2nd
+   transmission for moving stations, and 60 to 64% with one every 4th to 8th for stationary ones. Needs the
+   receiver to have heard the reference, and about 13 KB of RAM for the two packet stores on the ESP32. Not yet
+   tested over the air.
 
 Alongside, no new code needed: send the comment less often or shorten it (33% on one measured beacon).
 
@@ -86,7 +90,7 @@ position packets fit; it has no comment field; and its position field is the ord
 | [01 Compressed frames (APRS-PPM)](spec/01-compressed-frames.md) | Spec + C reference codec + frozen model v1 + test vectors. Host-tested only |
 | [02 Capability announcement](spec/02-capability-announcement.md) | Proposal draft: how a sender learns a station can decode compressed frames |
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
-| [08 Priming with a station's previous packet](spec/08-priming-from-previous-packet.md) | Idea + simulation: about 62-66% saved on VHF whole-packet frames, against 41% for the static table |
+| [08 Priming with a station's last full packet](spec/08-priming-from-previous-packet.md) | Wire format + C reference codec + 103 test vectors + firmware; about 65% saved on real LoRa pairs (real codec bytes), 62-70% in simulation. Host-tested only |
 | [09 Structured header for position packets](spec/09-structured-header-layout.md) | Idea: a compact fixed layout for callsign, path and position plus an order-3 comment; about 4-7 B smaller than order-3 alone on LoRa position packets (arithmetic) |
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [Other methods considered, APRS 438, and why APRS-PPM was chosen](docs/alternatives-considered.md) | Comparison table and the reasoning |
@@ -112,13 +116,18 @@ position packets fit; it has no comment field; and its position field is the ord
 
 ## Implementations
 
+* C reference codec (`reference/`), including primed frames; `make test` checks 26 full-frame and 103 primed
+  test vectors, and that a primed frame is rejected if the receiver's reference differs.
 * Firmware fork of richonguzman/LoRa_APRS_iGate with receive-always, opt-in transmit
-  (`lora.compressTx`): local branch `feature/order3-compression`, builds for `ttgo-lora32-v21`.
-  Its C++ codec produces byte-identical frames to the reference on 4,520 vectors.
+  (`lora.compressTx`) and primed frames (`lora.compressFullEvery`): local branch
+  `feature/order3-compression`, builds for `ttgo-lora32-v21` (flash 88.3%, RAM 21.7%). Its C++ codec
+  produces byte-identical frames to the reference on 4,520 full-frame vectors and all 103 primed vectors,
+  and a host test simulates a sender and receiver with a lost full frame and a lost primed frame. A
+  self-test build exercises both frame types between two boards.
 * Nothing else yet. A Direwolf port and an STM32WLE5 tracker build are candidates.
 
 ## TODO
 
 * Reframed as proposal drafts. Any project or extension name is left to whoever adopts it; no branding chosen.
-* Test over the air on two radios.
+* Test over the air on two radios (full and primed frames, `docs/over-the-air-test.md`).
 * Once it works over the air, bring the proposal to the APRS Foundation (contact form / aprssig) and open a PR to richonguzman/LoRa_APRS_iGate that links here for the format details.
