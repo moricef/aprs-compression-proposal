@@ -62,6 +62,26 @@ server, so the audio is fed after that.
 Why the first control run showed zero gated frames: Direwolf waits seven seconds after sending its
 login before it starts sending packets to the server. The earlier runs fed audio too soon.
 
+## From source code: the Mobilinkd TNC3 firmware (a hardware KISS TNC)
+
+Not a test run, a reading of the open-source firmware (`mobilinkd/tnc3-firmware`, last commit
+2023-04-17, version for TNC3 hardware 2.1.1). The files are `TNC/HdlcDecoder.cpp`, `HdlcFrame.hpp`
+and `Digipeater.hpp`. What they show:
+
+* The receive path checks the frame's standard 16-bit FCS (`parse_fcs()`) and reports a CRC error for a
+  mismatch. A frame with a good FCS is passed on to the KISS side if it is longer than 2 bytes. I found
+  no check of the PID or control field. So a frame with PID 0xF1, or a whole-packet frame, with a
+  **standard FCS reaches the host unchanged**, and one with a **different FCS is dropped** by the TNC.
+  This matches the reasoning in spec 07 about KISS TNCs.
+* The TNC3 has no FX.25 or IL2P code that I could find (no match for either in the source). I did not
+  work out what its decoder does with an FX.25 frame.
+* The digipeater in this version is a stub: `can_repeat()` returns `nullptr`, so the firmware does not
+  digipeat. Its comment describes the intended rules (a UI frame matching a digipeater alias), but
+  they are not implemented.
+
+Other TNCs: closed-source TNCs (Kantronics, Kenwood radio TNCs, OpenTracker, Byonics) cannot be read.
+The NinoTNC firmware repository I found (`M0LTE/ninotnc-firmwares`) was not examined.
+
 ## Limits
 
 * One decoder (Direwolf `atest` and the full `direwolf`, built from a branch whose AFSK decode path is unchanged from

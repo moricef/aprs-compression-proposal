@@ -182,6 +182,8 @@ It cannot send a non-standard one and it drops incoming frames that do not match
 station behind one could neither send nor receive options B or D. Only software modems (Direwolf,
 sound-card modems) can use them.
 
+Reading the open firmware of one hardware KISS TNC (Mobilinkd TNC3, `docs/legacy-decoder-test.md`) confirms it: it drops a frame whose standard FCS fails and passes any frame whose FCS is good, without looking at the PID.
+
 The checksum is not the weak point of reliability. A 16-bit FCS detects errors equally well at any
 frame length; the benefit of a shorter frame is fewer bits to corrupt (see Reliability above). Error
 correction, which recovers frames that are dropped today, would be a larger and separate gain.
@@ -252,7 +254,7 @@ of a collision with them. Legacy decoders that do hear a compressed frame with a
 it as junk (`docs/legacy-decoder-test.md`); that is log noise, not channel load.
 
 **Open**
-* Hardware digipeaters and other software digipeaters (aprx, soundmodem): do they repeat a frame with a PID other than 0xF0? Direwolf's APRS digipeater does not; the others are untested.
+* Hardware digipeaters and other software digipeaters (aprx, soundmodem): do they repeat a frame with a PID other than 0xF0? Direwolf's APRS digipeater does not; the Mobilinkd TNC3 firmware, read from source, has no working digipeater at all in this version; the others are untested or closed.
 * How quickly iGates and digipeaters upgrade, and so how long mixed operation lasts.
 * Whether a regional trial (an area that adopts together) shows a drop in channel use. That is the
   measurement the companion repo `aprs-smarts` plans.
