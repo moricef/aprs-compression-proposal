@@ -132,6 +132,8 @@ smaller). **Pass:** they decode exactly as before and look like normal APRS to t
 
 ### Test H: what a stock decoder does with a compressed frame
 
+(A no-radio version with Direwolf `atest` is in `docs/legacy-decoder-test.md`; this is the same question on real audio and other decoders.)
+
 Run an unmodified Direwolf (and any other decoder you have, such as APRSdroid or aprx) on the
 receiving side while compressed frames are sent. Note, per decoder: does it print the frame, show
 garbage, treat it as a malformed packet, or ignore it; and does it try to gate it to anything.

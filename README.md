@@ -19,6 +19,7 @@ the air.** Licensed under the [MIT License](LICENSE).
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
 | [Compression by country (rough estimate)](docs/per-country-estimate.md) | Estimate per country and device type, LoRa and VHF, from 20 minutes of capture; to be replaced by the 8-hour run |
+| [Legacy decoder test (no radio)](docs/legacy-decoder-test.md) | What stock Direwolf does with compressed VHF frames, using generated audio |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |
 
 ## Layout

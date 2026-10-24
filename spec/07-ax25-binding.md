@@ -110,8 +110,9 @@ receives them as before. But "legacy would be uncompressed" does not make everyt
   digipeaters ignore it. It reaches only stations within direct range that implement the format,
   plus any digipeaters that are upgraded. A legacy iGate does not put it on APRS-IS.
   A station would send plain until it knows the stations it needs can decode (see 02), or send both.
-* **What legacy decoders do with the frame.** A frame with an unknown PID and a binary payload may be
-  ignored, printed as garbage, or flagged as an error. Not tested; this matters most for the hybrid
+* **What legacy decoders do with the frame.** Tested in simulation (`docs/legacy-decoder-test.md`): stock
+  Direwolf decodes a frame with a valid FCS, shows binary junk for the payload, and drops a frame
+  with a different FCS without comment. Not tested with other decoders; this matters most for the hybrid
   (valid AX.25) and least for a non-AX.25 frame, which a TNC may simply drop on the failed address
   parse. Needs testing with Direwolf, aprx, APRSdroid and common hardware TNCs.
 * **Station identification.** In the whole-packet form the callsign is inside the compressed bytes.
@@ -123,6 +124,13 @@ receives them as before. But "legacy would be uncompressed" does not make everyt
 
 So not "anything we want", but a lot of room: the constraint is who can decode, not the legacy
 packets themselves.
+
+### A different FCS or start pattern as the marker
+
+A legacy TNC drops a frame whose checksum does not match, silently. A new frame type could use a
+different CRC polynomial or seed, or a distinct start pattern instead of the flag run, so legacy
+equipment never sees it (confirmed with stock Direwolf in simulation: 0 of 6 decoded). It does not
+help reach (legacy digipeaters still cannot repeat the frame) or station identification.
 
 ## Marker: how a receiver knows the info is compressed
 
