@@ -27,7 +27,8 @@ smaller because the preamble does not shrink). Full table and caveats in
 | Static compressed frame (spec 01): fixed trained table + range coder | **43%** bytes, about 34% airtime | whole packet in a new frame type **41%**, about 25% airtime |
 | Same, but keeping the AX.25 header and compressing only the info field (spec 07) | n/a | **21%**, about 13% airtime |
 | Priming each packet with the station's previous packet (spec 08) | **66%** overall, about 52% airtime | **62%** overall, about 38% airtime |
-| Priming, with a full frame every 4th transmission | 62% | 60% (63% for stationary stations) |
+| Priming, with a **full frame every 2nd transmission: proposed default for moving stations** | 56% (all LoRa stations) | **56%** (moving stations); about 86% of receivers can decode, 65% at the edge of range |
+| Priming, with a full frame every 4th transmission: suggested for stationary stations | 62% | 60% (63% for stationary stations) |
 
 **What it means.**
 * LoRa APRS carries the whole packet, so compression helps most there. Traditional VHF APRS spends
@@ -39,6 +40,7 @@ smaller because the preamble does not shrink). Full table and caveats in
   the edge of range; the data for that is weak (APRS-IS drops duplicates). See spec 08.
 * More packets of the same kind did not improve the saving at a fixed table size. The limit is now
   the table format and the model.
+* How often to send a full frame is a trade between saving and being decodable by receivers that missed the previous packet; the proposed default is every 2nd transmission for moving stations and every 4th to 8th for stationary ones (spec 08).
 * The figures do not add up, because the methods overlap.
 * **None of this has been tested over the air.** Simulation uses ideal coding length for the priming
   figures, an assumed TXDELAY for VHF airtime, and one hour of data.
