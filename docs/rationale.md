@@ -40,7 +40,7 @@ field. On 555 RF-heard VHF position packets:
 | **Like for like: the whole packet is carried** | | | |
 | Order-3 model, whole packet (a smaller, earlier model) | 33.6 | 58% | yes |
 | APRS 438 plus the comment as a second frame | 38.2 | 53% | yes |
-| 438 header and position, comment by the model | 32.8 | 59% | yes |
+| 438 header and position, comment compressed with the order-3 model (estimate, not built) | 32.8 | 59% | yes |
 | **Not like for like: part of the packet is thrown away** | | | |
 | APRS 438, position only (comment dropped) | 17.0 | 79% | **no** |
 

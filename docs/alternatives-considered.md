@@ -58,7 +58,7 @@ layout, not from a real encoder):
 | **Like for like: the whole packet is carried** | | | |
 | Order-3 model, whole packet | 33.6 | 58% | yes |
 | APRS 438 plus the comment as a second frame | 38.2 | 53% | yes |
-| 438 header and position, comment by the model | 32.8 | 59% | yes |
+| 438 header and position, comment compressed with the order-3 model (estimate, not built) | 32.8 | 59% | yes |
 | **Not like for like: part of the packet is thrown away** | | | |
 | APRS 438, position only (comment dropped) | 17.0 | 79% | **no**: 98% of these packets carry one, mean 33.5 characters |
 
@@ -77,10 +77,10 @@ not a comparison of the two methods. Compare the rows above it.
 
 438 looks best only in the row that drops the comment. With the comment kept, the model alone is
 smaller than 438 plus the comment as a second frame (33.6 against 38.2 bytes), and a 438 header and
-position with the comment coded by the model comes out about the same (32.8 bytes). For a pure position
+position with the comment compressed with the order-3 model comes out about the same (32.8 bytes, an estimate). For a pure position
 beacon with no comment, 438 is smaller than anything here (in one earlier single-beacon test, about
 17 against 21 bytes for the model). It is not a general replacement for APRS packets, and it forks the network. The two are not
-exclusive: row 4 shows a 438-style header and position with the comment coded by the model.
+exclusive: the like-for-like table shows a 438-style header and position with the comment compressed with the order-3 model.
 
 ## Why APRS-PPM was chosen
 
