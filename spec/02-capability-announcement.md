@@ -41,6 +41,12 @@ supports. It needs a place in the text that existing software ignores or display
 that is not yet found; `<` is already an APRS data-type identifier for station capabilities, so
 reusing it needs care. Not proposed until a placement is tested against existing software.
 
+A compact form has been drafted: a 2-byte binary word carrying role, the highest model version the
+station decodes, and its radio settings together, with a LoRa frame type and an APRS text token
+(`<` capabilities packet) to carry it. It is in the phase 2 repo, `aprs-smarts`,
+`drafts/radio-parameters.md` ("Binary form"), because it also covers radio settings. It is an
+untested proposal.
+
 ## Compatibility with legacy stations
 
 Nothing changes for a station that implements neither method. An upgraded iGate still gateways
@@ -53,7 +59,7 @@ station.
 
 ## Open issues
 
-1. Marker syntax and placement, if any.
+1. Whether listen-and-switch, the explicit marker, or both. Marker syntax and placement, if any.
 2. Whether a digipeater may advertise on behalf of the iGate it feeds.
 3. How long to remember a capable station.
 4. Radio parameters (frequency, spreading factor, baud rate) would naturally travel with a
