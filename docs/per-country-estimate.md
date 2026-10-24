@@ -103,6 +103,37 @@ percentage is lower. It is still about 14 bytes of a 45-byte packet. Comment len
 lever than the position encoding (see `docs/rationale.md`, airtime table). The T-Echo figure rests
 on 10 packets and may move a lot.
 
+## Earlier region test (larger corpus, US against non-US)
+
+Before the multi-country pilot, the same question was tried on a larger corpus: 22,364 unique
+packets from the earlier captures, 2,560 US and 19,804 non-US by callsign prefix (LoRa from all
+over, VHF from within 2,500 km of central US). Min-count 8, trained on 70% of stations and tested
+on the other 30%. This is not the set model v1 was trained on (14,186 packets); that set could not
+be reproduced exactly from the saved files. Figures are the percentage of the plain LoRa frame saved.
+
+| Model trained on | Tested on US (817 packets) | Tested on non-US (6,263 packets) |
+|---|---|---|
+| Everything (15,284 packets) | 42% | 50% |
+| US only (1,743 packets) | 42% | 29% |
+| Non-US only (13,541 packets) | 31% | 50% |
+
+* The table trained on everything did as well as a regional table in each region: US-only on US
+  was 42% (same as the mixed table), non-US-only on non-US was 50% (same). At this data size the
+  global table gives up nothing against a regional one.
+* The wrong region costs a lot: 29% and 31% against 42% and 50%.
+* The mixed table does worse on US (42%) than non-US (50%). US is a small share of the training
+  data and US packets are more VHF-style with different structure; a US-only table trained on the
+  same few US packets did no better. The limit is data, not the table being global.
+* The US test set is only 817 packets and the US-only model has 1,743 training packets, so the
+  numbers on that side carry real uncertainty.
+
+### Special characters
+
+Packets containing any byte above 0x7F (for example UTF-8 umlauts) still saved 46% against 49%
+for ASCII-only packets, using the table trained on everything. Only 140 test packets had such
+bytes. The special characters themselves are not well predicted, but they are a small part of the
+packet and the rest compresses as usual.
+
 ## Reading it
 
 * LoRa is near 49% for the countries with enough data. VHF is near 24% of the whole frame, because

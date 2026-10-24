@@ -68,5 +68,5 @@ Moved to the phase 2 repo (`aprs-smarts`, `docs/other-mesh-systems.md`), togethe
 
 ## Limits of these numbers
 
-One 7-minute VHF window and about an hour of LoRa traffic; central-US-heavy VHF sample. Packets are
+One 7-minute VHF window and about an hour of LoRa traffic. The LoRa packets are worldwide (mostly European); the VHF packets were taken within 2,500 km of central US. By callsign prefix the combined corpus is mostly non-US. Packets are
 unique full strings, so a station that beacons constantly counts once. No over-the-air test yet.

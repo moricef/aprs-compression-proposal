@@ -126,6 +126,13 @@ station.
 6. Transmit power is not in the word; an optional extra byte is one option.
 7. Two bits of model version run out at v3. Either models change rarely, or 3 means "v3 or later,
    see my status".
+7a. Several tables at once. Devices differ in flash: a Raspberry Pi or ESP32 can hold a large table
+   (and several), a small microcontroller only a small one, and the table is chosen per link. A frame
+   must use a table both ends hold, so a sender picks one the receiver announced. That means the
+   announcement should be a list or set of tables held, not one "highest version". Compression is
+   then set by the weaker end of a link (measured spread by table size: roughly 52% for the
+   biggest to 42% for the smallest, from `docs/rationale.md`). Separate per-country tables looked
+   unnecessary in the pilot data (`docs/per-country-estimate.md`).
 8. Where the field lives so existing software ignores it: this part proposes a LoRa frame type and
    a `<` text token, neither tested against existing firmware.
 9. The reasons to advertise radio settings at all are discussed in the phase 2 repo

@@ -131,7 +131,7 @@ version.
   and a few popular firmwares dominate the text. The model is best at what is most common and worse at
   unusual packets (it falls back to nearly plain, and never expands a packet because the sender then
   sends it plain).
-* **VHF sample is central-US-heavy** and one short window.
+* **The corpus is mostly non-US and one short window.** LoRa packets were selected by device type, not place, so they come from all over (mostly Europe). VHF packets were selected within 2,500 km of central US. By callsign prefix, a larger version of the corpus (22,364 unique packets) was about 88% non-US and 12% US. See `docs/per-country-estimate.md` for how much that matters.
 * **Not tested over the air yet.** The codec is tested on a PC (round trip on every packet, fuzzed with
   mutated and truncated packets, and two independent implementations agree byte for byte).
 * **The table holds statistics from real packets.** With the pruning used, a one-off station's string is
