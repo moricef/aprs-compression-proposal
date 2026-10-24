@@ -1,107 +1,170 @@
-# Compression by country: rough estimate (pilot data)
+# Compression by country: estimate from 20 minutes of capture
 
-**Status: rough. Superseded when the longer multi-country capture has been analysed.** Small cells
-(tens to a few hundred packets), one 5-minute capture, no confidence intervals yet. Do not quote
+**Status: preliminary. Superseded when the 8-hour multi-country capture has been analysed.** Still a
+short window, a single evening in Europe (10:21-10:36 PDT), and small cells for many countries. An
+earlier version of this page used only a 5-minute pilot; this one adds 15 minutes more. Do not quote
 these as final numbers.
 
 ## Method
 
-* One 5-minute read-only APRS-IS capture, filtered by callsign prefix for about 25 countries, one
-  connection. 18,392 unique packets; 6,314 used: every LoRa packet (destination `APL*`) plus VHF
-  packets an iGate heard over the air (`qAR`/`qAO`).
+* Read-only APRS-IS captures, filtered by callsign prefix for about 25 countries, one connection:
+  a 5-minute pilot plus the first 15 minutes of a longer run. 22,763 unique packets used: every
+  LoRa packet (destination `APL*`) plus VHF packets an iGate heard over the air (`qAR`/`qAO`).
 * Country assigned from the source callsign's prefix. Approximate: portable and travelling stations
   are misfiled.
 * Train on 70% of stations (split by hash of the source callsign), test on the other 30%.
-  Table pruned at min-count 4, because the training set is small.
+  Pruning at min-count 8. Min-count 4, used on the smaller pilot, no longer fits the format at this
+  data size (the symbol offsets are 16-bit).
 * **LoRa** figures are the whole LoRa frame, including the 3-byte header, compared with the plain
   frame. **VHF** figures are the whole AX.25 frame, with only the info field compressed and 7 bytes
   per address, 2 control/PID, 2 FCS and 2 bytes of compression overhead assumed (as in
   `spec/07-ax25-binding.md`).
-* Cells with fewer than 40 test packets are left out. Mexico, Japan, Brazil, Australia and others
-  are in the capture but too thin so far.
-* The raw capture contains real callsigns and positions and is not published. Only these aggregates are.
+* Cells with fewer than 40 test packets are left out. Many are still small (tens to a few hundred).
+* The raw captures contain real callsigns and positions and are not published. Only these aggregates are.
 
 ## Global table, tested on stations it never saw
 
 | Country | Mode | Packets | Plain B | Compressed B | Saved |
 |---|---|---|---|---|---|
-| Germany | LoRa | 114 | 68.4 | 29.8 | 56% |
-| Spain | LoRa | 46 | 66.3 | 33.2 | 50% |
-| Italy | LoRa | 80 | 64.9 | 34.5 | 47% |
-| UK | LoRa | 54 | 57.1 | 33.4 | 41% |
-| **All** | **LoRa** | **506** | **68.7** | **34.7** | **49%** |
-| Germany | VHF | 158 | 76.9 | 53.9 | 30% |
-| France | VHF | 58 | 82.6 | 58.6 | 29% |
-| Italy | VHF | 90 | 75.6 | 56.0 | 26% |
-| UK | VHF | 58 | 68.4 | 51.5 | 25% |
-| US | VHF | 624 | 72.4 | 55.1 | 24% |
-| Canada | VHF | 63 | 71.2 | 55.8 | 22% |
-| Spain | VHF | 66 | 62.0 | 50.8 | 18% |
-| Poland | VHF | 90 | 76.0 | 63.0 | 17% |
-| **All** | **VHF** | **1,463** | **73.1** | **55.5** | **24%** |
+| US | VHF | 2,160 | 73.2 | 55.7 | 24% |
+| Germany | VHF | 455 | 76.7 | 53.7 | 30% |
+| Germany | LoRa | 387 | 70.4 | 32.0 | 55% |
+| Italy | VHF | 361 | 76.8 | 56.1 | 27% |
+| Italy | LoRa | 295 | 69.7 | 36.3 | 48% |
+| Canada | VHF | 261 | 68.0 | 54.6 | 20% |
+| Poland | VHF | 215 | 73.5 | 61.1 | 17% |
+| Spain | LoRa | 194 | 64.2 | 33.9 | 47% |
+| Poland | LoRa | 188 | 82.1 | 41.4 | 50% |
+| UK | VHF | 179 | 68.7 | 51.2 | 25% |
+| Spain | VHF | 167 | 62.3 | 51.1 | 18% |
+| France | VHF | 158 | 82.7 | 61.1 | 26% |
+| UK | LoRa | 149 | 63.5 | 35.4 | 44% |
+| Australia | VHF | 144 | 87.6 | 66.3 | 24% |
+| France | LoRa | 136 | 69.4 | 35.7 | 49% |
+| Austria | VHF | 130 | 70.2 | 51.3 | 27% |
+| US | LoRa | 85 | 71.3 | 37.0 | 48% |
+| Switzerland | VHF | 85 | 72.8 | 53.1 | 27% |
+| Czechia | VHF | 81 | 66.0 | 55.0 | 17% |
+| Czechia | LoRa | 76 | 63.9 | 34.3 | 46% |
+| Chile | LoRa | 72 | 72.8 | 42.2 | 42% |
+| Netherlands | VHF | 72 | 88.1 | 66.5 | 25% |
+| Brazil | VHF | 65 | 81.2 | 65.7 | 19% |
+| Russia | VHF | 60 | 87.2 | 63.9 | 27% |
+| Japan | VHF | 57 | 61.7 | 48.9 | 21% |
+| Norway | VHF | 52 | 71.0 | 56.8 | 20% |
+| Norway | LoRa | 50 | 53.8 | 32.1 | 40% |
+| Sweden | VHF | 48 | 75.0 | 57.5 | 23% |
+| Mexico | VHF | 46 | 80.2 | 56.6 | 29% |
+| **All** | **LoRa** | 1,879 | 69.9 | 35.6 | 49% |
+| **All** | **VHF** | 4,948 | 73.6 | 55.9 | 24% |
+
+* LoRa is near 49%. VHF is near 24% of the whole frame, because the address fields cannot be
+  compressed.
+* VHF ranges from 17% to 30% and LoRa from 40% to 55% across countries; differences of a few points
+  are within what these sample sizes produce. Do not read rankings into them yet.
+* Mexico and Japan have a VHF figure but on 46 and 57 packets; neither has LoRa traffic.
+* More data helped: the same analysis on the 5-minute pilot alone, at the same min-count, gave 45%
+  (LoRa) and 20% (VHF).
 
 ## Does the vote matter? Traffic-weighted against capped
 
-Training was capped at 600 packets per country (3,332 training packets) and tested on the same
-held-out stations. Almost nothing changed: US VHF 22% (24% uncapped), all LoRa 49%, all VHF 23%
-(24%). At this data size the weighting makes little difference.
+Training capped at 600 packets per country (7,875 training packets), same held-out stations:
+
+| Country | Mode | Packets | Traffic-weighted | Capped at 600 |
+|---|---|---|---|---|
+| US | VHF | 2,160 | 24% | 20% |
+| Germany | VHF | 455 | 30% | 27% |
+| Germany | LoRa | 387 | 55% | 52% |
+| Italy | VHF | 361 | 27% | 25% |
+| Italy | LoRa | 295 | 48% | 45% |
+| Canada | VHF | 261 | 20% | 17% |
+| Poland | VHF | 215 | 17% | 15% |
+| Poland | LoRa | 188 | 50% | 47% |
+| Australia | VHF | 144 | 24% | 21% |
+| US | LoRa | 85 | 48% | 45% |
+| **All** | LoRa | 1,879 | 49% | 47% |
+| **All** | VHF | 4,948 | 24% | 21% |
+
+Capping costs 2 to 3 points overall, mostly because US VHF drops from 24% to 20%. Training on
+pooled traffic, so that the busiest countries count most, gives the larger total saving.
 
 ## A country the table has never seen
 
 Trained on the other countries, tested on every packet of the held-out country:
 
-| Country | Mode | Packets | Saved | (global table, above) |
+| Country | Mode | Packets | Saved (country unseen) | Saved (global table, in training mix) |
 |---|---|---|---|---|
-| US | VHF | 2,030 | 18% | 24% |
-| Germany | VHF | 575 | 25% | 30% |
-| Germany | LoRa | 443 | 49% | 56% |
-| Italy | VHF | 299 | 22% | 26% |
-| Italy | LoRa | 229 | 42% | 47% |
-| Poland | VHF | 207 | 19% | 17% |
-| Poland | LoRa | 180 | 42% | not shown |
-| US | LoRa | 84 | 47% | not shown |
+| US | VHF | 7,155 | 17% | 24% |
+| Germany | VHF | 1,949 | 25% | 30% |
+| Germany | LoRa | 1,614 | 48% | 55% |
+| Italy | VHF | 1,117 | 21% | 27% |
+| Canada | VHF | 912 | 19% | 20% |
+| Italy | LoRa | 843 | 40% | 48% |
+| Poland | VHF | 757 | 18% | 17% |
+| Poland | LoRa | 657 | 42% | 50% |
+| Spain | LoRa | 615 | 44% | 47% |
+| France | LoRa | 546 | 45% | 49% |
+| UK | VHF | 508 | 23% | 25% |
+| France | VHF | 504 | 23% | 26% |
+| Austria | VHF | 465 | 28% | 27% |
+| UK | LoRa | 429 | 44% | 44% |
+| Australia | VHF | 391 | 22% | 24% |
+| Spain | VHF | 324 | 19% | 18% |
+| US | LoRa | 291 | 44% | 48% |
+| Norway | VHF | 235 | 19% | 20% |
+| Czechia | VHF | 223 | 23% | 17% |
+| Czechia | LoRa | 198 | 47% | 46% |
+| Netherlands | VHF | 179 | 22% | 25% |
+| Netherlands | LoRa | 163 | 48% | – |
+| Austria | LoRa | 139 | 47% | – |
+| Norway | LoRa | 130 | 43% | 40% |
+| **All** | LoRa | 5,673 | 45% | 49% |
+| **All** | VHF | 14,719 | 20% | 24% |
 
-A new country starts a few points behind (about 4-7 points here), not at zero.
+A new country starts about 4 points behind, not at zero (all LoRa 45% against 49%, all VHF 20%
+against 24%).
 
 ## Why the countries differ: device type
 
-The country gap is mostly a device-mix effect. Same pilot data, LoRa packets only, global table,
-tested on held-out stations, grouped by the first five characters of the destination (tocall). The
-description comes from the APRS device registry (`aprsorg/aprs-deviceid`, maintained by Hessu,
-OH7LZB, CC BY-SA 2.0); registry entries are six characters with `?` wildcards, so a five-character
-group can span several entries.
+The country gap is mostly a device-mix effect. LoRa packets only, global table, tested on held-out
+stations, grouped by the first five characters of the destination (tocall). The description comes
+from the APRS device registry (`aprsorg/aprs-deviceid`, maintained by Hessu, OH7LZB, CC BY-SA 2.0);
+registry entries are six characters with `?` wildcards, so a five-character group can span several
+entries.
 
 | Device ID | Packets | Avg plain | Saved | Registry entry (vendor and model) | Class |
 |---|---|---|---|---|---|
-| APLG0 | 47 | 84 B | 65% | `APLG??`: OE5BPA, LoRa Gateway/Digipeater | digi |
-| APLC1 | 19 | 57 B | 53% | `APLC??`: DL3DCW, APRScube | none listed |
-| APLRG | 261 | 72 B | 51% | `APLRG?`: CA2RXU, ESP32 LoRa iGate | igate |
-| APLRT | 96 | 45 B | 31% | `APLRT?`: CA2RXU, ESP32 LoRa Tracker | tracker |
-| APLET | 10 | 50 B | 13% | `APLETK`: DL5TKL, T-Echo | tracker |
+| APLG0 | 143 | 85 B | 64% | `APLG??`: OE5BPA, LoRa Gateway/Digipeater | digi |
+| APLHM | 23 | 86 B | 60% | `APLHM?`: IW1CGW, LoRa Meteostation | wx |
+| APLHI | 23 | 75 B | 56% | `APLHI?`: IW1CGW, LoRa IGate/Digipeater/Telemetry | digi |
+| APLRG | 961 | 74 B | 51% | `APLRG?`: CA2RXU, ESP32 LoRa iGate | igate |
+| APLC1 | 72 | 54 B | 49% | `APLC??`: DL3DCW, APRScube | none listed |
+| APLOX | 59 | 78 B | 49% | `APLO??`: SQ9MDD, LoRa KISS TNC/Tracker | tracker |
+| APLRF | 144 | 85 B | 47% | `APLRF?`: SQ2CPA, LoRa APRS | none listed |
+| APLT0 | 30 | 67 B | 43% | `APLT??`: OE5BPA, LoRa Tracker | tracker |
+| APLRT | 352 | 46 B | 32% | `APLRT?`: CA2RXU, ESP32 LoRa Tracker | tracker |
+| APLET | 27 | 49 B | 13% | `APLETK`: DL5TKL, T-Echo | tracker |
 
-Also in the data: APLRF (`APLRF?`, SQ2CPA, LoRa APRS), APLOX (`APLO??`, SQ9MDD, LoRa KISS
-TNC/Tracker), APLT0 (`APLT??`, OE5BPA, LoRa Tracker).
-
-The UK looks low (41% against Germany's 56%) because its sample has more short tracker beacons
-(16 APLRT and 7 APLET of 54) and Germany's has long gateway packets (31 APLG0 of 114).
-Within a device type the countries are close. Samples are small; APLET is only 10 packets.
+The UK looks low on LoRa (44% against Germany's 55%) because its sample has many short tracker
+beacons (23 of the 27 T-Echo packets are from the UK) and Germany's has long gateway packets (93 of
+the 143 APLG0). Within a device type the countries are close. APLET is only 27 packets.
 
 ## Already-compressed beacons compress least
 
-All LoRa packets in the pilot (not only the test split), by position format in the info field:
+All LoRa packets in the data (not only the test split), by position format in the info field:
 
 | Device | Packets | Position format | Avg total | Avg comment | Saved |
 |---|---|---|---|---|---|
-| APLRT (ESP32 LoRa Tracker) | 277 | 274 APRS-compressed (base-91), 3 other | 45 B | 6 B | 31% |
-| APLET (T-Echo) | 10 | all 10 APRS-compressed | 47 B | 13 B | 13% |
-| APLG0 (LoRa Gateway/Digipeater) | 150 | all 150 uncompressed (digit string) | 80 B | 37 B | 65% |
-| APLRG (ESP32 LoRa iGate) | 898 | 823 compressed, 46 uncompressed, 29 other | 70 B | 33 B | 51% |
+| APLRT (ESP32 LoRa Tracker) | 1,123 | 1,113 APRS-compressed (base-91), 10 other | 45 B | 6 B | 32% |
+| APLET (T-Echo) | 28 | 26 compressed, 2 uncompressed | 47 B | 14 B | 13% |
+| APLG0 (LoRa Gateway/Digipeater) | 474 | 471 uncompressed (digit string), 3 compressed | 79 B | 36 B | 64% |
+| APLT0 (OE5BPA LoRa Tracker) | 255 | 225 uncompressed, 30 compressed | 87 B | 44 B | 43% |
+| APLRG (ESP32 LoRa iGate) | 3,180 | 2,976 compressed, 130 uncompressed, 4 Mic-E, 70 other | 71 B | 34 B | 51% |
 
-Trackers already use APRS's own compact base-91 position and send short comments. What is left is
-the header, the callsign and a near-random position, which no predictor can shrink much, so the
-percentage is lower. It is still about 14 bytes of a 45-byte packet. Comment length is a larger
-lever than the position encoding (see `docs/rationale.md`, airtime table). The T-Echo figure rests
-on 10 packets and may move a lot.
+Trackers that already use APRS's own compact base-91 position and a short comment leave the header,
+the callsign and a near-random position, which no predictor can shrink much, so the percentage is
+lower. It is still about 14 bytes of a 45-byte packet. Comment length is a larger lever than the
+position encoding (see `docs/rationale.md`, airtime table). The T-Echo figure rests on few packets.
 
 ## Earlier region test (larger corpus, US against non-US)
 
@@ -136,14 +199,15 @@ packet and the rest compresses as usual.
 
 ## Reading it
 
-* LoRa is near 49% for the countries with enough data. VHF is near 24% of the whole frame, because
-  the address fields cannot be compressed.
-* The spread between countries (VHF 17-30%) is within what small samples produce; do not read
-  rankings into it yet.
-* Still missing: Mexico, Japan, Brazil, Australia and other countries; non-ASCII comment
-  encodings; a traffic-weighted airtime-saved-per-day figure; confidence intervals.
+* LoRa is near 49% and VHF near 24% of the whole frame, with a country-to-country spread that the
+  current sample sizes cannot separate from noise.
+* More data raised both figures by about 4 points; the table is data-limited, not size-limited.
+* The weighting question (busiest countries count most) costs the quiet countries little at this
+  size, and capping costs the total 2 to 3 points.
+* Still missing: confidence intervals; countries with too few packets (Korea, Ukraine, South Africa,
+  New Zealand, Argentina, Denmark, Finland); non-ASCII encodings by country (Japan, Russia); a
+  traffic-weighted airtime-saved-per-day figure; the full 8-hour run (all times of day).
 
 ## Next
 
-Re-run on the 8-hour multi-country capture, add the missing countries, add airtime saved per day
-and intervals, and replace this page.
+Re-run on the full 8-hour capture, add airtime saved per day and intervals, and replace this page.

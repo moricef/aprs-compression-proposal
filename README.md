@@ -18,7 +18,7 @@ the air.** Licensed under the [MIT License](LICENSE).
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
 | [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
-| [Compression by country (rough estimate)](docs/per-country-estimate.md) | Pilot-data estimate per country, LoRa and VHF; to be replaced by the longer capture |
+| [Compression by country (rough estimate)](docs/per-country-estimate.md) | Estimate per country and device type, LoRa and VHF, from 20 minutes of capture; to be replaced by the 8-hour run |
 | [Rationale and measurements](docs/rationale.md) | Numbers behind the above |
 
 ## Layout
