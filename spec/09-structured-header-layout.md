@@ -19,14 +19,15 @@ hold an earlier packet.
 
 ## Why: where the order-3 model spends its bytes
 
-LoRa position packets from held-out stations (4,282 packets), min-count 24, without frame overhead:
+LoRa position packets from held-out stations (9,947 packets, from a three-hour capture), 144 KB-class table
+(min-count 48), without frame overhead:
 
 | Part | Plain | Order-3 whole packet |
 |---|---|---|
-| Header: callsign, destination, path, packet type | 25.1 B | 8.4 B |
-| Position block | 13.7 B | 13.8 B |
-| Comment | 29.2 B | 14.9 B |
-| Total | 68.0 B | 37.1 B |
+| Header: callsign, destination, path, packet type | 25.2 B | 8.9 B |
+| Position block | 13.6 B | 14.3 B |
+| Comment | 29.9 B | 15.8 B |
+| Total | 68.7 B | 39.0 B |
 
 The position block does not compress, because most of these packets already use the base-91 position,
 which is close to random. The comment halves. The header is where fixed fields beat a model: a
@@ -38,9 +39,9 @@ that the model has to predict.
 From 438's documentation (`geolocation.html`, `ccccd.html`): its 12-byte position field is the standard
 APRS base-91 compressed position written as characters (`/XXXXYYYY$cs`: table, 4 characters of
 longitude, 4 of latitude, symbol, 2 of course and speed). That is the same position most LoRa trackers
-already send, and the order-3 model cannot shrink it (13.8 B before and after in the table above). So
+already send, and the order-3 model cannot shrink it (13.6 B before, 14.3 B after in the table above). So
 the part of 438 that saves bytes over the order-3 model is the **header packing**: the callsign in 4
-bytes and SSID, path code and type in 1 byte, about 5 B against 8.4 B. The position and a binary form
+bytes and SSID, path code and type in 1 byte, about 5 B against 8.9 B. The position and a binary form
 of it (about 6 to 7 B instead of 12) are where a purpose-built layout could do better than 438's.
 
 ## Sketch of the layout (indicative, not final)
@@ -55,18 +56,18 @@ of it (about 6 to 7 B instead of 12) are where a purpose-built layout could do b
 | Symbol table and code | 2 B | |
 | Comment | order-3 coded | |
 
-Fixed part: about 15 to 18 B, against 22.2 B for the header and position under the order-3 model. The
+Fixed part: about 15 to 18 B, against 23.2 B for the header and position under the order-3 model. The
 438 layout is 17 B in total with no comment. That is an arithmetic sketch from the measured parts, not
 a measured result.
 
-**Path codes.** In the LoRa position packets seen, five paths cover 89% (of 14,210 unique): the
-iGate-heard path with no digipeater (`TCPIP*`, 45%), `WIDE1-1` (33%), `WIDE1-1,WIDE2-1` (5.6%), none
-(4.4%) and `WIDE2-1` (1.6%). 438's own four codes fit only 57% of these packets, mainly because
+**Path codes.** In the LoRa position packets seen, four paths cover 88% (of 31,749 unique): no digipeater
+in the path (either none or the iGate's `TCPIP*`, 46%), `WIDE1-1` (35%), `WIDE1-1,WIDE2-1` (5.5%) and
+`WIDE2-1` (1.7%). 438's own four codes fit only 53% of these packets, mainly because
 `WIDE1-1` alone is not among them. A table of about five to eight codes, plus an escape for a path
 written out in text, would cover nearly all.
 
 **Could 438 simply gain a `WIDE1-1` code?** In principle yes, and it is the single most useful addition:
-with it, 89.4% of these LoRa position packets fit, against 56.6%. The obstacle is the byte. From
+with it, 88.0% of these LoRa position packets fit, against 53.0%. The obstacle is the byte. From
 438's documentation (`ccccd.html`) one byte holds the SSID (0-15, 4 bits), the path code (0-3, 2 bits)
 and the data type (0-3, 2 bits). All values of all three fields are assigned and the documentation
 defines no spare or reserved value, so a fifth path code does not fit without either widening the
@@ -75,23 +76,26 @@ change to 438's format and would belong in a protocol revision by its maintainer
 (this draft) the path field can simply be wider. 438 lists `WIDE2-2` and `WIDE1-1,WIDE2-2` as having no
 code.
 
-What is still left after adding `WIDE1-1` (10.6%): paths that already contain a digipeater callsign
-with a used mark, such as `XE2OK-15*` (about 8%), and `WIDE2-2` (1.1%) and `WIDE1-1,WIDE2-2` (0.7%).
+What is still left after adding `WIDE1-1` (12.0%): paths that already contain a digipeater callsign
+with a used mark (about 10%), and `WIDE2-2` (1.2%) and `WIDE1-1,WIDE2-2` (0.9%).
 These would use the escape or fall back to spec 01.
 
-## Expected size (from earlier measurement)
+## Expected size (three-hour data)
 
 | | Order-3 whole packet | Structured header + order-3 comment |
 |---|---|---|
-| LoRa position packets, min-count 24 (small-device table) | 41.6 B (41%) | 34.0 B (52%) |
-| Same, min-count 8 (larger table) | 36.4 B (49%) | 31.1 B (56%) |
+| LoRa position packets, min-count 24 (75 KB whole table, 36 KB comment-only) | 40.7 B (43%) | 33.0 B (54%) |
+| Same, min-count 48 (37 KB whole table, 19 KB comment-only) | 43.5 B (39%) | 34.9 B (51%) |
 
-Both assume every packet fits the layout (89% of paths do; the rest fall back to spec 01), and charge
-the hybrid 2 B of overhead against 4 B for the whole-packet frame. A real marker and version could
-cost a byte or two more. The 17 B used for the hybrid in the table is 438's figure, which has no device ID; adding one costs 1 to 2 B, which brings the gain to about 3 to 6.5 B on a position packet (3 to 4 B at the larger table, 5.5 to 6.5 B at the small one).
+(Tables here are trained on LoRa packets only, so they are smaller than the mixed-corpus 144 KB table.)
+Both assume every packet fits the layout (88% of paths do once `WIDE1-1` is a code; the rest fall back
+to spec 01), and charge the hybrid 2 B of overhead against 4 B for the whole-packet frame. A real marker
+and version could cost a byte or two more. The 17 B used for the hybrid in the table is 438's figure,
+which has no device ID; adding one costs 1 to 2 B, which brings the gain to about 6 to 7.5 B on a position
+packet (7.7 B and 8.6 B before the device ID).
 
-**Table size.** The comment-only table is about half the size of the whole-packet table: 16 KB against
-33 KB at min-count 24, 45 KB against 95 KB at min-count 8 (LoRa-only training data). A tracker that
+**Table size.** The comment-only table is about half the size of the whole-packet table: 36 KB against
+75 KB at min-count 24, 19 KB against 37 KB at min-count 48 (LoRa-only training data). A tracker that
 sends only position packets needs only the small one.
 
 ## Interaction with priming (spec 08)

@@ -60,8 +60,8 @@ packets (see "Results so far"); nothing has been tested over the air.
    Built into the iGate firmware branch (receive always, transmit opt-in). *Next: the two-board
    over-the-air test.* It is stateless: a receiver needs nothing it heard earlier.
 2. **A structured header for position packets ([draft 09](spec/09-structured-header-layout.md)).**
-   Callsign, path, type and position in a compact layout; the comment with the order-3 model. About 3 to
-   6 B smaller than layer 1 on a position packet (arithmetic, not built), and the biggest help for the
+   Callsign, path, type and position in a compact layout; the comment with the order-3 model. About 6 to
+   7 B smaller than layer 1 on a position packet (arithmetic, not built), and the biggest help for the
    short tracker beacons that layer 1 compresses least (about 29%). The comment-only table is about half
    the size, which helps trackers. Still stateless.
 3. **Priming with the station's previous packet ([spec 08](spec/08-priming-from-previous-packet.md)).**
@@ -75,7 +75,7 @@ Not planned first: VHF. The compatible VHF form saves 21 to 24% and the LoRa-sty
 digipeaters, iGates and KISS TNCs make deployment much harder (spec 07).
 
 **On APRS 438.** Layer 2 borrows 438's central idea, a fixed binary header. It does not use 438's bytes:
-438's header byte is full (4 bits SSID, 2 path, 2 data type) with no `WIDE1-1` code, so only 57% of LoRa
+438's header byte is full (4 bits SSID, 2 path, 2 data type) with no `WIDE1-1` code, so only 53% of LoRa
 position packets fit; it has no comment field; and its position field is the ordinary base-91 text. See
 [docs/alternatives-considered.md](docs/alternatives-considered.md).
 
