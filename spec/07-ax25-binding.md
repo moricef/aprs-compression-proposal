@@ -198,6 +198,53 @@ been tried with a compressed frame. IL2P is a different frame format that legacy
 Open: whether legacy equipment other than Direwolf mishandles a PID 0xF1 frame; whether hardware TNCs
 pass FX.25 frames to the host unchanged; how often the junk in a legacy log is a nuisance.
 
+## Coexistence with legacy stations, and channel load
+
+On a shared VHF channel some stations will send plain frames and some compressed ones. The question is
+whether that makes the channel more crowded. A compressed frame is shorter than the plain frame it
+replaces, so on its own it takes less airtime. The channel gets busier only if a station sends the
+same information more than once.
+
+**Rule: do not send both.** A station MUST NOT send a plain frame and a compressed frame carrying the
+same information as a matter of course. As arithmetic, using the VHF estimates above (73.8 B frame,
+1200 baud, 0.3 s assumed setup): a plain frame takes about 0.79 s and an info-only compressed frame
+about 0.69 s (13% less). If a fraction `a` of stations adopted info-only compression, total load would
+be about `1 - 0.13a` if they send compressed only, and `1 + 0.87a` if each sent both. These are
+calculations, not measurements. Sending both is worse than not adopting at all.
+
+**What a sender does instead**
+* It sends plain by default, and compressed only for receivers it has reason to believe can decode
+  (spec 02: listen-and-switch, or a capability announcement).
+* If it is unsure, it sends plain. It may send one plain frame every Nth transmission as a
+  safety net; that is a small, bounded cost.
+* A frame that receivers did not acknowledge (messages) falls back to plain.
+
+**Which form to use in a mixed area**
+| Form | Legacy digipeaters | Legacy iGates | Use |
+|---|---|---|---|
+| Info field only, or hybrid (AX.25 header kept, PID marker) | Expected to repeat it, since the address fields are normal; **not yet tested on a hardware digipeater** | Do not gate it (tested with Direwolf) | The default where legacy digipeaters are present |
+| Whole packet, LoRa-style | Cannot repeat it | Do not see it | Direct range to an upgraded receiver, or an area where the digipeaters have been upgraded |
+
+A whole-packet frame in a mixed area reaches only stations within direct range that implement it. A
+station that wants wider coverage may be tempted to send plain too, which is the problem above, so the
+whole-packet form should not be the mixed-area default.
+
+**Gating.** A compressed frame reaches APRS-IS only if an upgraded iGate in range decodes it and gates
+the expanded plain text. If none is in range the packet does not reach the internet, and the station's
+only options are to send plain or to go unseen. An area benefits from the format in proportion to how
+many iGates upgrade, so iGates are the place to start.
+
+**Collisions and carrier detect.** A legacy radio's carrier detect responds to any signal, so the new
+frames defer and collide with legacy traffic as ordinary packets do; shorter frames reduce the chance
+of a collision with them. Legacy decoders that do hear a compressed frame with a standard checksum log
+it as junk (`docs/legacy-decoder-test.md`); that is log noise, not channel load.
+
+**Open**
+* Do hardware digipeaters repeat a frame with a PID other than 0xF0? Untested.
+* How quickly iGates and digipeaters upgrade, and so how long mixed operation lasts.
+* Whether a regional trial (an area that adopts together) shows a drop in channel use. That is the
+  measurement the companion repo `aprs-smarts` plans.
+
 ## Marker: how a receiver knows the info is compressed
 
 Two candidates; neither is chosen.
