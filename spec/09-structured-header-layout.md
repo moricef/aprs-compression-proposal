@@ -54,6 +54,20 @@ iGate-heard path with no digipeater (`TCPIP*`, 45%), `WIDE1-1` (33%), `WIDE1-1,W
 `WIDE1-1` alone is not among them. A table of about five to eight codes, plus an escape for a path
 written out in text, would cover nearly all.
 
+**Could 438 simply gain a `WIDE1-1` code?** In principle yes, and it is the single most useful addition:
+with it, 89.4% of these LoRa position packets fit, against 56.6%. The obstacle is the byte. From
+438's documentation (`ccccd.html`) one byte holds the SSID (0-15, 4 bits), the path code (0-3, 2 bits)
+and the data type (0-3, 2 bits). All values of all three fields are assigned and the documentation
+defines no spare or reserved value, so a fifth path code does not fit without either widening the
+field to a second byte (17 B becomes 18 B), or taking a bit from the SSID or the data type. That is a
+change to 438's format and would belong in a protocol revision by its maintainer. In our own layout
+(this draft) the path field can simply be wider. 438 lists `WIDE2-2` and `WIDE1-1,WIDE2-2` as having no
+code.
+
+What is still left after adding `WIDE1-1` (10.6%): paths that already contain a digipeater callsign
+with a used mark, such as `XE2OK-15*` (about 8%), and `WIDE2-2` (1.1%) and `WIDE1-1,WIDE2-2` (0.7%).
+These would use the escape or fall back to spec 01.
+
 ## Expected size (from earlier measurement)
 
 | | Order-3 whole packet | Structured header + order-3 comment |
