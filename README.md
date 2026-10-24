@@ -49,6 +49,36 @@ See [docs/per-country-estimate.md](docs/per-country-estimate.md) for the result 
 type, and [docs/legacy-decoder-test.md](docs/legacy-decoder-test.md) for what a stock Direwolf does with
 the new VHF frames.
 
+## Roadmap for LoRa APRS (suggested order)
+
+Most LoRa APRS devices are ESP32 boards, so this order favours what fits and what pays off there. Each
+layer works alone and adds to the one before. All savings are from simulation or arithmetic on captured
+packets (see "Results so far"); nothing has been tested over the air.
+
+1. **Static order-3 frame ([spec 01](spec/01-compressed-frames.md)) with capability learning
+   ([spec 02](spec/02-capability-announcement.md)).** About 43% saved at a 127 KB table, 47% at 226 KB.
+   Built into the iGate firmware branch (receive always, transmit opt-in). *Next: the two-board
+   over-the-air test.* It is stateless: a receiver needs nothing it heard earlier.
+2. **A structured header for position packets ([draft 09](spec/09-structured-header-layout.md)).**
+   Callsign, path, type and position in a compact layout; the comment with the order-3 model. About 3 to
+   6 B smaller than layer 1 on a position packet (arithmetic, not built), and the biggest help for the
+   short tracker beacons that layer 1 compresses least (about 33%). The comment-only table is about half
+   the size, which helps trackers. Still stateless.
+3. **Priming with the station's previous packet ([spec 08](spec/08-priming-from-previous-packet.md)).**
+   About 56 to 66% overall, with a full frame every 2nd transmission for moving stations and every 4th
+   to 8th for stationary ones. Needs the receiver to have heard the reference, and a few KB of RAM per
+   station. The biggest saving, and the one to try last.
+
+Alongside, no new code needed: send the comment less often or shorten it (33% on one measured beacon).
+
+Not planned first: VHF. The compatible VHF form saves 21 to 24% and the LoRa-style frame 41 to 45%, but
+digipeaters, iGates and KISS TNCs make deployment much harder (spec 07).
+
+**On APRS 438.** Layer 2 borrows 438's central idea, a fixed binary header. It does not use 438's bytes:
+438's header byte is full (4 bits SSID, 2 path, 2 data type) with no `WIDE1-1` code, so only 57% of LoRa
+position packets fit; it has no comment field; and its position field is the ordinary base-91 text. See
+[docs/alternatives-considered.md](docs/alternatives-considered.md).
+
 ## Parts
 
 | Part | Status |

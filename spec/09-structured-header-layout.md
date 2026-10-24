@@ -33,6 +33,16 @@ which is close to random. The comment halves. The header is where fixed fields b
 callsign is about 31 bits however it is coded, and a path or type is a few bits, not several characters
 that the model has to predict.
 
+## What 438 actually contributes
+
+From 438's documentation (`geolocation.html`, `ccccd.html`): its 12-byte position field is the standard
+APRS base-91 compressed position written as characters (`/XXXXYYYY$cs`: table, 4 characters of
+longitude, 4 of latitude, symbol, 2 of course and speed). That is the same position most LoRa trackers
+already send, and the order-3 model cannot shrink it (13.8 B before and after in the table above). So
+the part of 438 that saves bytes over the order-3 model is the **header packing**: the callsign in 4
+bytes and SSID, path code and type in 1 byte, about 5 B against 8.4 B. The position and a binary form
+of it (about 6 to 7 B instead of 12) are where a purpose-built layout could do better than 438's.
+
 ## Sketch of the layout (indicative, not final)
 
 | Field | Size | Note |
@@ -40,11 +50,12 @@ that the model has to predict.
 | Marker, version, length | about 2 B | as in spec 01 |
 | Callsign | 4 B | six characters of A-Z, 0-9 and space need about 31 bits |
 | SSID, path code, type | 1 B | a few bits each |
+| Device ID (the destination / tocall, such as `APLRT1`) | 1 to 2 B | an index into a table of common device IDs, with an escape; 438's 17 B has no field for this, so a faithful version adds it |
 | Latitude, longitude | about 7 B | the same precision as the base-91 position (8 characters) |
 | Symbol table and code | 2 B | |
 | Comment | order-3 coded | |
 
-Fixed part: about 14 to 16 B, against 22.2 B for the header and position under the order-3 model. The
+Fixed part: about 15 to 18 B, against 22.2 B for the header and position under the order-3 model. The
 438 layout is 17 B in total with no comment. That is an arithmetic sketch from the measured parts, not
 a measured result.
 
@@ -77,7 +88,7 @@ These would use the escape or fall back to spec 01.
 
 Both assume every packet fits the layout (89% of paths do; the rest fall back to spec 01), and charge
 the hybrid 2 B of overhead against 4 B for the whole-packet frame. A real marker and version could
-cost a byte or two more. So the realistic gain is about 4 to 7 B on a position packet.
+cost a byte or two more. The 17 B used for the hybrid in the table is 438's figure, which has no device ID; adding one costs 1 to 2 B, which brings the gain to about 3 to 6.5 B on a position packet (3 to 4 B at the larger table, 5.5 to 6.5 B at the small one).
 
 **Table size.** The comment-only table is about half the size of the whole-packet table: 16 KB against
 33 KB at min-count 24, 45 KB against 95 KB at min-count 8 (LoRa-only training data). A tracker that
