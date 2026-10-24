@@ -1,4 +1,4 @@
-# LoRa APRS ideas (working name)
+# Proposals for extending APRS: compressed frames and smarter LoRa/VHF behaviour
 
 Ideas, and a draft spec with a reference codec, for making LoRa APRS a little smarter: carrying the
 same APRS packets in fewer bytes, and borrowing neighbour-discovery and routing ideas from
@@ -45,6 +45,6 @@ the air.** Licensed under the [MIT License](LICENSE).
 
 ## TODO
 
-* Choose the project name.
+* Reframed as proposal drafts. Any project or extension name is left to whoever adopts it; no branding chosen.
 * Test over the air on two radios.
-* Once it works over the air, open a PR to richonguzman/LoRa_APRS_iGate that links here for the format details.
+* Once it works over the air, bring the proposal to the APRS Foundation (contact form / aprssig) and open a PR to richonguzman/LoRa_APRS_iGate that links here for the format details.
