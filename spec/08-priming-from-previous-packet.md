@@ -5,7 +5,7 @@
 | Status | **Idea with a simulation. Not a standard, not implemented, not tested on air.** |
 | Depends on | 01 Compressed frames |
 | Changes to existing APRS | None to plain packets. A new frame variant; needs state at both ends |
-| Evidence | `tools/delta_sim.py`, an ideal-cost simulation in Python on an hour of APRS-IS capture |
+| Evidence | `tools/delta_sim.py` (ideal-cost simulation on an hour of APRS-IS capture) and `tools/receiver_sim.py` (does the receiver hold the reference) |
 
 ## Summary
 
@@ -81,6 +81,50 @@ worse: they scored slightly higher. A moving station's position changes by a few
 cheap, and its comment and symbol repeat. The stationary group includes iGates and digipeaters with
 long comments, which lowers its plain-frame saving. So the position change is not what limits the
 gain; the sample of moving stations is small (192 stations), and the classification is rough.
+
+## Does the receiver hold the reference? (moving stations)
+
+A receiver can use only a reference packet it heard, and a moving station is heard by a given iGate
+only part of the time. `tools/receiver_sim.py` rebuilds each moving station's transmissions from the
+captured packets (one element per transmission, with the iGates that heard it, taken from the
+q-construct) and asks, for every (receiving iGate, moving station) pair: of the packets this iGate
+heard, in how many did it also hold the reference? 173 moving stations with at least 4 transmissions,
+489 (iGate, station) pairs, 3,473 packets heard. A first packet, or a full frame, is always decodable.
+
+| Receivers grouped by | Pairs | Packets heard | Previous packet | 2 back | 3 back | Full frame every 4 | Full frame every 8 |
+|---|---|---|---|---|---|---|---|
+| All pairs | 489 | 3,473 | 73% | 75% | 75% | 78% | 74% |
+| Hears at least 90% of the station's packets | 76 | 1,595 | **99%** | 99% | 99% | 99% | 99% |
+| Hears 50-90% | 82 | 824 | 75% | 77% | 75% | 79% | 78% |
+| Hears under 50% | 331 | 1,054 | **33%** | 36% | 37% | 45% | 33% |
+| Busiest quarter of iGates (by stations heard) | 316 | 1,895 | 71% | 71% | 72% | 76% | 71% |
+| Quietest quarter of iGates | 34 | 658 | 78% | 86% | 80% | 84% | 81% |
+
+* The expectation held: a receiver that hears most of a moving station's packets decodes nearly all
+  of them (99%), while one at the edge of its range, which hears under half, decodes a third. Most
+  pairs (331 of 489) are edge cases, though they account for fewer of the packets heard (1,054 of
+  3,473), because a well-placed iGate hears many more.
+* Asking for an older reference (2 or 3 back) or a full frame every 4 helps the edge receivers only a
+  little (36% to 45%). A receiver that hears a quarter of the packets simply does not have the
+  reference most of the time.
+* Grouping iGates by how many stations they heard does not separate "hilltop" from "low-lying" well
+  (the busiest quarter did slightly worse): that is a poor proxy for height, and the iGates' real
+  elevations are not in the data.
+* This is an **upper bound**. A transmission that no iGate heard is invisible, so the real gaps are
+  larger and the real decodable shares are lower.
+
+What it costs, for moving stations (from the simulation above: static 42.9 B per packet, primed with
+the previous packet 22.5 B): a primed packet is only worth sending if enough receivers can decode
+it. The break-even decodable share is about 52% (22.5 / 0.52 is 42.9 B per decodable packet). At the
+overall 73% a delivered packet costs about 31 B instead of 43 B; for the well-placed receivers (99%)
+about 23 B; for edge receivers (33%) about 68 B, which is worse than sending the full frame.
+
+Consequence: for moving stations, priming from earlier packets is a good deal for the iGates that
+matter most (the ones that hear a station well) and a loss for marginal ones. A moving station that
+sends only primed packets would not appear at all to receivers at the edge of its range. A design
+has to keep a self-contained (full) frame frequent enough for them, or let the sender fall back to a
+full frame in conditions where it expects marginal reception (for example when moving fast, or
+after a long gap).
 
 ## Limits of the simulation
 
