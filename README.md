@@ -1,4 +1,4 @@
-# Proposals for extending APRS: compressed frames and smarter LoRa/VHF behaviour
+# Proposals for extending APRS: compressed frames and capability announcement
 
 **Phase 1 of bringing APRS up to date:** proposal drafts for carrying the same APRS packets in fewer
 bytes (APRS-PPM compressed frames), a way for stations to learn what the stations around them can
