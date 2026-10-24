@@ -64,19 +64,7 @@ fields. On 834 held-out VHF packets: info field 52.3 B -> 34.4 B (34%), whole AX
 
 ## What other mesh systems do
 
-* **MeshCore:** only repeaters relay; flood once to discover a path, then send along the stored
-  path; repeaters deprioritise flood packets from distant senders; path discovery rides on normal
-  traffic. https://buymeacoffee.com/ripplebiz/meshcore-philosophy ; comparison
-  https://simeononsecurity.com/articles/meshcore-vs-meshtastic-comparison-guide/ (secondary source;
-  the 95-98% airtime figure is from one wiki page).
-* **Meshtastic 2.6:** next-hop routing for direct messages, compatible with older firmware.
-  https://meshtastic.org/blog/meshtastic-2-6-preview/
-* **Reticulum:** short- and long-term airtime caps on RNode interfaces; boundary nodes that keep
-  internet announces off the LoRa channel. Details are from a mirror of its commits and a third-party
-  boundary-node project, not the official manual.
-* Encryption in MeshCore/Meshtastic does not fit amateur radio content rules; nothing here uses it.
-
-See also `LoRa-APRS-smarter-notes.pdf` in this folder.
+Moved to the phase 2 repo (`aprs-smarts`, `docs/other-mesh-systems.md`), together with the comparison PDF.
 
 ## Limits of these numbers
 
