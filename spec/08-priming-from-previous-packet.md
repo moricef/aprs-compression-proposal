@@ -47,20 +47,25 @@ reference text whose preceding k bytes equal the current context adds `APRS_PPM_
 count of the byte at j, on top of the table's count for that context. The merged counts then go through the
 unchanged PPM method C blend and range coder. With no reference this reduces to spec 01 exactly.
 
-**Receiver.** On a primed frame, look up the stored packet whose station id matches (the receiver stores the
-text of the last packet it received from each source, whether plain, full or primed). If its CRC-8 does not
-equal the reference check, or no packet is stored, drop the frame: the packet is lost, as it would be for any
-receiver that did not hear it. After decoding, the CRC-8 of the decoded source callsign must equal the
-station id.
+**Reference.** The reference for a station is the text of its **last full or plain packet**, not simply its
+previous packet. A primed frame never replaces the reference, so losing a primed frame does not break the
+next one; only losing the full frame does, and then the primed frames that refer to it are dropped until the
+next full frame arrives.
 
-**Sender.** Keep the text of the last packet transmitted for each source. Send a full frame every Nth
-transmission for that source, and otherwise a primed frame with the last transmitted packet as the
-reference; send a plain frame if neither is smaller than plain.
+**Receiver.** Keep, for each source, the text of the last plain or full packet received. On a primed frame,
+look up the stored packet whose station id matches and whose CRC-8 equals the reference check. If there is
+none, drop the frame: the packet is lost, as it would be for any receiver that did not hear it. After
+decoding, the CRC-8 of the decoded source callsign must equal the station id.
+
+**Sender.** Keep, for each source, the text of the last full or plain packet transmitted and how many primed
+frames have gone since. Send a full frame at least every Nth transmission for that source, and otherwise a
+primed frame referring to the stored text; send a plain frame if neither is smaller than plain.
 
 ### Measured with the real codec
 
 3,000 consecutive packet pairs from 536 LoRa stations that model v1's training data did not contain (the
-three-hour capture; reference = the station's previous different packet), model v1, real frame bytes
+three-hour capture; reference = the station's previous different packet, which is what a full frame every 2nd
+transmission gives), model v1, real frame bytes
 including the 6-byte primed header:
 
 | | Avg frame | Saved vs plain (60.1 B) |
