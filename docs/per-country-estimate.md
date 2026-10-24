@@ -269,6 +269,32 @@ for ASCII-only packets, using the table trained on everything. Only 140 test pac
 bytes. The special characters themselves are not well predicted, but they are a small part of the
 packet and the rest compresses as usual.
 
+## Should the table be retrained? (LoRa)
+
+Model v1 was trained on 22,364 packets from the earlier captures (about an hour of LoRa traffic and short VHF
+windows, 22-23 October), not on the 5-minute pilot. To see whether the three-hour capture justifies a new
+table, v1 and retrained tables were scored on the same held-out LoRa packets, **excluding every station
+that was in v1's training data** (2,203 LoRa packets from stations none of the tables had seen):
+
+| Table | Training data | Size | LoRa saved |
+|---|---|---|---|
+| **Model v1 (current)** | 22,364 packets, LoRa-heavy | 125 KB | **43.8%** |
+| Retrained | 3-hour LoRa packets only | 111 KB | 42.8% |
+| Retrained | 3-hour LoRa packets only | 169 KB | 43.3% |
+| Retrained | 3-hour LoRa + v1's LoRa packets | 116 KB | 43.3% |
+| Retrained | 3-hour LoRa + v1's LoRa packets | 185 KB | 43.7% |
+| Retrained | 3-hour LoRa + VHF (the mixed table of this page) | 144 KB | 36.4% |
+| Retrained | 3-hour LoRa + VHF + v1's packets | 226 KB | 40.8% |
+
+* **A retrained LoRa table does no better than v1 at the same size.** So v1 stays for LoRa.
+* **A table that includes the (larger) VHF share does worse on LoRa** (36% to 41%) because the VHF text
+  takes table space. The LoRa figures on this page's tables (41%) are for that mixed table; a LoRa-only
+  table gets about 43%.
+* On VHF the picture reverses: v1 saves 15.0% of the whole frame on stations it never saw, the mixed table
+  18.0%. A separate table trained on VHF packets for the VHF binding is worth trying.
+* Scoring v1 on all test packets instead gives 54.2% on LoRa, but that is inflated: v1 saw some of the
+  same stations, and they beacon the same text again.
+
 ## Reading it
 
 * At a table size that fits a small device (144 KB), LoRa is near 41% and VHF near 20% of the whole

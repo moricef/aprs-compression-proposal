@@ -20,10 +20,16 @@ static int find_context(const aprs_ppm_order_t *t, uint32_t key)
 }
 
 /* Blend orders 3..0 (PPM method C: escape weight u/(n+u)) in 32.32 fixed point, add a uniform
- * floor so every byte value stays encodable, and fill freq[256]. Returns the total (<= 65536). */
-static uint32_t build_freq(const uint8_t *hist, size_t pos, uint16_t *freq)
+ * floor so every byte value stays encodable, and fill freq[256]. Returns the total (<= 65536).
+ *
+ * If ref is not NULL the model is primed: for each order, every position of the reference text whose
+ * preceding k bytes equal the current context adds APRS_PPM_PRIME_WEIGHT to the count of the byte that
+ * followed it, on top of the stored table's count. With ref == NULL this is the plain model. */
+static uint32_t build_freq(const uint8_t *hist, size_t pos, uint16_t *freq,
+                           const uint8_t *ref, size_t ref_len)
 {
     uint32_t pr[256];
+    uint32_t cnt[256];
     uint64_t rem = 0xFFFFFFFFull;
     int max_k = pos < (size_t)APRS_PPM_ORDER ? (int)pos : APRS_PPM_ORDER;
     int k, s;
@@ -31,19 +37,31 @@ static uint32_t build_freq(const uint8_t *hist, size_t pos, uint16_t *freq)
 
     for (s = 0; s < 256; s++) pr[s] = 0;
     for (k = max_k; k >= 0 && rem > 0; k--) {
-        uint32_t key = 0, from, to, u, n = 0, denom, i;
+        uint32_t key = 0, from, to, u = 0, n = 0, denom, i;
         int j, c;
+        size_t r;
         const aprs_ppm_order_t *t = &aprs_ppm_orders[k];
         for (j = k; j >= 1; j--) key = (key << 8) | hist[pos - j];
+        for (s = 0; s < 256; s++) cnt[s] = 0;
         c = find_context(t, key);
-        if (c < 0) continue;
-        from = t->offsets[c];
-        to = t->offsets[c + 1];
-        u = to - from;
-        for (i = from; i < to; i++) n += aprs_ppm_counts[i];
+        if (c >= 0) {
+            from = t->offsets[c];
+            to = t->offsets[c + 1];
+            for (i = from; i < to; i++) cnt[aprs_ppm_symbols[i]] += aprs_ppm_counts[i];
+        }
+        if (ref != NULL) {
+            for (r = (size_t)k; r < ref_len; r++) {
+                int match = 1;
+                for (j = 0; j < k; j++)
+                    if (ref[r - (size_t)k + (size_t)j] != hist[pos - (size_t)k + (size_t)j]) { match = 0; break; }
+                if (match) cnt[ref[r]] += APRS_PPM_PRIME_WEIGHT;
+            }
+        }
+        for (s = 0; s < 256; s++) if (cnt[s]) { u++; n += cnt[s]; }
+        if (u == 0) continue;
         denom = n + u;
-        for (i = from; i < to; i++)
-            pr[aprs_ppm_symbols[i]] += (uint32_t)((rem * aprs_ppm_counts[i]) / denom);
+        for (s = 0; s < 256; s++)
+            if (cnt[s]) pr[s] += (uint32_t)((rem * cnt[s]) / denom);
         rem = (rem * u) / denom;
     }
     floor_share = (uint32_t)(rem >> 8);
@@ -154,7 +172,7 @@ size_t aprs_ppm_encode_frame(const uint8_t *text, size_t text_len, uint8_t *fram
     if (text_len == 0 || text_len > APRS_PPM_MAX_TEXT || frame_cap < 5) return 0;
     e.out = frame + 4; e.cap = frame_cap - 4; e.n = 0; e.overflow = 0; e.low = 0; e.range = 0xFFFFFFFFu;
     for (i = 0; i < text_len; i++) {
-        uint32_t total = build_freq(text, i, freq), cum = 0;
+        uint32_t total = build_freq(text, i, freq, NULL, 0), cum = 0;
         int s;
         for (s = 0; s < text[i]; s++) cum += freq[s];
         enc_symbol(&e, cum, freq[text[i]], total);
@@ -181,12 +199,102 @@ size_t aprs_ppm_decode_frame(const uint8_t *frame, size_t frame_len, uint8_t *te
     if (text_len == 0 || text_len > text_cap) return 0;
     dec_init(&d, frame + 4, frame_len - 4);
     for (i = 0; i < text_len; i++) {
-        uint32_t total = build_freq(text, i, freq);
+        uint32_t total = build_freq(text, i, freq, NULL, 0);
         uint32_t v = dec_target(&d, total), cum = 0;
         int s = 0;
         while (s < 255 && cum + freq[s] <= v) { cum += freq[s]; s++; }
         dec_consume(&d, cum, freq[s]);
         text[i] = (uint8_t)s;
     }
+    return text_len;
+}
+
+/* ---- primed frames (spec 08) ---------------------------------------------------------------- */
+
+/* CRC-8, polynomial 0x07, initial value 0, no reflection, no final xor. */
+uint8_t aprs_ppm_crc8(const uint8_t *p, size_t n)
+{
+    uint8_t c = 0;
+    size_t i;
+    int b;
+    for (i = 0; i < n; i++) {
+        c ^= p[i];
+        for (b = 0; b < 8; b++) c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x07) : (uint8_t)(c << 1);
+    }
+    return c;
+}
+
+uint8_t aprs_ppm_station_id(const uint8_t *text, size_t len)
+{
+    size_t n = 0;
+    while (n < len && text[n] != '>') n++;
+    return aprs_ppm_crc8(text, n);
+}
+
+int aprs_ppm_is_primed_frame(const uint8_t *f, size_t len)
+{
+    return len >= 6 && f[0] == APRS_PPM_HEADER_0 && f[1] == APRS_PPM_HEADER_1 &&
+           f[2] == (uint8_t)(APRS_PPM_VERSION_FLAG | APRS_PPM_PRIMED_FLAG | aprs_ppm_model_version_value);
+}
+
+size_t aprs_ppm_encode_primed(const uint8_t *ref, size_t ref_len, const uint8_t *text, size_t text_len,
+                              uint8_t *frame, size_t frame_cap)
+{
+    encoder_t e;
+    uint16_t freq[256];
+    size_t i, frame_len;
+
+    if (ref == NULL || ref_len == 0 || ref_len > APRS_PPM_MAX_TEXT) return 0;
+    if (text_len == 0 || text_len > APRS_PPM_MAX_TEXT || frame_cap < 7) return 0;
+    e.out = frame + 6; e.cap = frame_cap - 6; e.n = 0; e.overflow = 0; e.low = 0; e.range = 0xFFFFFFFFu;
+    for (i = 0; i < text_len; i++) {
+        uint32_t total = build_freq(text, i, freq, ref, ref_len), cum = 0;
+        int s;
+        for (s = 0; s < text[i]; s++) cum += freq[s];
+        enc_symbol(&e, cum, freq[text[i]], total);
+    }
+    enc_finish(&e);
+    if (e.overflow) return 0;
+    frame_len = 6 + e.n;
+    if (frame_len >= 3 + text_len) return 0;
+    frame[0] = APRS_PPM_HEADER_0;
+    frame[1] = APRS_PPM_HEADER_1;
+    frame[2] = (uint8_t)(APRS_PPM_VERSION_FLAG | APRS_PPM_PRIMED_FLAG | aprs_ppm_model_version_value);
+    frame[3] = aprs_ppm_station_id(text, text_len);
+    frame[4] = aprs_ppm_crc8(ref, ref_len);
+    frame[5] = (uint8_t)text_len;
+    return frame_len;
+}
+
+int aprs_ppm_primed_header(const uint8_t *frame, size_t frame_len, uint8_t *station_id, uint8_t *ref_check)
+{
+    if (!aprs_ppm_is_primed_frame(frame, frame_len)) return 0;
+    *station_id = frame[3];
+    *ref_check = frame[4];
+    return 1;
+}
+
+size_t aprs_ppm_decode_primed(const uint8_t *ref, size_t ref_len, const uint8_t *frame, size_t frame_len,
+                              uint8_t *text, size_t text_cap)
+{
+    decoder_t d;
+    uint16_t freq[256];
+    size_t i, text_len;
+
+    if (ref == NULL || ref_len == 0 || ref_len > APRS_PPM_MAX_TEXT) return 0;
+    if (!aprs_ppm_is_primed_frame(frame, frame_len)) return 0;
+    if (frame[4] != aprs_ppm_crc8(ref, ref_len)) return 0;       /* wrong reference */
+    text_len = frame[5];
+    if (text_len == 0 || text_len > text_cap) return 0;
+    dec_init(&d, frame + 6, frame_len - 6);
+    for (i = 0; i < text_len; i++) {
+        uint32_t total = build_freq(text, i, freq, ref, ref_len);
+        uint32_t v = dec_target(&d, total), cum = 0;
+        int s = 0;
+        while (s < 255 && cum + freq[s] <= v) { cum += freq[s]; s++; }
+        dec_consume(&d, cum, freq[s]);
+        text[i] = (uint8_t)s;
+    }
+    if (aprs_ppm_station_id(text, text_len) != frame[3]) return 0;   /* decoded to the wrong station */
     return text_len;
 }

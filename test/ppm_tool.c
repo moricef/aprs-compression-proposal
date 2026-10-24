@@ -88,11 +88,69 @@ static int stats(void)
     return 0;
 }
 
+static int hex_in(const char *s, uint8_t *out, size_t cap, size_t *n)
+{
+    return unhex(s, out, cap, n);
+}
+
+/* gen-primed: lines "reference<TAB>text" in; "<reference hex> <frame hex or -> <text hex>" out. */
+static int gen_primed(void)
+{
+    char line[2048]; uint8_t frame[300];
+    printf("# APRS-PPM primed test vectors, model version %u. Format: <reference hex> <frame hex or -> <text hex>\n", aprs_ppm_model_version());
+    while (fgets(line, sizeof line, stdin)) {
+        char *tab; size_t rl, tl, fl;
+        if (line[0] == '#' || line[0] == '\n') continue;
+        tab = strchr(line, '\t');
+        if (!tab) continue;
+        *tab = 0;
+        rl = strlen(line); tl = strlen(tab + 1);
+        while (tl && (tab[tl] == '\n' || tab[tl] == '\r')) tl--;
+        fl = aprs_ppm_encode_primed((const uint8_t *)line, rl, (const uint8_t *)(tab + 1), tl, frame, sizeof frame);
+        hex((const uint8_t *)line, rl, stdout); fputc(' ', stdout);
+        if (fl) hex(frame, fl, stdout); else fputs("-", stdout);
+        fputc(' ', stdout); hex((const uint8_t *)(tab + 1), tl, stdout); fputc('\n', stdout);
+    }
+    return 0;
+}
+
+/* check-primed: encode must reproduce the frame; decode with the reference must reproduce the text;
+ * decode with a one-byte-changed reference must fail. */
+static int check_primed(const char *path)
+{
+    FILE *f = fopen(path, "r"); char line[4096]; int bad = 0, n = 0, wrongref = 0;
+    if (!f) { perror(path); return 2; }
+    while (fgets(line, sizeof line, f)) {
+        uint8_t ref[300], text[300], frame[400], enc[400], back[400]; size_t rl, tl, fl = 0, el, bl;
+        char *a, *b;
+        if (line[0] == '#' || line[0] == '\n') continue;
+        a = strchr(line, ' '); if (!a) { bad++; continue; } *a++ = 0;
+        b = strchr(a, ' '); if (!b) { bad++; continue; } *b++ = 0;
+        if (hex_in(line, ref, sizeof ref, &rl) || hex_in(b, text, sizeof text, &tl)) { bad++; continue; }
+        if (strcmp(a, "-") != 0 && hex_in(a, frame, sizeof frame, &fl)) { bad++; continue; }
+        el = aprs_ppm_encode_primed(ref, rl, text, tl, enc, sizeof enc);
+        n++;
+        if (el != fl || (el && memcmp(enc, frame, el))) { printf("PRIMED ENCODE MISMATCH on vector %d\n", n); bad++; continue; }
+        if (fl) {
+            bl = aprs_ppm_decode_primed(ref, rl, frame, fl, back, sizeof back);
+            if (bl != tl || memcmp(back, text, tl)) { printf("PRIMED DECODE MISMATCH on vector %d\n", n); bad++; continue; }
+            ref[rl / 2] ^= 1;
+            bl = aprs_ppm_decode_primed(ref, rl, frame, fl, back, sizeof back);
+            if (bl != 0) { printf("WRONG REFERENCE NOT REJECTED on vector %d\n", n); bad++; } else wrongref++;
+        }
+    }
+    fclose(f);
+    printf("%d primed vectors, %d failures, %d wrong-reference frames rejected\n", n, bad, wrongref);
+    return bad ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc >= 2 && !strcmp(argv[1], "gen")) return gen();
     if (argc >= 3 && !strcmp(argv[1], "check")) return check(argv[2]);
     if (argc >= 2 && !strcmp(argv[1], "stats")) return stats();
-    fprintf(stderr, "usage: ppm_tool gen|stats < packets.txt | ppm_tool check vectors.txt\n");
+    if (argc >= 2 && !strcmp(argv[1], "gen-primed")) return gen_primed();
+    if (argc >= 3 && !strcmp(argv[1], "check-primed")) return check_primed(argv[2]);
+    fprintf(stderr, "usage: ppm_tool gen|stats|gen-primed < packets.txt | ppm_tool check vectors.txt | ppm_tool check-primed vectors.txt\n");
     return 2;
 }
