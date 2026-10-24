@@ -20,6 +20,23 @@ station's packet order). Raw captures hold real callsigns and are not published.
 """
 import argparse, collections, hashlib, math, random, re
 
+POS_UNC = re.compile(rb"(\d{2})(\d{2}\.\d{2})([NS]).(\d{3})(\d{2}\.\d{2})([EW])")
+
+def position(info):
+    """(lat, lon) from a plain or compressed position report, else None (Mic-E, objects, status...)."""
+    dti = info[:1]
+    if dti in (b"!", b"="): body = info[1:]
+    elif dti in (b"/", b"@"): body = info[8:]
+    else: return None
+    if body[:1].isdigit():
+        m = POS_UNC.match(body)
+        if not m: return None
+        lat = int(m.group(1)) + float(m.group(2)) / 60; lon = int(m.group(4)) + float(m.group(5)) / 60
+        return (-lat if m.group(3) == b"S" else lat, -lon if m.group(6) == b"W" else lon)
+    if len(body) < 9: return None
+    v = lambda c: sum((ch - 33) * 91 ** (3 - i) for i, ch in enumerate(c))
+    return (90 - v(body[1:5]) / 380926.0, -180 + v(body[5:9]) / 190463.0)
+
 LINE = re.compile(rb"^([^>]+)>([^,:]+)((?:,[^,:]+)*):(.*)$", re.S)
 
 def parse(line):
@@ -46,11 +63,13 @@ def main():
     ap.add_argument("--max-packets", type=int, default=3000)
     ap.add_argument("--ref-back", type=int, default=1, help="1 = the previous packet; 4 = four packets back")
     ap.add_argument("--keyframe-every", type=int, default=0, help="if N>0: every Nth packet from a station is coded static (a full frame); the others are primed with the latest full frame")
+    ap.add_argument("--subset", choices=["all", "stationary", "moving"], default="all",
+                    help="stationary: at least 3 position reports, all within 0.002 degrees (about 200 m); moving: spread over 0.005 degrees; stations with other behaviour (including Mic-E only) are left out")
     ap.add_argument("--weights", type=int, nargs="+", default=[32, 128, 512])
     ap.add_argument("--seed", type=int, default=5)
     a = ap.parse_args()
 
-    seqs, uniq = collections.defaultdict(list), {}
+    seqs, uniq, pos = collections.defaultdict(list), {}, collections.defaultdict(list)
     for fn in a.capture:
         for line in open(fn, "rb"):
             r = parse(line)
@@ -58,7 +77,10 @@ def main():
             src, text, rf, lora = r
             if lora or rf:
                 uniq[text] = (src, lora)
-                if not lora and not (seqs[src] and seqs[src][-1] == text): seqs[src].append(text)
+                if not lora and not (seqs[src] and seqs[src][-1] == text):
+                    seqs[src].append(text)
+                    pp = position(text.split(b":", 1)[1])
+                    if pp: pos[src].append(pp)
 
     tabs = [collections.defaultdict(collections.Counter) for _ in range(4)]
     for t, (s, l) in uniq.items():                      # train on stations with bucket >= 3
@@ -97,7 +119,14 @@ def main():
         return L
 
     random.seed(a.seed)
-    test = [(s, l) for s, l in seqs.items() if bucket(s) < 3]
+    def kind(src):
+        pl = pos.get(src, [])
+        if len(pl) < 3: return None
+        d = max(max(x for x, y in pl) - min(x for x, y in pl), max(y for x, y in pl) - min(y for x, y in pl))
+        return "stationary" if d <= 0.002 else "moving" if d >= 0.005 else None
+    ks = collections.Counter(kind(s) for s in seqs)
+    print(f"stations: {len(seqs)}; stationary {ks['stationary']}, moving {ks['moving']}, other {ks[None]}")
+    test = [(s, l) for s, l in seqs.items() if bucket(s) < 3 and (a.subset == "all" or kind(s) == a.subset)]
     random.shuffle(test)
     res = collections.defaultdict(lambda: [0, 0.0, 0]); count = npair = nfirst = 0
     for s, l in test:

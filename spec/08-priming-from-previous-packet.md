@@ -60,8 +60,27 @@ others with the latest full frame, not the previous packet. Same data and table;
 
 The overall figure is lower than priming from the previous packet only for small N, but a missed
 packet then costs at most the packets until the next full frame, and missing a primed packet does not
-affect the next one. The simulation treats every station alike; stationary stations, whose packets
-change little, should do better, but that was not separated out.
+affect the next one.
+
+### Stationary and moving stations
+
+Stations were classified from the position reports in the same capture: **stationary** is at least 3
+position reports all within 0.002 degrees (about 200 m); **moving** is at least 3 with a spread of
+0.005 degrees or more. 2,312 stations were stationary and 192 moving; the other 5,973 (fewer than 3
+position reports, Mic-E only, objects, or somewhere in between) are left out of these two rows.
+Previous packet as the reference, w=512; the full-frame columns are overall savings.
+
+| Stations | Packets sampled | Static table | Primed, previous packet | Overall (first-heard at the static cost) | Full frame every 3 / 4 / 8 (overall) |
+|---|---|---|---|---|---|
+| All | 3,000 | 41% | 66% | 62% | 57% / 60% / 63% |
+| Stationary | 3,000 | 43% | 68% | 66% | 60% / 63% / 67% |
+| Moving | 1,302 | 43% | 70% | 69% | not run |
+
+Stationary stations do a little better than the all-station average, but moving stations did not do
+worse: they scored slightly higher. A moving station's position changes by a few characters, which is
+cheap, and its comment and symbol repeat. The stationary group includes iGates and digipeaters with
+long comments, which lowers its plain-frame saving. So the position change is not what limits the
+gain; the sample of moving stations is small (192 stations), and the classification is rough.
 
 ## Limits of the simulation
 
@@ -83,8 +102,8 @@ change little, should do better, but that was not separated out.
   last full packet rather than the previous one (the simulation shows no loss in doing so).
 * **Digipeaters and gateways.** One that does not hold the reference cannot decode, so cannot repeat or
   gate the packet in readable form. An iGate that decodes can gate the expanded plain text.
-* **Movers.** A moving station changes its position each time, so its packets cost more than a fixed
-  station's.
+* **Movers.** I expected a moving station's packets to cost more, since its position changes each time.
+  The simulation did not show it (see "Stationary and moving stations").
 * **Identification.** As in spec 07, the callsign is inside the coded bytes.
 
 ## Open issues
