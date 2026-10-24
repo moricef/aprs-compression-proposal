@@ -50,6 +50,7 @@ def main():
     ap.add_argument("--keyframe-every", type=int, default=0, help="if N>0: every Nth packet from a station is coded static (a full frame); the others are primed with the latest full frame")
     ap.add_argument("--subset", choices=["all", "stationary", "moving"], default="all",
                     help="stationary: at least 3 position reports, all within 0.002 degrees (about 200 m); moving: spread over 0.005 degrees; stations with other behaviour (including Mic-E only) are left out")
+    ap.add_argument("--mode", choices=["vhf", "lora"], default="vhf", help="vhf: AX.25 frame as plain, whole-packet LoRa-style frame coded; lora: LoRa APRS frame (3 + text plain, 4 + coded)")
     ap.add_argument("--weights", type=int, nargs="+", default=[32, 128, 512])
     ap.add_argument("--seed", type=int, default=5)
     a = ap.parse_args()
@@ -62,7 +63,7 @@ def main():
             src, text, rf, lora = r
             if lora or rf:
                 uniq[text] = (src, lora)
-                if not lora and not (seqs[src] and seqs[src][-1] == text):
+                if (lora == (a.mode == "lora")) and not (seqs[src] and seqs[src][-1] == text):
                     seqs[src].append(text)
                     pp = position(text.split(b":", 1)[1])
                     if pp: pos[src].append(pp)
@@ -117,8 +118,8 @@ def main():
     for s, l in test:
         for j, t in enumerate(l):
             if count >= a.max_packets: break
-            ax = 7 * (2 + t.split(b":", 1)[0].count(b",")) + 4 + len(t.split(b":", 1)[1])
-            frame = lambda b: min(ax, math.ceil(b / 8) + 4)
+            ax = (3 + len(t)) if a.mode == "lora" else 7 * (2 + t.split(b":", 1)[0].count(b",")) + 4 + len(t.split(b":", 1)[1])
+            frame = lambda b: min(ax, math.ceil(b / 8) + 4)   # 2 bytes version+length and 2 FCS (vhf); 3C FF ver len (lora)
             base = bits(t)
             kf = a.keyframe_every
             if kf and j % kf == 0:
@@ -139,7 +140,7 @@ def main():
     print(f"packets {count}; with an earlier packet from the station {npair}; first heard or full frame {nfirst}; "
           f"min-count {a.min_count}; " + (f"full frame every {a.keyframe_every}, others primed with the latest full frame" if a.keyframe_every else f"reference {a.ref_back} back"))
     for k, (n, b, p) in res.items():
-        if k != "_first" and n: print(f"{k:28} n={n:5}  avg frame {b/n:5.1f} B vs plain AX.25 {p/n:5.1f} B  saved {100*(1-b/p):3.0f}%")
+        if k != "_first" and n: print(f"{k:28} n={n:5}  avg frame {b/n:5.1f} B vs plain {p/n:5.1f} B  saved {100*(1-b/p):3.0f}%")
     if res["_first"][0]:
         nf, bf, pf = res["_first"]
         for k in res:

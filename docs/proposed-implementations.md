@@ -1,0 +1,54 @@
+# Proposed implementations and how much they cut
+
+A summary of the ideas in this repo, with the saving each one is estimated to give for LoRa APRS and
+for traditional (VHF, AX.25) APRS. **All figures come from simulations and offline measurement on
+captured APRS-IS packets. Nothing has been tested over the air.** Details and caveats are in the
+linked files; read them before quoting a number.
+
+How to read the numbers:
+
+* **Bytes saved** is the average cut in frame size, against the plain frame used today (LoRa frame
+  of `3C FF 01` plus text; VHF AX.25 frame without flags, 73.8 B on average here).
+* **Airtime saved** is smaller than bytes saved because the preamble does not shrink. LoRa figures
+  use a straight-line fit to the SF12 airtimes measured earlier (about 0.65 s plus 0.035 s per byte,
+  `docs/rationale.md`); VHF figures use 1200 baud plus an assumed 0.3 s of TXDELAY and preamble.
+* The savings **do not add**. Priming already makes repeated text nearly free, so trimming a repeated
+  comment on top of it saves much less than trimming it alone.
+* Compression figures use a 127 KB table, the size that fits a small device; a 226 KB table gives
+  about 4 points more (LoRa 47%, VHF whole packet roughly 45%).
+
+## Changes to the packet
+
+| # | Implementation | LoRa APRS: bytes / airtime saved | Traditional VHF APRS: bytes / airtime saved | Legacy stations | Status and source |
+|---|---|---|---|---|---|
+| 1 | **Static compressed frame** (APRS-PPM): fixed trained table + range coder | **43% / about 34%** (47% / 37% with a 226 KB table) | Whole packet: **41% / 25%**. Needs a new frame type | Plain frames unchanged; legacy cannot decode the new frame, and it drops or ignores it | Codec tested on a PC; spec 01, `docs/per-country-estimate.md` |
+| 2 | Info field only compressed, standard AX.25 header (PID marker) | n/a | **21% / 13%** (26% / 16% without the 2-byte overhead) | Legacy decodes the frame and shows junk in the info; a Direwolf iGate does not gate it | Spec 07; legacy test `docs/legacy-decoder-test.md` |
+| 3 | Hybrid: keep source and destination addresses, compress path + info | n/a | **30% / 19%** (rough estimate) | Valid AX.25, callsign readable | Spec 07 |
+| 4 | **Priming with the station's previous packet** (on top of 1) | **66% / about 52%** overall (74% for the primed packets); 62% / 49% if a full frame is sent every 4th | **62% / 38%** overall (66% for the primed packets); 60% if a full frame is sent every 4th (63% for stationary stations) | As row 1; receivers must also hold the reference packet | Simulation only; spec 08; `tools/delta_sim.py` |
+
+## Changes to behaviour (no change to the packet format)
+
+| # | Implementation | LoRa APRS | Traditional VHF APRS | Status |
+|---|---|---|---|---|
+| 5 | Send the comment less often, or drop it | 57 B to 38 B on one measured beacon (33% / 25% airtime), from earlier Direwolf measurements | Same idea; not measured on VHF | `docs/rationale.md` |
+| 6 | Shorter digipeater paths | about 8 B per hop of text path (arithmetic) | Each hop is 7 B; the average packet carries 1.4 digipeater addresses, about 10 B (13% of the frame) | Measured composition only; the saving depends on what network coverage allows |
+
+Rows 5 and 6 are practices stations could adopt today. They overlap with row 4, since primed packets
+already carry a repeated comment and path for almost nothing.
+
+## Ideas that cut transmissions rather than bytes
+
+| # | Idea | Effect | Status |
+|---|---|---|---|
+| 7 | Implicit acks, smarter digipeating, message path learning, reach-aware repeating | Fewer repeated and redundant transmissions; **not quantified here**. One secondary source claims 95-98% less airtime for repeated mesh traffic with learned paths (MeshCore); not verified | Drafts in the companion repo `aprs-smarts`; a pilot network and simulator are needed to measure |
+
+## What the estimates are worth
+
+| Estimate | Basis | Main weakness |
+|---|---|---|
+| Static compression, LoRa and VHF | 57,883 unique packets from one hour of capture (a European evening), held-out stations | One window; the table is now limited by its format, not by data |
+| Priming | Python simulation of ideal coding on 3,000 sampled packets; consecutive identical packets removed | Assumes the receiver holds the reference; real receivers often do not (spec 08); not real codec bytes |
+| Airtime | Line fit (LoRa), assumed TXDELAY (VHF) | Ignores channel access and collisions |
+| Overall | None of it is on-air | The over-the-air test is not done |
+
+Reproduce: see `docs/how-it-works.md`, `docs/per-country-estimate.md` and the tools in `tools/`.
