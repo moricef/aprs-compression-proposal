@@ -12,8 +12,9 @@ the air.** Licensed under the [MIT License](LICENSE).
 ## Results so far (simulation on captured packets, nothing on air yet)
 
 **The test data.** A three-hour read-only APRS-IS capture (plus a 5-minute pilot) for about 25
-countries, taken on an evening in Europe: 57,883 unique packets, of which 4,656 LoRa and 12,988 VHF
-packets were held out for testing. LoRa packets were chosen by device type, so they come mostly from
+countries, taken on an evening in Europe (135,299 unique packets over the three hours). The tables below
+come from its first hour (57,883 unique packets, of which 4,656 LoRa and 12,988 VHF packets were held out
+for testing); all three hours were used to check that more data does not raise the saving. LoRa packets were chosen by device type, so they come mostly from
 Europe; VHF packets are those an iGate heard over the air. The model is trained on 70% of stations and
 tested on the other 30%, so every figure is on stations the model has not seen. The raw captures hold
 real callsigns and are not published, only these aggregates.
