@@ -62,7 +62,7 @@ table to fit in flash, so it saves less (see "What it achieves" below).
 statistics on a corpus this small) while the table keeps growing. So order 3 is where the return runs
 out. A larger training corpus might move this.
 
-**Other ideas looked at.** SMAZ2 (a small-string compressor with a built-in dictionary), a Meshtastic
+**Other ideas looked at** (see also [alternatives-considered.md](alternatives-considered.md) for the full comparison and APRS 438). SMAZ2 (a small-string compressor with a built-in dictionary), a Meshtastic
 forum suggestion for a static Huffman dictionary, PSK31's Varicode and PACTOR's Huffman coding (both
 fixed per-character codes), and V.42bis / MNP5 from old modems (adaptive, so poor on short packets).
 I did not find an APRS-specific scheme that uses a trained context model. That is a statement about
