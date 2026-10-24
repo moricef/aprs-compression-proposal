@@ -52,13 +52,18 @@ frequencies, SF11 and its own iGate; I have not re-checked that since.
 On 555 RF-heard VHF position packets (an earlier, smaller model; the 438 sizes are from the documented
 layout, not from a real encoder):
 
-| Method | Mean bytes | Saved |
-|---|---|---|
-| Plain text (+3 B header) | 80.7 | – |
-| Order-3 model, whole packet | 33.6 | 58% |
-| APRS 438, position only (comment dropped) | 17.0 | 79% |
-| APRS 438 plus the comment as a second frame | 38.2 | 53% |
-| 438 header and position, comment by the model | 32.8 | 59% |
+| Method | Mean bytes | Saved | Comment kept? |
+|---|---|---|---|
+| Plain text (+3 B header) | 80.7 | – | yes (baseline) |
+| **Like for like: the whole packet is carried** | | | |
+| Order-3 model, whole packet | 33.6 | 58% | yes |
+| APRS 438 plus the comment as a second frame | 38.2 | 53% | yes |
+| 438 header and position, comment by the model | 32.8 | 59% | yes |
+| **Not like for like: part of the packet is thrown away** | | | |
+| APRS 438, position only (comment dropped) | 17.0 | 79% | **no**: 98% of these packets carry one, mean 33.5 characters |
+
+The 79% row is smaller only because it drops the comment, which is about a third of the packet. It is
+not a comparison of the two methods. Compare the rows above it.
 
 | | APRS 438 | APRS-PPM (this repo) |
 |---|---|---|
