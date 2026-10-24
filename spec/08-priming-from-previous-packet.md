@@ -133,6 +133,32 @@ has to keep a self-contained (full) frame frequent enough for them, or let the s
 full frame in conditions where it expects marginal reception (for example when moving fast, or
 after a long gap).
 
+### Suggested default for moving stations: a full frame every 2nd transmission
+
+Moving stations, previous-packet reference against a full frame every 2, 3 or 4 transmissions
+(`tools/delta_sim.py --subset moving`, `tools/receiver_sim.py`). Savings are overall, against the plain
+AX.25 frame (about 75 B); the decodable shares share the APRS-IS dedup caveat above, so read them as
+relative, not absolute:
+
+| Scheme | Overall saving | Avg frame | Decodable, all pairs | Decodable, hears under 50% |
+|---|---|---|---|---|
+| Static frame every time (spec 01) | 43% | 42.8 B | 100% | 100% |
+| Primed with the previous packet | 69% | 23.3 B | 73% | 33% |
+| **Full frame every 2** | **56%** | 33.0 B | **86%** | **65%** |
+| Full frame every 3 | 61% | 29.3 B | 82% | 53% |
+| Full frame every 4 | 62% | 28.5 B | 78% | 45% |
+
+Per packet a receiver can decode, a full frame every 2 costs about 38 B (33.0 / 0.86), against about
+32 B for priming every packet (23.3 / 0.73) and 43 B for a full frame every time. So by that measure
+priming with a full frame every 2 is a middle path: it gives up 13 points of saving (56% against 69%) to
+make the packets decodable for about 86% of receivers instead of 73%, and for edge receivers about
+65% instead of 33%.
+
+The interval does not need to be agreed in advance: each frame says whether it is a full frame or
+primed, so a sender can pick any interval and change it. Reasonable defaults to propose: every 2 for
+moving stations, every 4 to 8 for stationary ones, and a full frame after a gap in transmissions or
+when the sender knows reception is marginal.
+
 ### What data would settle it
 
 * Raw receive logs from several receivers that hear the same moving stations, with timestamps,

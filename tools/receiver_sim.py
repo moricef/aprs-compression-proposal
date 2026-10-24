@@ -60,12 +60,12 @@ def main():
     q = max(1, len(ig_rank) // 4)
     low, high = set(ig_rank[:q]), set(ig_rank[-q:])
 
-    schemes = ["prev", "2 back", "3 back", "full/4", "full/8"]
+    schemes = ["prev", "full/2", "full/3", "full/4", "full/8"]
     def ok(scheme, j, H):
         if j == 0: return True
         if scheme == "prev": return (j - 1) in H
-        if scheme == "2 back": return j < 2 or (j - 2) in H
-        if scheme == "3 back": return j < 3 or (j - 3) in H
+        if scheme == "full/2": return j % 2 == 0 or (j - 1) in H
+        if scheme == "full/3": return j % 3 == 0 or (j - j % 3) in H
         n = 4 if scheme == "full/4" else 8
         return j % n == 0 or (j - j % n) in H
     tot = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))   # group -> scheme -> [ok, heard]
