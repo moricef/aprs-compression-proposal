@@ -25,6 +25,53 @@ weighted heavily (the simulation used weights 32 to 512; a fixed value around 12
 nothing needs to be signalled). The result is then range-coded as in spec 01. The receiver builds the
 same model from its copy of packet N-1 and decodes.
 
+## Wire format (reference codec)
+
+Implemented in `reference/aprs_ppm.c`; `make test` checks it against `test/vectors_primed_v1.txt`.
+
+    offset  size  meaning
+    0       1     0x3C
+    1       1     0xFF
+    2       1     0xC0 | model version (1..63). Bit 7 = compressed, bit 6 = primed. Model v1 -> 0xC1
+    3       1     station id = CRC-8 of the source callsign (the text before the first '>')
+    4       1     reference check = CRC-8 of the whole reference text
+    5       1     L = length in bytes of the original text, 1..255
+    6       n     range-coded bytes
+
+CRC-8 is polynomial 0x07, initial value 0, no reflection, no final xor. A full (unprimed) frame is the spec 01
+frame `3C FF (0x80|version) L coded`; a plain frame is `3C FF 01` + text. A primed frame costs 2 bytes more
+than a full one because of the station id and the reference check.
+
+**Model.** Same table as spec 01. For each coded byte and each order k = 3..0, every position j >= k in the
+reference text whose preceding k bytes equal the current context adds `APRS_PPM_PRIME_WEIGHT` (512) to the
+count of the byte at j, on top of the table's count for that context. The merged counts then go through the
+unchanged PPM method C blend and range coder. With no reference this reduces to spec 01 exactly.
+
+**Receiver.** On a primed frame, look up the stored packet whose station id matches (the receiver stores the
+text of the last packet it received from each source, whether plain, full or primed). If its CRC-8 does not
+equal the reference check, or no packet is stored, drop the frame: the packet is lost, as it would be for any
+receiver that did not hear it. After decoding, the CRC-8 of the decoded source callsign must equal the
+station id.
+
+**Sender.** Keep the text of the last packet transmitted for each source. Send a full frame every Nth
+transmission for that source, and otherwise a primed frame with the last transmitted packet as the
+reference; send a plain frame if neither is smaller than plain.
+
+### Measured with the real codec
+
+3,000 consecutive packet pairs from 536 LoRa stations that model v1's training data did not contain (the
+three-hour capture; reference = the station's previous different packet), model v1, real frame bytes
+including the 6-byte primed header:
+
+| | Avg frame | Saved vs plain (60.1 B) |
+|---|---|---|
+| Full frame (spec 01) | 33.1 B | 45% |
+| Primed with the previous packet | 21.2 B | **65%** |
+
+No pair needed the plain fallback. A full frame every 2nd transmission would average about 27 B (55%); every
+4th, about 24 B (60%). These agree with the simulation below (73% on primed packets before the 2-byte
+header).
+
 ## Simulation result
 
 Simulations on a three-hour multi-country APRS-IS capture (135,299 unique packets; see

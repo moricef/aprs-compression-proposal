@@ -38,7 +38,7 @@ LZMA) have nothing to learn from a packet this short and expand it.
     offset  size  meaning
     0       1     0x3C
     1       1     0xFF
-    2       1     0x80 | model version (1..127). Model v1 -> 0x81
+    2       1     0x80 | model version (1..63). Model v1 -> 0x81. (0xC0 | version marks a primed frame, spec 08.)
     3       1     L = length in bytes of the original text, 1..255
     4       n     range-coded bytes (n may be 0)
 
