@@ -110,8 +110,15 @@ heard, in how many did it also hold the reference? 173 moving stations with at l
 * Grouping iGates by how many stations they heard does not separate "hilltop" from "low-lying" well
   (the busiest quarter did slightly worse): that is a poor proxy for height, and the iGates' real
   elevations are not in the data.
-* This is an **upper bound**. A transmission that no iGate heard is invisible, so the real gaps are
-  larger and the real decodable shares are lower.
+* **These percentages are not reliable, and the direction of the error is unknown.** APRS-IS servers
+  drop duplicate packets, so the captured feed shows a transmission only from the first iGate that
+  delivered it. 92.5% of the 43,241 transmissions here show exactly one iGate; only 7.5% show two or
+  more. An iGate that heard a packet but lost the race to deliver it is counted as not having heard it,
+  so every receiver's coverage, and with it the decodable share, is **understated**. Working the other
+  way, a transmission that no iGate delivered is invisible, which **overstates** coverage. The two
+  errors do not cancel in any known way. What does hold is the arithmetic: a receiver decodes a primed
+  packet only if it holds the reference, so the decodable share follows how much of the station's
+  traffic the receiver hears. The measured shares need real receiver logs (see below).
 
 What it costs, for moving stations (from the simulation above: static 42.9 B per packet, primed with
 the previous packet 22.5 B): a primed packet is only worth sending if enough receivers can decode
@@ -125,6 +132,15 @@ sends only primed packets would not appear at all to receivers at the edge of it
 has to keep a self-contained (full) frame frequent enough for them, or let the sender fall back to a
 full frame in conditions where it expects marginal reception (for example when moving fast, or
 after a long gap).
+
+### What data would settle it
+
+* Raw receive logs from several receivers that hear the same moving stations, with timestamps,
+  before APRS-IS deduplication (for example Direwolf logs from volunteers' stations). The feed here
+  has neither timestamps nor the duplicates.
+* A propagation model with known iGate and station positions, which would give coverage without a
+  receiver log.
+* A receiver of our own (an RTL-SDR with Direwolf) shows what one location hears, not several.
 
 ## Limits of the simulation
 
