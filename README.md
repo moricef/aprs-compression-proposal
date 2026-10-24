@@ -9,6 +9,44 @@ repeating, a measured pilot), is in the companion repo `aprs-smarts`.
 **This is a draft by one person. It is not a standard, and the on-air format has not been tested over
 the air.** Licensed under the [MIT License](LICENSE).
 
+## Results so far (simulation on captured packets, nothing on air yet)
+
+**The test data.** About an hour of read-only APRS-IS captures (plus a 5-minute pilot) for about 25
+countries, taken on an evening in Europe: 57,883 unique packets, of which 4,656 LoRa and 12,988 VHF
+packets were held out for testing. LoRa packets were chosen by device type, so they come mostly from
+Europe; VHF packets are those an iGate heard over the air. The model is trained on 70% of stations and
+tested on the other 30%, so every figure is on stations the model has not seen. The raw captures hold
+real callsigns and are not published, only these aggregates.
+
+**What each saves** (average frame size against today's plain frame, 127 KB table; airtime saved is
+smaller because the preamble does not shrink). Full table and caveats in
+[docs/proposed-implementations.md](docs/proposed-implementations.md).
+
+| Implementation | LoRa APRS | Traditional VHF APRS |
+|---|---|---|
+| Static compressed frame (spec 01): fixed trained table + range coder | **43%** bytes, about 34% airtime | whole packet in a new frame type **41%**, about 25% airtime |
+| Same, but keeping the AX.25 header and compressing only the info field (spec 07) | n/a | **21%**, about 13% airtime |
+| Priming each packet with the station's previous packet (spec 08) | **66%** overall, about 52% airtime | **62%** overall, about 38% airtime |
+| Priming, with a full frame every 4th transmission | 62% | 60% (63% for stationary stations) |
+
+**What it means.**
+* LoRa APRS carries the whole packet, so compression helps most there. Traditional VHF APRS spends
+  about 38% of each frame on the AX.25 addresses, which legacy digipeaters have to read, so
+  compressing only the info field saves about a fifth. Using a LoRa-style frame on VHF brings it to
+  about 41%, at the cost of legacy digipeaters not repeating it. See spec 07.
+* Priming helps the most, because stations repeat themselves: same comment, symbol and path. It needs
+  the receiver to have heard the reference packet. For moving stations that is often not the case at
+  the edge of range; the data for that is weak (APRS-IS drops duplicates). See spec 08.
+* More packets of the same kind did not improve the saving at a fixed table size. The limit is now
+  the table format and the model.
+* The figures do not add up, because the methods overlap.
+* **None of this has been tested over the air.** Simulation uses ideal coding length for the priming
+  figures, an assumed TXDELAY for VHF airtime, and one hour of data.
+
+See [docs/per-country-estimate.md](docs/per-country-estimate.md) for the result by country and device
+type, and [docs/legacy-decoder-test.md](docs/legacy-decoder-test.md) for what a stock Direwolf does with
+the new VHF frames.
+
 ## Parts
 
 | Part | Status |
