@@ -27,111 +27,98 @@ same model from its copy of packet N-1 and decodes.
 
 ## Simulation result
 
-3,000 VHF packets, sampled at random from held-out stations in an hour of multi-country APRS-IS
-capture (57,883 unique packets in the training mix), 127 KB table (min-count 24). The frame is the
-LoRa-style whole-packet frame of spec 07 (coded bytes plus 2 for version and length plus 2 for FCS),
-compared with a plain AX.25 frame. Consecutive identical packets from one station are removed, so a
-beacon heard twice by different iGates is not counted as a free repeat. 2,568 of the 3,000 packets had
-an earlier packet from the same station; 432 were the first heard.
+Simulations on a three-hour multi-country APRS-IS capture (135,299 unique packets; see
+`docs/per-country-estimate.md`), 144 KB table (min-count 48), 3,000 packets sampled at random from held-out
+stations for each run. The frame is the LoRa-style whole-packet frame of spec 07 (coded bytes plus 2 for
+version and length plus 2 for FCS) for VHF, and the LoRa frame (3C FF, version, length) for LoRa,
+each compared with today's plain frame. Consecutive identical packets from one station are removed, so a
+beacon heard twice by different iGates is not counted as a free repeat.
 
-| Method | Avg frame | Saved vs plain AX.25 (74.9 B) |
+VHF, all stations: 2,768 of the 3,000 packets had an earlier packet from the same station; 232 were the
+first heard. Plain AX.25 averages 80.2 B.
+
+| Method | Avg frame | Saved vs plain AX.25 |
 |---|---|---|
-| Static table (spec 01), same packets | 44.3 B | 41% |
-| Primed with the **previous** packet, w=32 | 28.0 B | 63% |
-| Primed with the previous packet, w=128 | 26.4 B | 65% |
-| Primed with the previous packet, w=512 | 25.4 B | 66% |
-| Primed with the packet four back, w=512 | 22.4 B | 70% |
+| Static table (spec 01), same packets | 50.0 B | 38% |
+| Primed with the **previous** packet, w=32 | 29.7 B | 63% |
+| Primed with the previous packet, w=128 | 27.3 B | 66% |
+| Primed with the previous packet, w=512 | 25.6 B | 68% |
+| Primed with the packet four back, w=512 | 24.3 B | 70% |
 
-Counting the 432 first-heard packets at the static cost, the overall saving is about **62%** with the
-previous packet and about 66% with the packet four back. The static column agrees with the real codec
-(41% measured at this table size).
+Counting the first-heard packets at the static cost, the overall saving is about **66%** with the previous
+packet and about 67% with the packet four back. For LoRa, priming with the previous packet saves 73% on the
+primed packets (static table 39%) and **70% overall**.
 
 ### A full frame every Nth transmission
 
-A stationary station can send a full (unprimed, spec 01) frame every Nth transmission and prime the
-others with the latest full frame, not the previous packet. Same data and table; w=512:
+A station can send a full (unprimed, spec 01) frame every Nth transmission and prime the others with the
+latest full frame, not the previous packet. VHF, all stations, w=512:
 
 | Full frame every | Overall saving (full frames at the static cost) | Primed packets alone |
 |---|---|---|
-| 3 | 57% | 69% |
-| 4 | 60% | 70% |
-| 8 | 63% | 70% |
-| never (previous packet as the reference) | 62% | 66% |
+| 2 | 52% | 69% |
+| 3 | 58% | 70% |
+| 4 | 60% | 69% |
+| 8 | 64% | 69% |
+| never (previous packet as the reference) | 66% | 68% |
 
-The overall figure is lower than priming from the previous packet only for small N, but a missed
-packet then costs at most the packets until the next full frame, and missing a primed packet does not
-affect the next one.
+For LoRa: a full frame every 2nd transmission gives 55% overall and every 4th gives 63%. The overall figure
+is lower than priming from the previous packet only for small N, but a missed packet then costs at most
+the packets until the next full frame, and missing a primed packet does not affect the next one.
 
 ### Stationary and moving stations
 
 Stations were classified from the position reports in the same capture: **stationary** is at least 3
-position reports all within 0.002 degrees (about 200 m); **moving** is at least 3 with a spread of
-0.005 degrees or more. 2,312 stations were stationary and 192 moving; the other 5,973 (fewer than 3
-position reports, Mic-E only, objects, or somewhere in between) are left out of these two rows.
-Previous packet as the reference, w=512; the full-frame columns are overall savings.
+position reports all within 0.002 degrees (about 200 m); **moving** is at least 3 with a spread of 0.005
+degrees or more. 4,016 stations were stationary and 355 moving; the other 5,424 (fewer than 3 position
+reports, Mic-E only, objects, or somewhere in between) are left out of these rows. w=512.
 
-| Stations | Packets sampled | Static table | Primed, previous packet | Overall (first-heard at the static cost) | Full frame every 3 / 4 / 8 (overall) |
-|---|---|---|---|---|---|
-| All | 3,000 | 41% | 66% | 62% | 57% / 60% / 63% |
-| Stationary | 3,000 | 43% | 68% | 66% | 60% / 63% / 67% |
-| Moving | 1,302 | 43% | 70% | 69% | not run |
+| Stations | Static table | Primed, previous packet | Overall (first-heard at the static cost) | Full frame every 2 / 3 / 4 / 8 (overall) |
+|---|---|---|---|---|
+| All | 38% | 68% | 66% | 52% / 58% / 60% / 64% |
+| Stationary | 40% | 63% | 62% | not run / 58% / 60% / 64% |
+| Moving | 39% | 68% | 67% | 53% / 58% / 60% / not run |
 
-Stationary stations do a little better than the all-station average, but moving stations did not do
-worse: they scored slightly higher. A moving station's position changes by a few characters, which is
-cheap, and its comment and symbol repeat. The stationary group includes iGates and digipeaters with
-long comments, which lowers its plain-frame saving. So the position change is not what limits the
-gain; the sample of moving stations is small (192 stations), and the classification is rough.
+Moving stations do not do worse than stationary ones; here they do slightly better. A moving station's
+position changes by a few characters, which is cheap, while its comment and symbol repeat, and the
+stationary group includes iGates and digipeaters with long comments. So the position change is not what
+limits the gain. The moving group is small (355 stations) and the classification is rough.
 
 ## Does the receiver hold the reference? (moving stations)
 
-A receiver can use only a reference packet it heard, and a moving station is heard by a given iGate
-only part of the time. `tools/receiver_sim.py` rebuilds each moving station's transmissions from the
-captured packets (one element per transmission, with the iGates that heard it, taken from the
-q-construct) and asks, for every (receiving iGate, moving station) pair: of the packets this iGate
-heard, in how many did it also hold the reference? 173 moving stations with at least 4 transmissions,
-489 (iGate, station) pairs, 3,473 packets heard. A first packet, or a full frame, is always decodable.
+A receiver can use only a reference packet it heard, and a moving station is heard by a given iGate only
+part of the time. `tools/receiver_sim.py` rebuilds each moving station's transmissions from the captured
+packets (one element per transmission, with the iGates that heard it, taken from the q-construct) and
+asks, for every (receiving iGate, moving station) pair: of the packets this iGate heard, in how many did
+it also hold the reference? 322 moving stations with at least 4 transmissions, 1,077 (iGate, station) pairs,
+10,169 packets heard. A first packet, or a full frame, is always decodable.
 
-| Receivers grouped by | Pairs | Packets heard | Previous packet | 2 back | 3 back | Full frame every 4 | Full frame every 8 |
+| Receivers grouped by | Pairs | Packets heard | Previous packet | Full frame every 2 | every 3 | every 4 | every 8 |
 |---|---|---|---|---|---|---|---|
-| All pairs | 489 | 3,473 | 73% | 75% | 75% | 78% | 74% |
-| Hears at least 90% of the station's packets | 76 | 1,595 | **99%** | 99% | 99% | 99% | 99% |
-| Hears 50-90% | 82 | 824 | 75% | 77% | 75% | 79% | 78% |
-| Hears under 50% | 331 | 1,054 | **33%** | 36% | 37% | 45% | 33% |
-| Busiest quarter of iGates (by stations heard) | 316 | 1,895 | 71% | 71% | 72% | 76% | 71% |
-| Quietest quarter of iGates | 34 | 658 | 78% | 86% | 80% | 84% | 81% |
+| All pairs | 1,077 | 10,169 | 74% | 87% | 82% | 79% | 74% |
+| Hears at least 90% of the station's packets | 129 | 4,614 | **99%** | 100% | 100% | 100% | 99% |
+| Hears 50-90% | 147 | 2,009 | 75% | 87% | 82% | 80% | 75% |
+| Hears under 50% | 801 | 3,546 | **41%** | 70% | 59% | 51% | 40% |
+| Busiest quarter of iGates (by stations heard) | 712 | 5,353 | 68% | 84% | 78% | 74% | 68% |
+| Quietest quarter of iGates | 51 | 1,546 | 84% | 92% | 90% | 88% | 86% |
 
-* The expectation held: a receiver that hears most of a moving station's packets decodes nearly all
-  of them (99%), while one at the edge of its range, which hears under half, decodes a third. Most
-  pairs (331 of 489) are edge cases, though they account for fewer of the packets heard (1,054 of
-  3,473), because a well-placed iGate hears many more.
-* Asking for an older reference (2 or 3 back) or a full frame every 4 helps the edge receivers only a
-  little (36% to 45%). A receiver that hears a quarter of the packets simply does not have the
-  reference most of the time.
-* Grouping iGates by how many stations they heard does not separate "hilltop" from "low-lying" well
-  (the busiest quarter did slightly worse): that is a poor proxy for height, and the iGates' real
-  elevations are not in the data.
-* **These percentages are not reliable, and the direction of the error is unknown.** APRS-IS servers
-  drop duplicate packets, so the captured feed shows a transmission only from the first iGate that
-  delivered it. 92.5% of the 43,241 transmissions here show exactly one iGate; only 7.5% show two or
-  more. An iGate that heard a packet but lost the race to deliver it is counted as not having heard it,
-  so every receiver's coverage, and with it the decodable share, is **understated**. Working the other
-  way, a transmission that no iGate delivered is invisible, which **overstates** coverage. The two
-  errors do not cancel in any known way. What does hold is the arithmetic: a receiver decodes a primed
-  packet only if it holds the reference, so the decodable share follows how much of the station's
-  traffic the receiver hears. The measured shares need real receiver logs (see below).
-
-What it costs, for moving stations (from the simulation above: static 42.9 B per packet, primed with
-the previous packet 22.5 B): a primed packet is only worth sending if enough receivers can decode
-it. The break-even decodable share is about 52% (22.5 / 0.52 is 42.9 B per decodable packet). At the
-overall 73% a delivered packet costs about 31 B instead of 43 B; for the well-placed receivers (99%)
-about 23 B; for edge receivers (33%) about 68 B, which is worse than sending the full frame.
-
-Consequence: for moving stations, priming from earlier packets is a good deal for the iGates that
-matter most (the ones that hear a station well) and a loss for marginal ones. A moving station that
-sends only primed packets would not appear at all to receivers at the edge of its range. A design
-has to keep a self-contained (full) frame frequent enough for them, or let the sender fall back to a
-full frame in conditions where it expects marginal reception (for example when moving fast, or
-after a long gap).
+* A receiver that hears most of a moving station's packets decodes nearly all of them (99%), while one at
+  the edge of its range, which hears under half, decodes 41%. Most pairs (801 of 1,077) are edge cases,
+  though they account for fewer of the packets heard (3,546 of 10,169), because a well-placed iGate hears
+  many more.
+* A full frame every 2nd transmission lifts the edge receivers from 41% to 70%; every 4th only to 51%.
+* Grouping iGates by how many stations they heard does not separate "hilltop" from "low-lying" well (the
+  busiest quarter did worse): that is a poor proxy for height, and the iGates' real elevations are not in
+  the data.
+* **These percentages are not reliable, and the direction of the error is unknown.** APRS-IS servers drop
+  duplicate packets, so the captured feed shows a transmission only from the first iGate that delivered
+  it. Most transmissions here show exactly one iGate. An iGate that heard a packet but lost the race to
+  deliver it is counted as not having heard it, so every receiver's coverage, and with it the decodable
+  share, is **understated**. Working the other way, a transmission that no iGate delivered is invisible,
+  which **overstates** coverage. The two errors do not cancel in any known way. What does hold is the
+  arithmetic: a receiver decodes a primed packet only if it holds the reference, so the decodable share
+  follows how much of the station's traffic the receiver hears. The measured shares need real receiver
+  logs (see below).
 
 ### Suggested default for moving stations: a full frame every 2nd transmission
 
@@ -142,22 +129,21 @@ relative, not absolute:
 
 | Scheme | Overall saving | Avg frame | Decodable, all pairs | Decodable, hears under 50% |
 |---|---|---|---|---|
-| Static frame every time (spec 01) | 43% | 42.8 B | 100% | 100% |
-| Primed with the previous packet | 69% | 23.3 B | 73% | 33% |
-| **Full frame every 2** | **56%** | 33.0 B | **86%** | **65%** |
-| Full frame every 3 | 61% | 29.3 B | 82% | 53% |
-| Full frame every 4 | 62% | 28.5 B | 78% | 45% |
+| Static frame every time (spec 01) | 39% | 45.7 B | 100% | 100% |
+| Primed with the previous packet | 67% | 24.7 B | 74% | 41% |
+| **Full frame every 2** | **53%** | 35.2 B | **87%** | **70%** |
+| Full frame every 3 | 58% | 31.4 B | 82% | 59% |
+| Full frame every 4 | 60% | 29.9 B | 79% | 51% |
 
-Per packet a receiver can decode, a full frame every 2 costs about 38 B (33.0 / 0.86), against about
-32 B for priming every packet (23.3 / 0.73) and 43 B for a full frame every time. So by that measure
-priming with a full frame every 2 is a middle path: it gives up 13 points of saving (56% against 69%) to
-make the packets decodable for about 86% of receivers instead of 73%, and for edge receivers about
-65% instead of 33%.
+Per packet a receiver can decode, a full frame every 2 costs about 40 B (35.2 / 0.87), against about 33 B for
+priming every packet (24.7 / 0.74) and 46 B for a full frame every time. So priming with a full frame every
+2 is a middle path: it gives up 14 points of saving (53% against 67%) to make the packets decodable for about
+87% of receivers instead of 74%, and for edge receivers about 70% instead of 41%.
 
-The interval does not need to be agreed in advance: each frame says whether it is a full frame or
-primed, so a sender can pick any interval and change it. Reasonable defaults to propose: every 2 for
-moving stations, every 4 to 8 for stationary ones, and a full frame after a gap in transmissions or
-when the sender knows reception is marginal.
+The interval does not need to be agreed in advance: each frame says whether it is a full frame or primed, so
+a sender can pick any interval and change it. Reasonable defaults to propose: every 2 for moving stations,
+every 4 to 8 for stationary ones, and a full frame after a gap in transmissions or when the sender knows
+reception is marginal.
 
 ### What data would settle it
 
@@ -175,7 +161,7 @@ when the sender knows reception is marginal.
 * The receiver is assumed to hold the reference. Loss is not simulated.
 * A beacon heard by two iGates with a different path can still look like a new packet, so some gain
   may be overstated; the result does not depend on a clock, because the captures carry no timestamps.
-* The simulation used the first hour of a three-hour capture (one evening in Europe) and one table. It was not repeated on all three hours.
+* Three hours of one evening in Europe, one table, 3,000 sampled packets per run (so a point or two of the differences is sampling noise).
 
 ## Costs and risks
 
