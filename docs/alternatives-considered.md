@@ -75,8 +75,11 @@ not a comparison of the two methods. Compare the rows above it.
 | Needs | New frequencies, its own SF and iGate | Nothing new on air for plain frames; upgraded receivers |
 | Legacy APRS | Separate network | Plain frames unchanged; compressed frames ignored by legacy |
 
-438 wins by dropping the comment, and for a pure position beacon with no comment it is smaller than
-anything here. It is not a general replacement for APRS packets, and it forks the network. The two are not
+438 looks best only in the row that drops the comment. With the comment kept, the model alone is
+smaller than 438 plus the comment as a second frame (33.6 against 38.2 bytes), and a 438 header and
+position with the comment coded by the model comes out about the same (32.8 bytes). For a pure position
+beacon with no comment, 438 is smaller than anything here (in one earlier single-beacon test, about
+17 against 21 bytes for the model). It is not a general replacement for APRS packets, and it forks the network. The two are not
 exclusive: row 4 shows a 438-style header and position with the comment coded by the model.
 
 ## Why APRS-PPM was chosen

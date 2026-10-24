@@ -34,15 +34,17 @@ APRS 438 (ON4AA; aprs438.readthedocs.io) hand-designs a fixed layout: 4 bytes of
 of SSID/path/type, and a 12-14 byte compressed position, 17-19 bytes total. It has no comment
 field. On 555 RF-heard VHF position packets:
 
-| Method | Mean bytes | Saved |
-|---|---|---|
-| Plain text (+3 B header) | 80.7 | - |
-| Order-3 model, whole packet | 33.6 | 58% (this was a smaller, earlier model) |
-| APRS 438, position only (comment dropped) | 17.0 | 79% |
-| APRS 438 + comment as a second frame | 38.2 | 53% |
-| 438 header and position + comment by model | 32.8 | 59% |
+| Method | Mean bytes | Saved | Comment kept? |
+|---|---|---|---|
+| Plain text (+3 B header) | 80.7 | – | yes (baseline) |
+| **Like for like: the whole packet is carried** | | | |
+| Order-3 model, whole packet (a smaller, earlier model) | 33.6 | 58% | yes |
+| APRS 438 plus the comment as a second frame | 38.2 | 53% | yes |
+| 438 header and position, comment by the model | 32.8 | 59% | yes |
+| **Not like for like: part of the packet is thrown away** | | | |
+| APRS 438, position only (comment dropped) | 17.0 | 79% | **no** |
 
-438 wins by dropping the comment (98% of position packets carry one, mean 33.5 characters, most
+438 is smallest only in the row that drops the comment (98% of position packets carry one, mean 33.5 characters, most
 longer than 438's 28-character limit). Only 44% of the VHF paths fit 438's four path codes. The 438
 sizes are the documented layout, not output from a real encoder.
 
