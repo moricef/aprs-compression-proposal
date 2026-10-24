@@ -46,6 +46,23 @@ Counting the 432 first-heard packets at the static cost, the overall saving is a
 previous packet and about 66% with the packet four back. The static column agrees with the real codec
 (41% measured at this table size).
 
+### A full frame every Nth transmission
+
+A stationary station can send a full (unprimed, spec 01) frame every Nth transmission and prime the
+others with the latest full frame, not the previous packet. Same data and table; w=512:
+
+| Full frame every | Overall saving (full frames at the static cost) | Primed packets alone |
+|---|---|---|
+| 3 | 57% | 69% |
+| 4 | 60% | 70% |
+| 8 | 63% | 70% |
+| never (previous packet as the reference) | 62% | 66% |
+
+The overall figure is lower than priming from the previous packet only for small N, but a missed
+packet then costs at most the packets until the next full frame, and missing a primed packet does not
+affect the next one. The simulation treats every station alike; stationary stations, whose packets
+change little, should do better, but that was not separated out.
+
 ## Limits of the simulation
 
 * Ideal arithmetic-coding length from a Python version of the PPM blend, not real bytes from a codec.

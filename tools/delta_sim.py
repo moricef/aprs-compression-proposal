@@ -45,6 +45,7 @@ def main():
     ap.add_argument("--min-count", type=int, default=24)
     ap.add_argument("--max-packets", type=int, default=3000)
     ap.add_argument("--ref-back", type=int, default=1, help="1 = the previous packet; 4 = four packets back")
+    ap.add_argument("--keyframe-every", type=int, default=0, help="if N>0: every Nth packet from a station is coded static (a full frame); the others are primed with the latest full frame")
     ap.add_argument("--weights", type=int, nargs="+", default=[32, 128, 512])
     ap.add_argument("--seed", type=int, default=5)
     a = ap.parse_args()
@@ -105,9 +106,12 @@ def main():
             ax = 7 * (2 + t.split(b":", 1)[0].count(b",")) + 4 + len(t.split(b":", 1)[1])
             frame = lambda b: min(ax, math.ceil(b / 8) + 4)
             base = bits(t)
-            if j > 0:
+            kf = a.keyframe_every
+            if kf and j % kf == 0:
+                nfirst += 1; r = res["_first"]; r[0] += 1; r[1] += frame(base); r[2] += ax
+            elif j > 0:
                 npair += 1
-                lt = local_tabs(l[max(0, j - a.ref_back)])
+                lt = local_tabs(l[j - (j % kf)] if kf else l[max(0, j - a.ref_back)])
                 r = res["static (same packets)"]; r[0] += 1; r[1] += frame(base); r[2] += ax
                 best = None
                 for w in a.weights:
@@ -118,8 +122,8 @@ def main():
                 nfirst += 1; r = res["_first"]; r[0] += 1; r[1] += frame(base); r[2] += ax
             count += 1
         if count >= a.max_packets: break
-    print(f"packets {count}; with an earlier packet from the station {npair}; first heard from a station {nfirst}; "
-          f"min-count {a.min_count}; reference {a.ref_back} back")
+    print(f"packets {count}; with an earlier packet from the station {npair}; first heard or full frame {nfirst}; "
+          f"min-count {a.min_count}; " + (f"full frame every {a.keyframe_every}, others primed with the latest full frame" if a.keyframe_every else f"reference {a.ref_back} back"))
     for k, (n, b, p) in res.items():
         if k != "_first" and n: print(f"{k:28} n={n:5}  avg frame {b/n:5.1f} B vs plain AX.25 {p/n:5.1f} B  saved {100*(1-b/p):3.0f}%")
     if res["_first"][0]:
