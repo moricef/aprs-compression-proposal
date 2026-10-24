@@ -41,8 +41,13 @@ off; `lora.rxActive` on; `lora.txActive` on for unit 1. Test packets are recogni
 (`~NN`), checked, and then dropped. They never reach APRS-IS, the digipeater, KISS or MQTT.
 The positions in them are made up; keep APRS-IS off anyway.
 
+Frame types: with `compressTx` forced on, the sender alternates full and primed frames (`compressFullEvery` 2,
+the default), because all test packets share the unit's callsign. A primed frame refers to the last full or
+plain packet, which the receiver has only if it received it. If one frame is lost on the air, the primed frame
+that refers to it is dropped (`Primed frame dropped: no matching reference`); that is a radio loss, not a bug.
+
 Expected on unit 1: `SELFTEST TX #0 (compressed)`, `#1`, ... through #13, then the same 14 again
-with `(plain)`. Expected on unit 2, for each: a line like
+with `(plain)`. Expected on unit 2, for each: a line like (`compressed` or `primed` after the number)
 
     SELFTEST RX OK #3 compressed: 54 B on air, 77 B as plain frame | ok 4 (compressed 4, plain 0), bad 0
 
