@@ -219,11 +219,23 @@ calculations, not measurements. Sending both is worse than not adopting at all.
   safety net; that is a small, bounded cost.
 * A frame that receivers did not acknowledge (messages) falls back to plain.
 
+**A tension between digipeating and gating.** From Direwolf's source (`direwolf.c`): the APRS
+digipeater is called only for a frame that is an APRS UI frame (control 3, PID 0xF0), and the iGate
+forwards only the same kind. So a frame with a different PID, which is how the marker is designed to
+keep legacy iGates from gating junk, is also not repeated by that digipeater. Marking with the PID
+protects APRS-IS and loses legacy digipeating. Keeping PID 0xF0 and putting the marker in the info
+field gets digipeating and loses the protection, unless the marker begins with something iGates
+discard (Direwolf's iGate drops a leading `?`, a generic query; whether other iGates and the APRS-IS
+servers do is untested). This was read from the code; an actual digipeater run was attempted and
+failed to repeat even a plain control frame, so it is not a test result.
+
 **Which form to use in a mixed area**
 | Form | Legacy digipeaters | Legacy iGates | Use |
 |---|---|---|---|
-| Info field only, or hybrid (AX.25 header kept, PID marker) | Expected to repeat it, since the address fields are normal; **not yet tested on a hardware digipeater** | Do not gate it (tested with Direwolf) | The default where legacy digipeaters are present |
+| Info field only (AX.25 header and path kept) with a PID marker | **Direwolf's APRS digipeater will not repeat it** (see below); other digipeaters untested | Do not gate it (tested with Direwolf) | Reaches direct range and upgraded digipeaters only |
+| Hybrid (source and destination kept, path inside the coded bytes) | Nothing to repeat: it has no digipeater address | Do not gate it | Direct range only |
 | Whole packet, LoRa-style | Cannot repeat it | Do not see it | Direct range to an upgraded receiver, or an area where the digipeaters have been upgraded |
+| Info field only with PID 0xF0 and a marker inside the info | Expected to repeat it | **Would gate it to APRS-IS as junk** unless the marker is something iGates reject | The marker has to be chosen carefully (see below) |
 
 A whole-packet frame in a mixed area reaches only stations within direct range that implement it. A
 station that wants wider coverage may be tempted to send plain too, which is the problem above, so the
@@ -240,7 +252,7 @@ of a collision with them. Legacy decoders that do hear a compressed frame with a
 it as junk (`docs/legacy-decoder-test.md`); that is log noise, not channel load.
 
 **Open**
-* Do hardware digipeaters repeat a frame with a PID other than 0xF0? Untested.
+* Hardware digipeaters and other software digipeaters (aprx, soundmodem): do they repeat a frame with a PID other than 0xF0? Direwolf's APRS digipeater does not; the others are untested.
 * How quickly iGates and digipeaters upgrade, and so how long mixed operation lasts.
 * Whether a regional trial (an area that adopts together) shows a drop in channel use. That is the
   measurement the companion repo `aprs-smarts` plans.
