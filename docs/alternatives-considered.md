@@ -27,6 +27,7 @@ implement it. That rules out a lot of methods before any numbers.
 | **Trained context model + range coder (this repo)** | A fixed table of "what usually follows these 3 characters", coded with an arithmetic coder | **41% on LoRa, 20% on VHF (info field only), 39% on VHF as a whole-packet frame** at a 144 KB table; 43% and 22% at 202 KB | Chosen; see below |
 | APRS's own compact formats (base-91 compressed position, Mic-E) | Part of the APRS 1.0.1 specification: position in fewer characters | Already used by many trackers (see below) | Not an alternative: this repo's compression works on top of them |
 | APRS 438 | A hand-designed fixed 17-byte binary layout for a position beacon | See the comparison below | Different scope: position only, no comment |
+| Native LoRa APRS frame (moricef, draft 0) | A new binary layout: typed fields, packed callsigns, binary position, a fixed Huffman code for the text, optional receiver-quality data | 27% smaller than plain (measured, see below) | Different aim (clean fields, receiver data, exact translation to APRS-IS); about half the saving on ordinary beacons. The two can coexist |
 
 The order of the context model was chosen by measurement, on an early LoRa-only corpus of about
 1,400 packets: order 1 saves 44%, order 2 saves 55%, order 3 saves 58% (ideal cost), order 4 saves
@@ -82,6 +83,47 @@ beacon with no comment, 438 is smaller than anything here (in one earlier single
 17 against 21 bytes for the model). It is not a general replacement for APRS packets, and it forks the network. The two are not
 exclusive: the like-for-like table shows a 438-style header and position with the comment compressed with the order-3 model.
 
+## The native LoRa APRS frame (moricef, draft 0)
+
+Another effort covers some of the same ground. moricef (F4MLV, France) has built a **native frame** for LoRa APRS,
+documented as a draft (`docs/LORA_APRS_NATIVE_FORMAT.md` and `..._DRAFT0.md` in his `LoRa_APRS_iGate` repository,
+branch `rxt`) and already in his T-Deck tracker (`devel` branch, setting `txFormat`: text, native or both). It marks
+its frames `3C FF 02`, so it cannot be confused with a plain frame (`01`) or an APRS-PPM frame (`81`, `C1`).
+
+**What it is.** Each packet type gets its own binary layout: callsigns packed into a few bytes, the path as short
+codes (`WIDEn-N`), the position as numbers, and a fixed Huffman code for the free text. The iGate translates every
+frame back to ordinary APRS text for APRS-IS, deterministically, so nothing downstream changes. The frame can also
+carry the receiver's signal measurements (RSSI, SNR) for network maps. His stated aims are less ambiguity in the
+data and a measurable network, as much as shorter frames.
+
+**What it measured, from his published report** (a T-Deck on a desk, 117 minutes of native beacons, three receivers):
+native frames were received as well as text frames, and a Mic-E beacon went from 47 to 29 bytes.
+
+**What the two give on the same packets.** I ran his encoder (copied unchanged from his tracker's `devel` branch) and
+the APRS-PPM codec on the same packets, with the plain frame (text plus the 3-byte header) as the baseline. Every
+native frame decoded back to the original packet; none failed to encode. The program is in `tools/compare_native/`.
+
+| Packets | Count | Plain | Native | APRS-PPM, one frame | APRS-PPM, full then primed |
+|---|---|---|---|---|---|
+| Live LoRa APRS traffic captured on 24 October 2026 (after both formats were built) | 1,037 | 70.7 B | 51.8 B (27% smaller) | 33.2 B (53%) | 32.1 B (55%) |
+| The three-hour capture of the earlier tests (the model's training data may overlap with it) | 27,276 | 69.2 B | 50.4 B (27%) | 32.1 B (54%) | 24.4 B (65%) |
+| Mic-E packets from a VHF capture | 1,090 | 61.1 B | 44.5 B (27%) | 49.7 B (19%) | 40.7 B (33%) |
+
+* On ordinary LoRa beacons (positions, messages, status) APRS-PPM's saving is about twice the native frame's.
+* On Mic-E, which is already a compact layout, the native frame is a little smaller than one APRS-PPM frame; with
+  priming APRS-PPM is smaller again.
+* The primed column assumes the receiver heard the station's previous frame. In the live sample only 13% of packets
+  had an earlier packet from the same station within the 20-minute window, so priming adds little there; in the
+  three-hour sample 79% did.
+* These figures leave out what the native frame adds beyond size (the optional receiver data, the strict grammar).
+  Draft 0 may change, and its Huffman table was built for his network's traffic.
+* My earlier "about 41% on LoRa" figure above came from an older, smaller model and a held-out-station test; the 53%
+  here is the shipped model on newer traffic. I have not reconciled the two, so quote the live figure with that in mind.
+
+**Where it leaves the two.** They solve different problems and can run side by side in one firmware (a T-Deck firmware
+carrying both has been built; it has not been run on the air yet). A natural combination is a native frame for structure and receiver data, with
+APRS-PPM for what is left as text; that has not been tried.
+
 ## Why APRS-PPM was chosen
 
 1. **It works on 70-byte packets.** Because the statistics are learned in advance, it needs nothing
@@ -105,6 +147,8 @@ exclusive: the like-for-like table shows a 438-style header and position with th
 * The 438 comparison used an earlier, smaller model and the documented 438 layout, not a 438 encoder.
 * SMAZ/SMAZ2, Varicode, PACTOR and V.42bis were looked at but not run on the packets. Their rows are
   judgements, not measurements.
+* The native-frame comparison used the draft-0 encoder as copied into his tracker's `devel` branch; if his format changes,
+  rerun `tools/compare_native/`. Neither format was tuned on the live sample.
 * A better approach may exist. I found no APRS-specific scheme using a trained context model, which
   is a statement about what I could find.
 
