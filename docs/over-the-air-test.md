@@ -214,12 +214,58 @@ callsign does not find it; search for `failed to parse` and the time instead.
   60 B plain (66 % overall in simulation).
 * The VHF binding (tests E-I) is untouched.
 
+The second session (below) closes the gap on the Direwolf transmit side and on a different receiver implementation;
+the others in this list remain open.
+
+## Result of the second over-the-air session: Direwolf transmits, ESP32 receives (24 October 2026, evening)
+
+The first session sent from an ESP32 to Direwolf. This one reverses the direction: the Direwolf LoRa driver
+(branch `feature/lora-compression`, built on the Pi) transmits compressed frames, and an ESP32 running the iGate
+firmware fork decodes them. The two programs share no code and were written from the same format description,
+so agreement here is a check of the specification as well as of the code.
+
+**Setup.** Transmitter: the same Raspberry Pi and SX1262 HAT as before, 433.775 MHz, SF12, BW 125 kHz, CR 4/5,
+test configuration with `LORACOMPRESS 2` and the station beacon every 2 minutes (the live service was stopped for the
+10-minute run and restarted by the script). Receiver: the same TTGO LoRa32 as before, normal firmware (no test flags),
+`compressTx` off, transmit off, CRC checking on. The packet is a standard LoRa APRS station beacon of 54 characters
+(`<callsign>>APDW19:!<position>&<callsign> LoRa APRS`), 57 B as a plain frame including the 3-byte LoRa header.
+
+| Time | Frame | On air | Plain would be | Decoded on the ESP32 | RSSI / SNR |
+|---|---|---|---|---|---|
+| 16:39:14 | full | 25 B | 57 B | identical text | -89 dBm / 11.0 dB |
+| 16:41:13 | primed | 8 B | 57 B | identical text | -96 dBm / 10.0 dB |
+| 16:43:14 | full | 25 B | 57 B | identical text | -89 dBm / 11.0 dB |
+| 16:45:13 | primed | 8 B | 57 B | identical text | -96 dBm / 10.5 dB |
+| 16:47:14 | full | 25 B | 57 B | identical text | -89 dBm / 10.8 dB |
+
+All 5 beacons decoded, with no errors. Full frames saved 56 %, primed frames 86 %, an alternating pair 71 %. The
+beacon is identical every time, which is the best case for priming; the position-packet run above (moving
+tracker, 29-character comment: full 49 %, primed 82 %, pair 65 %) is the more typical figure.
+
+**A bug found by this run (and fixed): the Direwolf SX1262 driver transmitted with the LoRa payload CRC off.** Before
+the test build, the ESP32 logged the plain hill beacon twice (16:18:23 and 16:30:54) as
+`failed, code -24`, which is RadioLib's `LORA_HEADER_DAMAGED`. RadioLib returns that when the receiver has CRC
+checking on and the packet header says there is no CRC (`SX127x.cpp`, "CRC is disabled according to packet header
+and enabled according to user, most likely damaged packet header"). The ESP32 iGate firmware sets `setCRC(true)`,
+so it dropped every beacon from that driver. A LILYGO T-Deck, a normal LoRa APRS receiver, decoded the same
+beacon, so the problem is not universal. Receiving was not affected: the SX1262 follows the CRC flag in each
+received header. The cause was one byte in the SX1262 packet parameters (two places in `loraspi.c`). Turning the
+CRC on fixed it, in the plain case as well as the compressed one, and the fix is in the Direwolf pull request (commit
+`ccc0f57`). The unmodified live binary still has the bug: when the service was restarted at the end of the run it
+beaconed again at 16:49 and the ESP32 logged `failed, code -24` once more.
+
+**Also checked in this session**
+* `LORARXGAIN` (SX1262 receive gain: powersave, boosted, or alternating by UTC hour) works on the hardware; the noise-floor
+  log line shows the mode in use (`rxgain=boosted` in an odd UTC hour).
+* The ESP32 build is 88.3 % full on its 1.97 MB application partition (about 6 points of that is the 125 KB model).
+
 ## Record results
 
 | Date | Units / frequency / SF (or radio, baud, marker) | Test | Packets sent | OK | Mismatch | Notes |
 |---|---|---|---|---|---|---|
 | 2026-10-24 | ESP32 sender to Pi (Direwolf branch), 433.775 MHz SF12 BW125, 2 mi LOS | status packets, 4 plain + 8 compressed + 4 plain | 16 | 16 | 0 | primed 9-10 B vs 42 B plain |
 | 2026-10-24 | same | average position + 29-char comment, compressed only | 12 | 12 | 0 | full 38.0 B, primed 13.8 B, pair 25.9 B vs 75 B (65 %) |
+| 2026-10-24 | Direwolf (Pi, SX1262) to ESP32 iGate firmware, same radio settings | station beacon, full and primed | 5 | 5 | 0 | full 25 B, primed 8 B vs 57 B plain; CRC-off transmit bug found and fixed first |
 |  |  |  |  |  |  |  |
 
 ## When it passes
