@@ -146,5 +146,5 @@ position packets fit; it has no comment field; and its position field is the ord
 
 * Reframed as proposal drafts. Any project or extension name is left to whoever adopts it; no branding chosen.
 * Done once, 24 October 2026: ESP32 sender to Direwolf receiver, full and primed frames (`docs/over-the-air-test.md`).
-  Direwolf transmit to an ESP32 receiver also done the same day (5 of 5 beacons decoded; full 25 B, primed 8 B against 57 B plain). Still to do: two ESP32 units, a weak-signal run with lost frames, and a mixed network with a stock unit.
+  Direwolf transmit to an ESP32 receiver also done the same day (5 of 5 beacons decoded; full 25 B, primed 8 B against 57 B plain). A T-Deck tracker was tested in both directions as well, and a station running our Direwolf build expanded its compressed beacon and passed it to APRS-IS as a normal packet one second later. Still to do: two ESP32 units, a weak-signal run with lost frames, and a mixed network with a stock unit.
 * Once it works over the air, bring the proposal to the APRS Foundation (contact form / aprssig) and open a PR to richonguzman/LoRa_APRS_iGate that links here for the format details.
