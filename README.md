@@ -15,8 +15,9 @@ collisions, more stations on one channel, and longer battery life on a tracker.
 
 ## The idea
 
-APRS text is predictable: after `WID` comes `E`, after `APL` comes `R` or `T`, and a station repeats its own comment,
-symbol and path in every beacon. Sender and receiver share a small fixed table of "what usually comes next", so the
+APRS text is very repetitive. Nearly every packet carries the same repeater path (`WIDE1-1`), the destination field names the
+software (`APLRT1` for a LoRa tracker), a station repeats its own comment and symbol in every beacon, and the digits of a
+position barely change from one beacon to the next. Sender and receiver share a small fixed table of "what usually comes next", so the
 likely characters cost almost nothing and only the surprises cost bits. Nothing is learned on the air, and the table
 ships with the software.
 

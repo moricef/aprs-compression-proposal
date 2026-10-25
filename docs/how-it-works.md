@@ -10,7 +10,7 @@ Fewer bytes means less airtime, fewer collisions and less battery.
 
 ## The idea in one paragraph
 
-Text is predictable. After `WID` the next letter is almost always `E`. After `APL` it is `R` or `T`.
+Text is predictable. After `WIDE` (the usual repeater path, as in `WIDE1-1`) comes `1-1` or `2-1`. After `APL` it is `R` or `T`.
 After `3400.0` comes another digit. If a sender and receiver both hold the same table of "what
 usually follows these three characters", the sender can spend very few bits on the likely
 continuation and more only on the surprising ones. The receiver runs the same predictions and
