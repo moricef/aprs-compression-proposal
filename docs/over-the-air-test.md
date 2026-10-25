@@ -334,8 +334,26 @@ log, which counts every frame it receives.
   full frame it refers to, so it dropped the primed frame (`Primed frame dropped: no matching reference`). The gateway, which
   had heard the full frame, decoded it. The listener recovers at the next full frame.
 
+**Overnight, 10 hours 37 minutes (19:54 on 24 October to 06:31 on 25 October, 40 beacons received):** the gateway's own
+summary of its log.
+
+* **40 beacons received. About 43 were due** (10 h 37 min at one beacon per 902 s), so about 93 % arrived and 3 did not.
+* **50 % smaller:** 844 B on air against 1,705 B as plain frames (861 B saved). Full frames (21) averaged 24.2 B
+  (46 % smaller); primed frames (19) averaged 17.7 B (56 % smaller).
+* **The gaps:** median 902 s; two gaps over 1.5 times the median, the longest 2,707 s (three beacon intervals, so two
+  beacons in a row are missing). The gateway also logged **one primed frame dropped for lack of a reference.**
+* **Reading of the missing ones (an inference, not something the log states):** a lost full frame also costs the primed
+  frame after it, because that one is coded against the full one. A primed frame that was heard but dropped fits the
+  longest gap: the full frame before it was not heard, so the primed one could not be decoded, and the next full frame
+  recovered. That would be two of the three missing beacons. The third is a single gap with no cause recorded.
+* **No plain control ran in parallel,** so this does not show whether the same three would have been lost as plain
+  frames. A lost full frame costing two beacons instead of one is a real cost of the priming design; it is why a full frame
+  is sent at least every second packet.
+
+The test is still running. The 24-hour mark is 19:54 on 25 October.
+
 **What this does not show:** one link, a signal at the gateway of about -95 to -98 dBm (measured in the earlier session),
-no change in weather or season, and only the first hours. Primed frames here are larger than in the earlier
+no change in weather or season, and only the first night. Primed frames here are larger than in the earlier
 button-press runs (14 to 19 B against 13 to 15 B) because the beacons are 15 minutes apart and the reported position changes
 between them.
 
