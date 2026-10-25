@@ -132,8 +132,11 @@ version.
   unusual packets (it falls back to nearly plain, and never expands a packet because the sender then
   sends it plain).
 * **The corpus is mostly non-US and one short window.** LoRa packets were selected by device type, not place, so they come from all over (mostly Europe). VHF packets were selected within 2,500 km of central US. By callsign prefix, a larger version of the corpus (22,364 unique packets) was about 88% non-US and 12% US. See `docs/per-country-estimate.md` for how much that matters.
-* **Not tested over the air yet.** The codec is tested on a PC (round trip on every packet, fuzzed with
-  mutated and truncated packets, and two independent implementations agree byte for byte).
+* **Tested over the air only briefly.** The codec is tested on a PC (round trip on every packet, fuzzed with
+  mutated and truncated packets, and two independent implementations agree byte for byte). On 24 October 2026
+  compressed frames were also sent in both directions between an ESP32 and a Raspberry Pi running Direwolf, at
+  short range with a strong signal, and decoded exactly (see `docs/over-the-air-test.md`). Weak signals, lost
+  frames, other boards and other spreading factors have not been tested.
 * **The table holds statistics from real packets.** With the pruning used, a one-off station's string is
   not stored, but common callsigns or comment fragments seen many times can appear in it. All of the
   source data was already public on APRS-IS.

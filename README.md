@@ -4,12 +4,24 @@
 bytes (APRS-PPM compressed frames), a way for stations to learn what the stations around them can
 decode, and a binding for VHF/AX.25. It extends APRS; it does not replace it, and legacy stations
 keep working. Phase 2, the harder "smarts" work (smarter digipeating, path learning, reach-aware
-repeating, a measured pilot), is in the companion repo `aprs-smarts`.
+repeating, a measured pilot), is in the companion repo `aprs-smarts` (not yet public).
 
-**This is a draft by one person. It is not a standard, and the on-air format has not been tested over
-the air.** Licensed under the [MIT License](LICENSE).
+**This is a draft by one person. It is not a standard.** The compressed-frame format has had a first
+short-range over-the-air test (24 October 2026: an ESP32 and a Raspberry Pi running Direwolf, both
+directions, every packet decoded exactly; see [docs/over-the-air-test.md](docs/over-the-air-test.md)), and
+nothing more than that yet. Licensed under the [MIT License](LICENSE).
 
-## Results so far (simulation on captured packets, nothing on air yet)
+## Try it
+
+The working firmware is on a public branch, with a page that says what it is for, what has been proven, what
+has not, and how to test it safely on spare hardware:
+
+* Branch: <https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression>
+* Start here: [tools/aprs_compress/EXPERIMENT.md](https://github.com/radiohound/LoRa_APRS_iGate/blob/feature/order3-compression/tools/aprs_compress/EXPERIMENT.md)
+
+It is opt-in (transmit is off by default) and is not a pull request to anyone's project.
+
+## Results so far (simulation on captured packets; the first over-the-air results are in docs/over-the-air-test.md)
 
 **The test data.** A three-hour read-only APRS-IS capture (plus a 5-minute pilot) for about 25 countries,
 taken on an evening in Europe: 135,299 unique packets, of which 10,841 LoRa and 30,872 VHF packets were

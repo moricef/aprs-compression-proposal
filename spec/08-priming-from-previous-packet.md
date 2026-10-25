@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Idea with a simulation. Not a standard, not implemented, not tested on air.** |
+| Status | **Not a standard. Implemented in the ESP32 firmware fork and a Direwolf branch; tested over the air once at short range (24 Oct 2026, `docs/over-the-air-test.md`); lost-frame behaviour not yet seen on air.** |
 | Depends on | 01 Compressed frames |
 | Changes to existing APRS | None to plain packets. A new frame variant; needs state at both ends |
 | Evidence | `tools/delta_sim.py` (ideal-cost simulation on an hour of APRS-IS capture) and `tools/receiver_sim.py` (does the receiver hold the reference) |

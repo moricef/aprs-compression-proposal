@@ -2,8 +2,9 @@
 
 A summary of the ideas in this repo, with the saving each one is estimated to give for LoRa APRS and
 for traditional (VHF, AX.25) APRS. **All figures come from simulations and offline measurement on
-captured APRS-IS packets. Nothing has been tested over the air.** Details and caveats are in the
-linked files; read them before quoting a number.
+captured APRS-IS packets, except the over-the-air sizes noted in `docs/over-the-air-test.md`, which come from
+two short-range tests on 24 October 2026.** Details and caveats are in the linked files; read them before
+quoting a number.
 
 How to read the numbers:
 

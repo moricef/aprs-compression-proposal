@@ -6,7 +6,7 @@
 | Author | Walter Dunckel, K6ATV |
 | Targets | APRS over amateur-radio LoRa (this part); AX.25 info field (see 07-ax25-binding.md) |
 | Changes to existing APRS | None. Additive: a new frame header that existing stations ignore |
-| Implementation | Reference C codec, one firmware fork, host-tested. **Not tested over the air yet** |
+| Implementation | Reference C codec, one firmware fork and a Direwolf branch, host-tested. **Tested over the air once at short range** (24 Oct 2026, both directions, `docs/over-the-air-test.md`); weak-signal and other-board tests not done |
 | Name | "APRS-PPM" is a working name for this proposal only; the name of an adopted extension is for the standards body to decide |
 
 ## Summary
