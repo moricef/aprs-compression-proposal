@@ -39,12 +39,15 @@ SF12, 125 kHz. Details, with every frame, are in [docs/over-the-air-test.md](doc
 
 | Test | Result |
 |---|---|
-| ESP32 sends, Direwolf receives | **12 of 12** decoded exactly. Average position beacon: **75 B plain, 38 B full, 14 B primed** |
-| Direwolf sends, ESP32 receives | **5 of 5** exactly. **57 B plain, 25 B full, 8 B primed** |
-| T-Deck tracker sends, ESP32 receives | **6 of 6** exactly. Full frames 42% smaller, primed frames **63 to 68% smaller** |
+| ESP32 sends, Direwolf receives | **12 of 12** decoded exactly. An average-sized position beacon with a comment: **75 B plain, 38 B full, 14 B primed** |
+| Direwolf sends, ESP32 receives | **5 of 5** exactly. The hill's short station beacon: **57 B plain, 25 B full, 8 B primed** |
+| T-Deck tracker sends, ESP32 receives | **6 of 6** exactly. A tracker beacon (40 B plain, no comment): full frames 42% smaller, primed frames **63 to 68% smaller** |
 | Direwolf sends, T-Deck receives | **16 of 16** frames received; all 8 compressed ones expanded to exactly the text sent |
 | T-Deck to a Direwolf iGate on a hill, 2 miles, every 15 minutes | Compressed beacon expanded and **passed to APRS-IS one second later as an ordinary packet**; nothing downstream needed to know |
 | The same, overnight (10 h 37 min, 40 beacons received of about 43 sent) | **50% fewer bytes on air** (844 B against 1,705 B). Three beacons did not arrive; the gateway logged one primed frame dropped for lack of its full frame |
+
+The tests used different packets, so compare plain with compressed within a row, not between rows: a shorter packet is smaller in every
+format, whichever device sends it.
 
 Airtime at SF12, from the LoRa airtime formula (not measured on air): the 57-byte beacon takes **2.6 s plain,
 1.5 s as a full frame and 1.0 s as a primed frame**. The preamble does not shrink, so time saved is a little less
