@@ -304,6 +304,41 @@ the upgrade the same ESP32 decoded the hill's beacon (RSSI -88 dBm, SNR 12 dB).
 was marginal for the hill, but every frame was received); other boards and other spreading factors; what other
 trackers and iGates do with a compressed frame; and the VHF binding.
 
+## Long-running test: a T-Deck beaconing compressed to the hill gateway (started 24 October 2026)
+
+After the third session the T-Deck tracker was left with compressed transmit switched on, and the hill station on the new
+Direwolf build (reads plain and compressed frames, sends plain, passes what it hears to APRS-IS). The T-Deck sends its
+beacon every 15 minutes by itself. This section is updated as the test continues; the figures come from the gateway's own
+log, which counts every frame it receives.
+
+**First 1 hour 45 minutes (19:54 to 21:39 local time, 8 beacons):**
+
+| Time | Frame | On air | Plain would be |
+|---|---|---|---|
+| 19:54:40 | full | 23 B | 40 B |
+| 20:09:42 | primed | 19 B | 40 B |
+| 20:24:44 | full | 23 B | 40 B |
+| 20:39:46 | primed | 19 B | 40 B |
+| 20:54:49 | full (the beacon that carries the comment) | 33 B | 75 B |
+| 21:09:51 | primed | 19 B | 40 B |
+| 21:24:53 | full | 23 B | 40 B |
+| 21:39:55 | primed | 14 B | 40 B |
+
+* **8 beacons received out of 8.** The gaps between them are 902 to 903 seconds every time (the 15-minute timer plus the
+  transmit time), so none was missed: a missed beacon would show as a gap of about 30 minutes.
+* **173 B on air against 355 B as plain frames: 51 % smaller.** Full frames averaged 25.5 B (48 % smaller), primed frames
+  17.8 B (56 % smaller). Full and primed frames alternated as designed.
+* **Each beacon reached APRS-IS in the same second it was received,** as an ordinary packet with the gateway's callsign in
+  the `qAO` part of the path (checked for the 19:54 and 21:39 beacons with a read-only APRS-IS login).
+* **A primed frame dropped, as designed.** An ESP32 listener restarted a minute before the 21:39 beacon had not heard the
+  full frame it refers to, so it dropped the primed frame (`Primed frame dropped: no matching reference`). The gateway, which
+  had heard the full frame, decoded it. The listener recovers at the next full frame.
+
+**What this does not show:** one link, a signal at the gateway of about -95 to -98 dBm (measured in the earlier session),
+no change in weather or season, and only the first hours. Primed frames here are larger than in the earlier
+button-press runs (14 to 19 B against 13 to 15 B) because the beacons are 15 minutes apart and the reported position changes
+between them.
+
 ## Record results
 
 | Date | Units / frequency / SF (or radio, baud, marker) | Test | Packets sent | OK | Mismatch | Notes |
@@ -314,6 +349,7 @@ trackers and iGates do with a compressed frame; and the VHF binding.
 | 2026-10-24 | ESP32 iGate firmware to T-Deck tracker (SX1262), same radio settings | status packets, 8 compressed | 16 | 16 | 0 | full 29 B, primed 9-10 B vs 42-43 B plain |
 | 2026-10-24 | T-Deck tracker to ESP32 iGate firmware, real beacon code | position beacons, full and primed | 6 | 6 | 0 | full 23-24 B, primed 13-15 B vs 40 B (start-up beacon 31 B vs 75 B) |
 | 2026-10-24 | T-Deck to hill station running Direwolf, then to APRS-IS | one compressed beacon | 1 | 1 | 0 | expanded and gated as a normal packet 1 s later |
+| 2026-10-24, 19:54-21:39 | T-Deck beacon timer (15 min) to the hill gateway, long-running | position beacons, full and primed | 8 | 8 | 0 | 173 B vs 355 B plain (51 %); first hours of a continuing test |
 |  |  |  |  |  |  |  |
 
 ## When it passes
