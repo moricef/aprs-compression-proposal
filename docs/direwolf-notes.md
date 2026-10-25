@@ -1,7 +1,12 @@
 # Notes: implementing this in Direwolf
 
-**Status: planning notes. Nothing here has been implemented, and I have not yet read the Direwolf
-source for these paths, so the hook points are to be confirmed.**
+**Status.** The **LoRa HAT channel** part is implemented and has been tested over the air: branch
+[`feature/lora-compression`](https://github.com/radiohound/direwolf/tree/feature/lora-compression) of the
+`radiohound/direwolf` fork (receive always on, opt-in transmit with `LORACOMPRESS`, primed frames; instructions for
+getting, building and using it are in its `doc/LoRa-Compression.md`). It sits on top of the LoRa driver of pull request
+#638 to wb2osz/direwolf and is kept separate from that pull request; nothing has been proposed to the Direwolf
+maintainer. The rest of this page, the **VHF / AX.25 part**, is still planning notes: nothing is implemented, and I
+have not yet read the Direwolf source for those paths, so the hook points are to be confirmed.
 
 ## Why Direwolf
 
@@ -17,8 +22,8 @@ port. MIT-licensed code can be included in a GPL project.
   field if the channel is configured for it and the result is smaller.
 * **Receive:** after the frame is parsed and before the APRS decoder and the iGate see it, expand a
   marked info field back to plain text. The iGate then gates ordinary text to APRS-IS.
-* **LoRa HAT channel:** the LoRa driver sends `<\xff\x01` + text; the same codec could send the
-  `3C FF 81` frame there (spec 01). That is a separate change.
+* **LoRa HAT channel:** the LoRa driver sends `<\xff\x01` + text; the same codec sends the
+  `3C FF 81` / `3C FF C1` frames there (spec 01, spec 08). **Done**, see the branch above.
 
 ## Configuration
 

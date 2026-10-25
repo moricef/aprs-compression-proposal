@@ -108,7 +108,7 @@ position packets fit; it has no comment field; and its position field is the ord
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
 | [08 Priming with a station's last full packet](spec/08-priming-from-previous-packet.md) | Wire format + C reference codec + 103 test vectors + firmware; about 65% saved on real LoRa pairs (real codec bytes), 62-70% in simulation. Host-tested only |
 | [09 Structured header for position packets](spec/09-structured-header-layout.md) | Idea: a compact fixed layout for callsign, path and position plus an order-3 comment; about 4-7 B smaller than order-3 alone on LoRa position packets (arithmetic) |
-| [Direwolf notes](docs/direwolf-notes.md) | Planning notes for a Direwolf implementation |
+| [Direwolf notes](docs/direwolf-notes.md) | Where the Direwolf implementation is (LoRa HAT channel, built) and planning notes for the VHF part |
 | [Other methods considered, APRS 438, and why APRS-PPM was chosen](docs/alternatives-considered.md) | Comparison table and the reasoning |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
 | [Compression by country (rough estimate)](docs/per-country-estimate.md) | Estimate per country and device type, LoRa and VHF, from a three-hour capture (135,299 packets), with a head-to-head check that more data does not help at a fixed table size |
@@ -135,12 +135,21 @@ position packets fit; it has no comment field; and its position field is the ord
 * C reference codec (`reference/`), including primed frames; `make test` checks 26 full-frame and 103 primed
   test vectors, and that a primed frame is rejected if the receiver's reference differs.
 * Firmware fork of richonguzman/LoRa_APRS_iGate with receive-always, opt-in transmit
-  (`lora.compressTx`) and primed frames (`lora.compressFullEvery`): local branch
-  `feature/order3-compression`, builds for `ttgo-lora32-v21` (flash 88.3%, RAM 21.7%). Its C++ codec
+  (`lora.compressTx`) and primed frames (`lora.compressFullEvery`): public branch
+  [`feature/order3-compression`](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression), builds for `ttgo-lora32-v21` (flash 88.3%, RAM 21.7%). Its C++ codec
   produces byte-identical frames to the reference on 4,520 full-frame vectors and all 103 primed vectors,
   and a host test simulates a sender and receiver with a lost full frame and a lost primed frame. A
   self-test build exercises both frame types between two boards.
-* Nothing else yet. A Direwolf port and an STM32WLE5 tracker build are candidates.
+* **Direwolf (LoRa HAT channel):** receive always on, opt-in transmit (`LORACOMPRESS`), primed frames, and an iGate that
+  expands compressed frames and gates them to APRS-IS as normal packets. Branch
+  [`feature/lora-compression`](https://github.com/radiohound/direwolf/tree/feature/lora-compression) of the
+  `radiohound/direwolf` fork, with its own instructions in `doc/LoRa-Compression.md`. It sits on the LoRa driver
+  of the pending pull request #638 and is **not** part of that pull request. The VHF/AX.25 side of Direwolf is still
+  only planned (`docs/direwolf-notes.md`).
+* **T-Deck tracker** (a fork of the LoRa APRS Tracker firmware of moricef): receive always on, opt-in transmit. Branch
+  [`ppm-compression`](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/ppm-compression), start at
+  its `docs/APRS-PPM-TDECK.md`.
+* An STM32WLE5 tracker build is a candidate; nothing is built.
 
 ## TODO
 
