@@ -86,20 +86,20 @@ exclusive: the like-for-like table shows a 438-style header and position with th
 ## The native LoRa APRS frame (moricef, draft 0)
 
 Another effort covers some of the same ground. moricef (F4MLV, France) has built a **native frame** for LoRa APRS,
-documented as a draft (`docs/LORA_APRS_NATIVE_FORMAT.md` and `..._DRAFT0.md` in his `LoRa_APRS_iGate` repository,
-branch `rxt`) and already in his T-Deck tracker (`devel` branch, setting `txFormat`: text, native or both). It marks
+documented as a draft (`docs/LORA_APRS_NATIVE_FORMAT.md` and `..._DRAFT0.md` in moricef's `LoRa_APRS_iGate` repository,
+branch `rxt`) and already in moricef's T-Deck tracker (`devel` branch, setting `txFormat`: text, native or both). It marks
 its frames `3C FF 02`, so it cannot be confused with a plain frame (`01`) or an APRS-PPM frame (`81`, `C1`).
 
 **What it is.** Each packet type gets its own binary layout: callsigns packed into a few bytes, the path as short
 codes (`WIDEn-N`), the position as numbers, and a fixed Huffman code for the free text. The iGate translates every
 frame back to ordinary APRS text for APRS-IS, deterministically, so nothing downstream changes. The frame can also
-carry the receiver's signal measurements (RSSI, SNR) for network maps. His stated aims are less ambiguity in the
+carry the receiver's signal measurements (RSSI, SNR) for network maps. The stated aims are less ambiguity in the
 data and a measurable network, as much as shorter frames.
 
-**What it measured, from his published report** (a T-Deck on a desk, 117 minutes of native beacons, three receivers):
+**What it measured, from the published report** (a T-Deck on a desk, 117 minutes of native beacons, three receivers):
 native frames were received as well as text frames, and a Mic-E beacon went from 47 to 29 bytes.
 
-**What the two give on the same packets.** I ran his encoder (copied unchanged from his tracker's `devel` branch) and
+**What the two give on the same packets.** I ran moricef's encoder (copied unchanged from the tracker's `devel` branch) and
 the APRS-PPM codec on the same packets, with the plain frame (text plus the 3-byte header) as the baseline. Every
 native frame decoded back to the original packet; none failed to encode. The program is in `tools/compare_native/`.
 
@@ -116,7 +116,7 @@ native frame decoded back to the original packet; none failed to encode. The pro
   had an earlier packet from the same station within the 20-minute window, so priming adds little there; in the
   three-hour sample 79% did.
 * These figures leave out what the native frame adds beyond size (the optional receiver data, the strict grammar).
-  Draft 0 may change, and its Huffman table was built for his network's traffic.
+  Draft 0 may change, and its Huffman table was built for the traffic of moricef's network.
 * My earlier "about 41% on LoRa" figure above came from an older, smaller model and a held-out-station test; the 53%
   here is the shipped model on newer traffic. I have not reconciled the two, so quote the live figure with that in mind.
 
@@ -147,7 +147,7 @@ APRS-PPM for what is left as text; that has not been tried.
 * The 438 comparison used an earlier, smaller model and the documented 438 layout, not a 438 encoder.
 * SMAZ/SMAZ2, Varicode, PACTOR and V.42bis were looked at but not run on the packets. Their rows are
   judgements, not measurements.
-* The native-frame comparison used the draft-0 encoder as copied into his tracker's `devel` branch; if his format changes,
+* The native-frame comparison used the draft-0 encoder as copied into moricef's tracker `devel` branch; if the format changes,
   rerun `tools/compare_native/`. Neither format was tuned on the live sample.
 * A better approach may exist. I found no APRS-specific scheme using a trained context model, which
   is a statement about what I could find.

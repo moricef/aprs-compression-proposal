@@ -2,7 +2,7 @@
 
 `compare_native.cpp` runs two encoders on the same packets and prints the mean frame size of each:
 
-* **native**: the draft-0 "native LoRa APRS frame" of moricef (header `3C FF 02`), using his encoder unchanged;
+* **native**: the draft-0 "native LoRa APRS frame" of moricef (header `3C FF 02`), using moricef's encoder unchanged;
 * **ppm-1st**: an APRS-PPM full frame (`3C FF 81`), using the codec library `lib/AprsCompress` of the iGate branch
   (<https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression/lib/AprsCompress/src>), the same
   code the firmware runs;
@@ -17,7 +17,7 @@ original packet; the output reports how many failed (none did in the runs descri
 ## Build
 
 The native encoder is not part of this repository: it is GPL-3.0 and belongs to its author. Fetch the five files from
-his tracker repository (`lib/native_aprs/src/`, branch `devel`) or from his iGate repository (branch `rxt`,
+the tracker repository of moricef (`lib/native_aprs/src/`, branch `devel`) or from moricef's iGate repository (branch `rxt`,
 `src/` and `include/`), into a folder `native/`:
 
     native_aprs.cpp  native_aprs.h  native_aprs_huffman_table.h  rxt_protocol.cpp  rxt_protocol.h
