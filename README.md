@@ -83,15 +83,14 @@ reported as is.
 
 ## What this does not show yet
 
-* **One link, so far.** About 2 miles, signal around -95 to -98 dBm at the gateway, one night, mild weather. Not yet
-  tried: a busy channel, a really weak signal, other boards or spreading factors, a stock iGate or tracker meeting a
-  compressed frame.
+* **Needs more testing.** So far one link of about 2 miles, signal around -95 to -98 dBm at the gateway, one night, mild
+  weather. Not yet tried: a busy channel, a really weak signal, other boards or spreading factors, a stock iGate or
+  tracker meeting a compressed frame.
 * **Receivers without the code can't read compressed frames.** They hear and ignore them, so transmit is off by
   default and meant for places where every receiver that matters has the code. A compressed frame that an iGate
   with the code hears reaches APRS-IS as a normal packet.
-* **The table was trained on about 25 countries, but on one evening's capture, taken during European hours.** Most of
-  its LoRa packets are European. The US share is small (440 of 10,841 test packets) and saves 43%, in line with the
-  41% overall, but a bigger North American sample would firm that up
+* **One table for everyone.** It was trained on traffic from about 25 countries in proportion to their share of LoRa
+  APRS, and the saving is similar across them: most countries land between about 35% and 47%, the US at 43%
   ([docs/per-country-estimate.md](docs/per-country-estimate.md)). The raw captures hold real callsigns and positions
   and are not published, only the aggregates.
 
