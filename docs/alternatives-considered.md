@@ -117,8 +117,12 @@ native frame decoded back to the original packet; none failed to encode. The pro
   three-hour sample 79% did.
 * These figures leave out what the native frame adds beyond size (the optional receiver data, the strict grammar).
   Draft 0 may change, and its Huffman table was built for the traffic of moricef's network.
-* My earlier "about 41% on LoRa" figure above came from an older, smaller model and a held-out-station test; the 53%
-  here is the shipped model on newer traffic. I have not reconciled the two, so quote the live figure with that in mind.
+* My earlier "about 41% on LoRa" figure above came from a held-out-station test; the 53% here is the shipped model on newer
+  traffic. They are reconciled by whose packets they are: 950 of the 1,037 live packets (92%) are from stations that appear
+  in the LoRa captures the model was trained from (an upper bound on the overlap), and those give 33.1 B against 71.5 B
+  plain, 54% smaller. The other 87, from stations the model had not seen, give 34.5 B against 62.2 B, **44% smaller** as one
+  full frame and 47% with priming, close to the held-out 41% and to the 42 to 48% measured on the air. Only 87 packets, so
+  treat 44% as a rough figure; the held-out study is the larger one.
 
 **Where it leaves the two.** They solve different problems and can run side by side in one firmware (a T-Deck firmware
 carrying both has been built; it has not been run on the air yet). A natural combination is a native frame for structure and receiver data, with

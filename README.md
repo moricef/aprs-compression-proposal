@@ -25,7 +25,7 @@ predicted from the three before it.
 
 Two kinds of compressed frame:
 
-* **Full frame** (`3C FF 81`): the whole packet, compressed. Anyone with the table can read it. About **40% smaller**.
+* **Full frame** (`3C FF 81`): the whole packet, compressed. Anyone with the table can read it. About **40 to 50% smaller**: 41% on stations the table had never seen, 47% over the full-day radio test below.
 * **Primed frame** (`3C FF C1`): coded against the same station's last full packet, so only what *changed* is sent.
   About **55 to 70% smaller**. A receiver that missed the reference drops it and recovers at the next full frame.
 
@@ -72,6 +72,9 @@ APRS-PPM, full + primed  ████████████████ 32.1 B
 |---|---|---|---|---|
 | 27,276 LoRa, a three-hour capture | 69.2 B | 50.4 B (27%) | 32.1 B (54%) | 24.4 B (65%) |
 | 1,090 Mic-E packets, VHF | 61.1 B | 44.5 B (27%) | 49.7 B (19%) | 40.7 B (33%) |
+
+92% of these 1,037 packets come from stations that were in the captures the table was trained on. The 87 from stations
+it had never seen came out **44% smaller** as one full frame and 47% with priming, in line with the 41% held-out figure below.
 
 The table was trained on 70% of the stations in a separate three-hour capture and tested on the other 30%, so the
 earlier study's figures are on stations it had never seen: **41% fewer bytes** per frame without priming, and about
