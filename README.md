@@ -3,9 +3,9 @@
 **The same APRS packet, sent in about half the bytes, and turned back into the identical text at the other end.**
 It extends APRS and does not replace it: stations that don't know about it carry on exactly as before.
 
-> One person's proposal. Not a standard, and nobody has been asked to adopt it. It has been tried on a few real
-> radios over one short link, and replayed on tens of thousands of captured packets. What is proven and what is
-> not is listed [below](#what-this-does-not-show-yet).
+> An idea that is showing promise and needs more testing. It has been tried on three kinds of hardware over two links, and
+> replayed on tens of thousands of captured packets. What is proven and what is not is listed
+> [below](#what-this-does-not-show-yet).
 
 ## Why
 
@@ -106,7 +106,7 @@ reported as is.
 | [T-Deck tracker firmware](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/ppm-compression) | Receive always on, transmit opt-in |
 | [`spec/`](spec) and [`reference/`](reference) | The specifications, a plain-C codec, the frozen table and 129 worked examples (test vectors) to check an implementation against |
 
-These are shown as an idea that works, not as a request. No pull request will be opened unless a maintainer says
+These are shared so people can try the idea, not as a request. No pull request will be opened unless a maintainer says
 one would be welcome. They are not part of the Direwolf LoRa driver pull request (#638).
 
 ## Read more

@@ -30,9 +30,9 @@ It hears a compressed frame and cannot read it. We tried it with an unmodified D
 
 A primed frame depends on the same station's last full frame. If that was missed, the primed frame is dropped and the receiver recovers at the next full frame. That cost 6 primed frames in the 24-hour test, and it is why a full frame goes out at least every second packet.
 
-## Is this a standard?
+## Where does this stand?
 
-No. It is one person's proposal, shown as an idea that works. Nobody has been asked to adopt it, and no pull request will be opened unless a maintainer says one would be welcome.
+It is an idea that is showing promise and needs more testing. It has worked on three kinds of hardware over two links, and on tens of thousands of replayed packets. More links, a busier channel, weaker signals and other spreading factors are the next things to try. The branches are there so people can try it.
 
 ## How do I try it?
 
