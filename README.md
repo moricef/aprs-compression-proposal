@@ -111,6 +111,7 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 
 ## Read more
 
+* [This page as a 4-page PDF](docs/brochure.pdf), with charts, to read or hand around
 * [Questions and answers](docs/faq.md): does it still work on normal LoRa APRS, what reaches APRS-IS, what a stock iGate does
 * [How it works, in plain language](docs/how-it-works.md) and [why not 438 or an off-the-shelf compressor](docs/alternatives-considered.md)
 * [The over-the-air test log](docs/over-the-air-test.md), with a section updated as the long run continues
