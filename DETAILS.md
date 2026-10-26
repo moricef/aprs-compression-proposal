@@ -58,7 +58,7 @@ because the preamble does not shrink). Full table and caveats in
   the table format and the model.
 * How often to send a full frame is a trade between saving and being decodable by receivers that missed the previous packet; the proposed default is every 2nd transmission for moving stations and every 4th to 8th for stationary ones (spec 08).
 * The figures do not add up, because the methods overlap.
-* **Over the air, so far, only one short link has been tested** (about 2 miles, 24 to 25 October 2026: ESP32, Raspberry Pi with Direwolf, and T-Deck, in both directions, and an overnight run; see `docs/over-the-air-test.md`). The other figures
+* **Over the air, so far, two links and three kinds of hardware** (24 to 25 October 2026: ESP32, Raspberry Pi with Direwolf, and T-Deck, in both directions, and a full-day run over about 2 miles; see `docs/over-the-air-test.md`). The other figures
   come from simulation, which uses ideal coding length for the priming figures, an assumed TXDELAY for VHF
   airtime, and one evening of data (three hours, Europe).
 

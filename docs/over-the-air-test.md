@@ -350,10 +350,23 @@ summary of its log.
   frames. A lost full frame costing two beacons instead of one is a real cost of the priming design; it is why a full frame
   is sent at least every second packet.
 
-The test is still running. The 24-hour mark is 19:54 on 25 October.
+**A full day, 23 hours 57 minutes (19:54 on 24 October to 19:51 on 25 October, 80 beacons expanded):** the gateway's own
+summary of its log, covering the overnight run above and the following day.
+
+* **80 beacons expanded and gated. About 96 were due** (one every 15 minutes). Another **6 primed frames arrived and were
+  dropped** because their full frame had not been heard, so about 86 were heard and about 10 never were.
+* **51 % smaller:** 1,736 B on air against 3,515 B as plain frames. Full frames (43) averaged 24.9 B (47 % smaller);
+  primed frames (37) averaged 18.0 B (55 % smaller).
+* **The gaps:** median 902 s, 10 gaps over 1.5 times the median, the longest 4,510 s (five beacon intervals).
+* **The daytime was rougher than the night.** From 06:46 on 25 October the collector (the MQTT server that receives the
+  hill's event log) shows 45 compressed frames heard in 13.5 hours with 5 primed frames dropped, against 1 dropped overnight.
+  The hill's noise floor averaged -92.7 dBm in that period, with 35 CRC failures. Whether that follows the gateway's
+  gain setting, which alternates by hour, has not been checked.
+* **A lost full frame costs the primed frame after it,** which the dropped frames above show. That is why a full frame
+  is sent at least every second packet.
 
 **What this does not show:** one link, a signal at the gateway of about -95 to -98 dBm (measured in the earlier session),
-no change in weather or season, and only the first night. Primed frames here are larger than in the earlier
+no change in weather or season, and one day. Primed frames here are larger than in the earlier
 button-press runs (14 to 19 B against 13 to 15 B) because the beacons are 15 minutes apart and the reported position changes
 between them.
 

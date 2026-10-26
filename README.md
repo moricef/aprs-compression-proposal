@@ -44,7 +44,7 @@ SF12, 125 kHz. Details, with every frame, are in [docs/over-the-air-test.md](doc
 | T-Deck tracker sends, ESP32 receives | **6 of 6** exactly. A tracker beacon (40 B plain, no comment): full frames 42% smaller, primed frames **63 to 68% smaller** |
 | Direwolf sends, T-Deck receives | **16 of 16** frames received; all 8 compressed ones expanded to exactly the text sent |
 | T-Deck to a Direwolf iGate on a hill, 2 miles, every 15 minutes | Compressed beacon expanded and **passed to APRS-IS one second later as an ordinary packet**; nothing downstream needed to know |
-| The same, overnight (10 h 37 min, 40 beacons received of about 43 sent) | **50% fewer bytes on air** (844 B against 1,705 B). Three beacons did not arrive; the gateway logged one primed frame dropped for lack of its full frame |
+| The same, for a full day (23 h 57 min, 80 beacons expanded of about 96 sent) | **51% fewer bytes on air** (1,736 B against 3,515 B). About 10 beacons were never heard, and 6 primed frames arrived but were dropped because their full frame was missed |
 
 The tests used different packets, so compare plain with compressed within a row, not between rows: a shorter packet is smaller in every
 format, whichever device sends it.
