@@ -27,7 +27,9 @@ Two kinds of compressed frame:
 
 * **Full frame** (`3C FF 81`): the whole packet, compressed. Anyone with the table can read it. About **40 to 50% smaller**: 41% on stations the table had never seen, 47% over the full-day radio test below.
 * **Primed frame** (`3C FF C1`): coded against the same station's last full packet, so only what *changed* is sent.
-  About **55 to 70% smaller**. A receiver that missed the reference drops it and recovers at the next full frame.
+  About **55 to 70% smaller**. A receiver that missed the reference drops it and recovers at the next full frame. A check byte over the whole packet
+  (added after an independent tester's findings, see [known issues](docs/known-issues.md)) stops a wrong reference from decoding to the wrong text.
+  The primed figures on this page were measured before that byte; each primed frame is now one byte larger.
 
 A station sends a full frame at least every second packet by default (a stationary one can send them less often), so a lost
 frame costs little. If compression would not save anything, the plain frame goes out instead.
@@ -116,6 +118,7 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 ## Read more
 
 * [This page as a 4-page PDF](docs/brochure.pdf), with charts, to read or hand around
+* [Known issues and findings from testing](docs/known-issues.md): what other testers found, and what was fixed
 * [Questions and answers](docs/faq.md): does it still work on normal LoRa APRS, what reaches APRS-IS, what a stock iGate does
 * [How it works, in plain language](docs/how-it-works.md) and [why not 438 or an off-the-shelf compressor](docs/alternatives-considered.md)
 * [The over-the-air test log](docs/over-the-air-test.md), with a section updated as the long run continues

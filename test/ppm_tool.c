@@ -144,6 +144,57 @@ static int check_primed(const char *path)
     return bad ? 1 : 0;
 }
 
+/* collide: the failure F4MLV reported. For each primed vector, build stale references for the same station that have
+ * the same CRC-8 as the true reference (a receiver that missed an update and kept an old packet), decode the real
+ * frame with each, and count how many decode to the wrong text without an error. Also cuts bytes off the end of each
+ * frame and counts how many still decode to the wrong text. A fixed seed keeps the numbers the same on every run.
+ * The text check is one CRC-8, so about 1 in 256 of the wrong decodes still gets through: that is a measured residual,
+ * not zero, and the test fails only if it rises above 1% of cases. */
+static uint32_t rng_state = 12345;
+static uint32_t rnd(void) { rng_state = rng_state * 1664525u + 1013904223u; return rng_state >> 8; }
+
+static int collide(const char *path)
+{
+    FILE *f = fopen(path, "r"); char line[4096]; int vectors = 0;
+    long cases = 0, rejected = 0, right = 0, wrong = 0, cuts = 0, cut_ok = 0, cut_wrong = 0;
+    if (!f) { perror(path); return 2; }
+    while (fgets(line, sizeof line, f)) {
+        uint8_t ref[300], text[300], frame[400], stale[300], back[400]; size_t rl, tl, fl = 0, k;
+        uint8_t seen[20][300]; char *a, *b; int made = 0, j, dup; long tries = 0;
+        if (line[0] == '#' || line[0] == '\n') continue;
+        a = strchr(line, ' '); if (!a) continue; *a++ = 0;
+        b = strchr(a, ' '); if (!b) continue; *b++ = 0;
+        if (hex_in(line, ref, sizeof ref, &rl) || hex_in(b, text, sizeof text, &tl)) continue;
+        if (!strcmp(a, "-") || hex_in(a, frame, sizeof frame, &fl)) continue;
+        vectors++;
+        while (made < 20 && tries++ < 200000) {
+            size_t sl = rl, i = rnd() % sl;
+            memcpy(stale, ref, rl);
+            stale[i] = (uint8_t)"0123456789"[rnd() % 10];
+            if (rnd() & 1) stale[rl - 1 - rnd() % (rl > 8 ? 8 : rl)] = (uint8_t)"abcdefghij0123"[rnd() % 14];
+            if (!memcmp(stale, ref, rl) || aprs_ppm_crc8(stale, sl) != aprs_ppm_crc8(ref, rl)) continue;
+            for (dup = 0, j = 0; j < made; j++) if (!memcmp(seen[j], stale, rl)) dup = 1;
+            if (dup) continue;                      /* count each distinct stale reference once */
+            memcpy(seen[made], stale, rl);
+            made++; cases++;
+            k = aprs_ppm_decode_primed(stale, sl, frame, fl, back, sizeof back);
+            if (!k) rejected++; else if (k == tl && !memcmp(back, text, tl)) right++; else wrong++;
+        }
+        for (k = 1; k <= 3 && k + 7 < fl; k++) {
+            size_t bl = aprs_ppm_decode_primed(ref, rl, frame, fl - k, back, sizeof back);
+            cuts++;
+            if (!bl) continue;
+            if (bl == tl && !memcmp(back, text, tl)) cut_ok++; else cut_wrong++;
+        }
+    }
+    fclose(f);
+    printf("%d vectors: %ld stale-reference collisions: %ld rejected, %ld right text anyway, %ld WRONG text accepted\n",
+           vectors, cases, rejected, right, wrong);
+    printf("%ld frames cut by 1 to 3 bytes: %ld decoded to the wrong text\n", cuts, cut_wrong);
+    (void)cut_ok;
+    return (cases == 0 || wrong * 100 > cases) ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc >= 2 && !strcmp(argv[1], "gen")) return gen();
@@ -151,6 +202,7 @@ int main(int argc, char **argv)
     if (argc >= 2 && !strcmp(argv[1], "stats")) return stats();
     if (argc >= 2 && !strcmp(argv[1], "gen-primed")) return gen_primed();
     if (argc >= 3 && !strcmp(argv[1], "check-primed")) return check_primed(argv[2]);
+    if (argc >= 3 && !strcmp(argv[1], "collide")) return collide(argv[2]);
     fprintf(stderr, "usage: ppm_tool gen|stats|gen-primed < packets.txt | ppm_tool check vectors.txt | ppm_tool check-primed vectors.txt\n");
     return 2;
 }

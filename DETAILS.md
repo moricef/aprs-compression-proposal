@@ -136,7 +136,8 @@ position packets fit; it has no comment field; and its position field is the ord
 ## Implementations
 
 * C reference codec (`reference/`), including primed frames; `make test` checks 26 full-frame and 103 primed
-  test vectors, and that a primed frame is rejected if the receiver's reference differs.
+  test vectors, that a primed frame is rejected if the receiver's reference differs, and a collision test (a stale
+  reference with the same 8-bit check, and cut frames). See `docs/known-issues.md`.
 * Firmware fork of richonguzman/LoRa_APRS_iGate with receive-always, opt-in transmit
   (`lora.compressTx`) and primed frames (`lora.compressFullEvery`): public branch
   [`feature/order3-compression`](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression), builds for `ttgo-lora32-v21` (flash 88.3%, RAM 21.7%). Its C++ codec

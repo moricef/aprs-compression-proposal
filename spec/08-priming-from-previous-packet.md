@@ -34,13 +34,14 @@ Implemented in `reference/aprs_ppm.c`; `make test` checks it against `test/vecto
     1       1     0xFF
     2       1     0xC0 | model version (1..63). Bit 7 = compressed, bit 6 = primed. Model v1 -> 0xC1
     3       1     station id = CRC-8 of the source callsign (the text before the first '>')
-    4       1     reference check = CRC-8 of the whole reference text
-    5       1     L = length in bytes of the original text, 1..255
-    6       n     range-coded bytes
+    4       1     reference check = CRC-8 (polynomial 0x07) of the whole reference text
+    5       1     text check = CRC-8 (polynomial 0x1D) of the whole original text
+    6       1     L = length in bytes of the original text, 1..255
+    7       n     range-coded bytes
 
 CRC-8 is polynomial 0x07, initial value 0, no reflection, no final xor. A full (unprimed) frame is the spec 01
 frame `3C FF (0x80|version) L coded`; a plain frame is `3C FF 01` + text. A primed frame costs 2 bytes more
-than a full one because of the station id and the reference check.
+than a full one (3 bytes more) because of the station id, the reference check and the text check.
 
 **Model.** Same table as spec 01. For each coded byte and each order k = 3..0, every position j >= k in the
 reference text whose preceding k bytes equal the current context adds `APRS_PPM_PRIME_WEIGHT` (512) to the
@@ -55,7 +56,11 @@ next full frame arrives.
 **Receiver.** Keep, for each source, the text of the last plain or full packet received. On a primed frame,
 look up the stored packet whose station id matches and whose CRC-8 equals the reference check. If there is
 none, drop the frame: the packet is lost, as it would be for any receiver that did not hear it. After
-decoding, the CRC-8 of the decoded source callsign must equal the station id.
+decoding, the CRC-8 of the decoded source callsign must equal the station id, and the text check (polynomial
+0x1D) of the whole decoded text must equal byte 5; if either differs, drop the frame. The text check is what
+catches a reference that has the same 8-bit reference check as the real one but different bytes (a receiver that
+missed an update), and a frame cut short. It uses a different polynomial from the reference check on purpose, see
+[`docs/known-issues.md`](../docs/known-issues.md).
 
 **Sender.** Keep, for each source, the text of the last full or plain packet transmitted and how many primed
 frames have gone since. Send a full frame at least every Nth transmission for that source, and otherwise a
@@ -66,7 +71,7 @@ primed frame referring to the stored text; send a plain frame if neither is smal
 3,000 consecutive packet pairs from 536 LoRa stations that model v1's training data did not contain (the
 three-hour capture; reference = the station's previous different packet, which is what a full frame every 2nd
 transmission gives), model v1, real frame bytes
-including the 6-byte primed header:
+including the 6-byte primed header of the first layout (the current layout has 7 bytes, so add 1 byte to each primed figure; see `docs/known-issues.md`):
 
 | | Avg frame | Saved vs plain (60.1 B) |
 |---|---|---|

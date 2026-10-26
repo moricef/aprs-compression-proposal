@@ -122,9 +122,10 @@ measured on packets the model was trained on are higher and not representative.
 ## Compatibility with legacy stations
 
 * A plain LoRa APRS frame (`3C FF 01` + text) is unchanged and remains the default.
-* A compressed frame starts `3C FF` followed by a byte with the high bit set. Existing firmware
-  expects `01` there and drops the frame; it is not misparsed as APRS. (Checked against one
-  firmware's source, not against every implementation.)
+* A compressed frame starts `3C FF` followed by a byte with the high bit set. Firmware that checks for exactly
+  `3C FF 01` drops it (checked against one firmware's source), but not every receiver does: a Linux tracker was
+  seen displaying compressed frames as garbage text (reported by a tester, October 2026). A receiver MUST drop any `3C FF`
+  frame whose third byte it does not know, and never show it as text.
 * A sender uses a compressed frame only when it is strictly smaller, and a receiver that
   implements this gateways to APRS-IS as the original plain text, so APRS-IS and maps see ordinary
   packets.

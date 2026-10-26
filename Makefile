@@ -9,6 +9,7 @@ build/ppm_tool: test/ppm_tool.c $(SRC) reference/aprs_ppm.h reference/aprs_ppm_m
 test: build/ppm_tool
 	build/ppm_tool check test/vectors_v1.txt
 	build/ppm_tool check-primed test/vectors_primed_v1.txt
+	build/ppm_tool collide test/vectors_primed_v1.txt
 
 vectors: build/ppm_tool
 	build/ppm_tool gen < test/synthetic_packets.txt > test/vectors_v1.txt
