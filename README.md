@@ -81,7 +81,7 @@ earlier study's figures are on stations it had never seen: **41% fewer bytes** p
 **55%** with a full frame every second packet ([docs/per-country-estimate.md](docs/per-country-estimate.md)).
 On compact VHF Mic-E packets the saving is smaller; that is reported as is.
 
-The "native frame" column is moricef's draft 0, a binary layout for LoRa APRS with typed fields, packed callsigns and optional
+The "native frame" column is a community draft (draft 0), a binary layout for LoRa APRS with typed fields, packed callsigns and optional
 receiver data. Its aims go beyond size, so it is shown as a yardstick, one packet at a time, and not as a rival: on Mic-E,
 which is already compact, it is a little smaller than one APRS-PPM frame. The two are not exclusive, since its text part uses a
 fixed code that this model could in principle replace (not tried). The comparison and its limits are in
