@@ -42,10 +42,10 @@ SF12, 125 kHz. Details, with every frame, are in [docs/over-the-air-test.md](doc
 | Test | Result |
 |---|---|
 | ESP32 sends, Direwolf receives | **12 of 12** decoded exactly. An average-sized position beacon with a comment: **75 B plain, 38 B full, 14 B primed** |
-| Direwolf sends, ESP32 receives | **5 of 5** exactly. The hill's short station beacon: **57 B plain, 25 B full, 8 B primed** |
+| Direwolf sends, ESP32 receives | **5 of 5** exactly. The gateway's short station beacon: **57 B plain, 25 B full, 8 B primed** |
 | T-Deck tracker sends, ESP32 receives | **6 of 6** exactly. A tracker beacon (40 B plain, no comment): full frames 42% smaller, primed frames **63 to 68% smaller** |
 | Direwolf sends, T-Deck receives | **16 of 16** frames received; all 8 compressed ones expanded to exactly the text sent |
-| T-Deck to a Direwolf iGate on a hill, 2 miles, every 15 minutes | Compressed beacon expanded and **passed to APRS-IS one second later as an ordinary packet**; nothing downstream needed to know |
+| T-Deck to a Direwolf iGate 2 miles away, every 15 minutes | Compressed beacon expanded and **passed to APRS-IS one second later as an ordinary packet**; nothing downstream needed to know |
 | The same, for a full day (23 h 57 min, 80 beacons expanded of about 96 sent) | **51% fewer bytes on air** (1,736 B against 3,515 B). About 10 beacons were never heard, and 6 primed frames arrived but were dropped because their full frame was missed |
 
 The tests used different packets, so compare plain with compressed within a row, not between rows: a shorter packet is smaller in every

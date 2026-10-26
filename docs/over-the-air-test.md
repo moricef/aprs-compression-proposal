@@ -159,7 +159,7 @@ Record each run in the table below, with the marker used, the radio, the baud ra
 
 This was not tests A-D as written (no second ESP32). It used a different pairing: an ESP32 sender with
 the iGate firmware fork, and a Raspberry Pi running the Direwolf branch with the LoRa HAT driver and the
-compressed-frame receive code, on a hill site about 2 miles away with line of sight. It answers the same
+compressed-frame receive code, at a site about 2 miles away with line of sight. It answers the same
 question as test B: does a compressed frame sent by one radio arrive and expand to exactly the same text?
 
 **Setup.** Sender: TTGO LoRa32 V2.1-class board (433 MHz, hand-soldered SMA connector, large
@@ -243,7 +243,7 @@ beacon is identical every time, which is the best case for priming; the position
 tracker, 29-character comment: full 49 %, primed 82 %, pair 65 %) is the more typical figure.
 
 **A bug found by this run (and fixed): the Direwolf SX1262 driver transmitted with the LoRa payload CRC off.** Before
-the test build, the ESP32 logged the plain hill beacon twice (16:18:23 and 16:30:54) as
+the test build, the ESP32 logged the plain gateway beacon twice (16:18:23 and 16:30:54) as
 `failed, code -24`, which is RadioLib's `LORA_HEADER_DAMAGED`. RadioLib returns that when the receiver has CRC
 checking on and the packet header says there is no CRC (`SX127x.cpp`, "CRC is disabled according to packet header
 and enabled according to user, most likely damaged packet header"). The ESP32 iGate firmware sets `setCRC(true)`,
@@ -259,12 +259,12 @@ beaconed again at 16:49 and the ESP32 logged `failed, code -24` once more.
   log line shows the mode in use (`rxgain=boosted` in an odd UTC hour).
 * The ESP32 build is 88.3 % full on its 1.97 MB application partition (about 6 points of that is the 125 KB model).
 
-## Result of the third over-the-air session: a T-Deck tracker, and the hill station as a gateway (24 October 2026, late evening)
+## Result of the third over-the-air session: a T-Deck tracker, and the Direwolf station as a gateway (24 October 2026, late evening)
 
 The first two sessions used the ESP32 iGate firmware and Direwolf. This one adds a third program, the LilyGo T-Deck
 Plus (ESP32-S3, SX1262, 433 MHz), running a port of the compression into the LoRa APRS Tracker firmware of a third party
 (the port is a one-commit change: the codec library, a frame reader and writer in the radio code, and two settings).
-It also upgrades the hill station to the Direwolf build with the compressed-frame code.
+It also upgrades the gateway station to the Direwolf build with the compressed-frame code.
 
 **Receive.** An ESP32 iGate sender (the first session's board) sent the 16-packet sequence of status packets with
 `RFONLY` in the path (4 plain, 8 compressed, 4 plain). The T-Deck received **16 of 16** and expanded all 8 compressed
@@ -285,28 +285,28 @@ exactly:
 | button 5 | primed | 15 B | 40 B | -80 dBm / 12.3 dB |
 
 Full and primed frames alternated as designed, none were dropped, and the tracker's frames are 42 % (full) to 63 to
-68 % (primed) smaller than the plain position beacon. The hill station, still on the old Direwolf, heard all six at
+68 % (primed) smaller than the plain position beacon. The gateway station, still on the old Direwolf, heard all six at
 -95 to -98 dBm (SNR -4 to -7 dB) about 2 miles away with the T-Deck's small antenna, and could only log each as an
 unreadable frame, as expected of a receiver without the code.
 
-**The hill as a gateway.** The hill station was then switched to the new Direwolf build (compressed-frame receive;
+**The gateway.** The gateway station was then switched to the new Direwolf build (compressed-frame receive;
 its own transmissions stay plain). A further compressed beacon from the T-Deck (23 B on air, 40 B as text) was
-expanded by the hill station and passed to APRS-IS **one second later** as an ordinary packet, with the hill station's
+expanded by the gateway station and passed to APRS-IS **one second later** as an ordinary packet, with the gateway's
 callsign in the `qAO` part of the path. A read-only APRS-IS login seen from outside showed it as a normal tracker packet.
 So a tracker that compresses and one iGate that expands are enough: nothing downstream needs to know. This was
-seen once; a long-running test with the T-Deck compressing and the hill upgraded is now under way.
+seen once; a long-running test with the T-Deck compressing and the gateway upgraded is now under way.
 
-**Also confirmed on the live hill station.** Before the upgrade the ESP32 rejected the hill's own plain beacon
+**Also confirmed on the live gateway station.** Before the upgrade the ESP32 rejected the gateway's own plain beacon
 (`failed, code -24`, header damaged, because the old driver transmitted without the payload CRC); three minutes after
-the upgrade the same ESP32 decoded the hill's beacon (RSSI -88 dBm, SNR 12 dB).
+the upgrade the same ESP32 decoded the gateway's beacon (RSSI -88 dBm, SNR 12 dB).
 
 **Not covered yet:** a long-running comparison; lost frames and the primed-frame-drop path on a marginal link (the path
-was marginal for the hill, but every frame was received); other boards and other spreading factors; what other
+was marginal for the gateway, but every frame was received); other boards and other spreading factors; what other
 trackers and iGates do with a compressed frame; and the VHF binding.
 
-## Long-running test: a T-Deck beaconing compressed to the hill gateway (started 24 October 2026)
+## Long-running test: a T-Deck beaconing compressed to the gateway (started 24 October 2026)
 
-After the third session the T-Deck tracker was left with compressed transmit switched on, and the hill station on the new
+After the third session the T-Deck tracker was left with compressed transmit switched on, and the gateway station on the new
 Direwolf build (reads plain and compressed frames, sends plain, passes what it hears to APRS-IS). The T-Deck sends its
 beacon every 15 minutes by itself. This section is updated as the test continues; the figures come from the gateway's own
 log, which counts every frame it receives.
@@ -359,8 +359,8 @@ summary of its log, covering the overnight run above and the following day.
   primed frames (37) averaged 18.0 B (55 % smaller).
 * **The gaps:** median 902 s, 10 gaps over 1.5 times the median, the longest 4,510 s (five beacon intervals).
 * **The daytime was rougher than the night.** From 06:46 on 25 October the collector (the MQTT server that receives the
-  hill's event log) shows 45 compressed frames heard in 13.5 hours with 5 primed frames dropped, against 1 dropped overnight.
-  The hill's noise floor averaged -92.7 dBm in that period, with 35 CRC failures. Whether that follows the gateway's
+  gateway's event log) shows 45 compressed frames heard in 13.5 hours with 5 primed frames dropped, against 1 dropped overnight.
+  The gateway's noise floor averaged -92.7 dBm in that period, with 35 CRC failures. Whether that follows the gateway's
   gain setting, which alternates by hour, has not been checked.
 * **A lost full frame costs the primed frame after it,** which the dropped frames above show. That is why a full frame
   is sent at least every second packet.
@@ -379,8 +379,8 @@ between them.
 | 2026-10-24 | Direwolf (Pi, SX1262) to ESP32 iGate firmware, same radio settings | station beacon, full and primed | 5 | 5 | 0 | full 25 B, primed 8 B vs 57 B plain; CRC-off transmit bug found and fixed first |
 | 2026-10-24 | ESP32 iGate firmware to T-Deck tracker (SX1262), same radio settings | status packets, 8 compressed | 16 | 16 | 0 | full 29 B, primed 9-10 B vs 42-43 B plain |
 | 2026-10-24 | T-Deck tracker to ESP32 iGate firmware, real beacon code | position beacons, full and primed | 6 | 6 | 0 | full 23-24 B, primed 13-15 B vs 40 B (start-up beacon 31 B vs 75 B) |
-| 2026-10-24 | T-Deck to hill station running Direwolf, then to APRS-IS | one compressed beacon | 1 | 1 | 0 | expanded and gated as a normal packet 1 s later |
-| 2026-10-24, 19:54-21:39 | T-Deck beacon timer (15 min) to the hill gateway, long-running | position beacons, full and primed | 8 | 8 | 0 | 173 B vs 355 B plain (51 %); first hours of a continuing test |
+| 2026-10-24 | T-Deck to the gateway running Direwolf, then to APRS-IS | one compressed beacon | 1 | 1 | 0 | expanded and gated as a normal packet 1 s later |
+| 2026-10-24, 19:54-21:39 | T-Deck beacon timer (15 min) to the gateway, long-running | position beacons, full and primed | 8 | 8 | 0 | 173 B vs 355 B plain (51 %); first hours of a continuing test |
 |  |  |  |  |  |  |  |
 
 ## When it passes

@@ -8,7 +8,7 @@ Yes. A plain frame goes through exactly as before; the compressed-frame check on
 
 ## What reaches APRS-IS when it hears a compressed frame?
 
-The original packet, as ordinary APRS text. The iGate expands the frame back to the exact text the sender had, and from there it takes the same path as any plain packet. APRS-IS never sees a compressed frame. On the hill, a compressed beacon went out to APRS-IS one second after it was heard, as a normal packet with the gateway's callsign in the qAO part of the path.
+The original packet, as ordinary APRS text. The iGate expands the frame back to the exact text the sender had, and from there it takes the same path as any plain packet. APRS-IS never sees a compressed frame. At our test gateway, a compressed beacon went out to APRS-IS one second after it was heard, as a normal packet with the gateway's callsign in the qAO part of the path.
 
 ## What else does an iGate do with a packet it hears: its log server, MQTT, KISS?
 
