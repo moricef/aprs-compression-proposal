@@ -83,9 +83,10 @@ reported as is.
 
 ## What this does not show yet
 
-* **Needs more testing.** So far one link of about 2 miles, signal around -95 to -98 dBm at the gateway, one night, mild
-  weather. Not yet tried: a busy channel, a really weak signal, other boards or spreading factors, a stock iGate or
-  tracker meeting a compressed frame.
+* **Needs more testing.** So far two links and three kinds of hardware: a LILYGO LoRa32 V2.1 (ESP32), a LILYGO T-Deck and a
+  Raspberry Pi LoRa HAT running a branch of Direwolf. The longer link is about 2 miles, signal around -95 to -98 dBm at the
+  gateway, one night, mild weather. Not yet tried: a busy channel, a really weak signal, other spreading factors, a stock
+  iGate or tracker meeting a compressed frame.
 * **Receivers without the code can't read compressed frames.** They hear and ignore them, so transmit is off by
   default and meant for places where every receiver that matters has the code. A compressed frame that an iGate
   with the code hears reaches APRS-IS as a normal packet.
