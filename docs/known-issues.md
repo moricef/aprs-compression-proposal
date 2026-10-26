@@ -27,12 +27,12 @@ cannot see. With 0x1D the same test lets **6 of 2,060** through (0.3%), down fro
 it (`build/ppm_tool collide`). It is a residual, not zero: a one-byte check lets about 1 in 256 of the remaining wrong
 decodes through. A two-byte check would reduce that further at a cost of one more byte per primed frame.
 
+**This breaks version 1 primed frames.** The new header is not compatible with the first one (7 bytes, was 6), and the model version in the frame mark (`C1`) did not change. Anyone running an early build must rebuild and reflash all devices together; a primed frame between an old and a new build is almost always dropped, and about 1 in 256 could decode wrongly (the weakness this fix closes). Full and plain frames are unaffected. The primed mode had only been run on our own test devices, so the number of early adopters is small.
+
 **Cost.** One byte per primed frame, so about 2 points less saved on primed frames: the average primed frame in the
 spec 08 measurement goes from 21.2 B (65% smaller) to about 22.2 B (63%). The figures elsewhere in this repository
 for primed frames were measured with the earlier 6-byte header and are about 1 byte per primed frame too optimistic.
-The layout change is a different primed header under the same `3C FF C1` mark; the firmware branches still send and
-expect the earlier layout, so they must be updated together, and primed frames between old and new builds are
-rejected or dropped, not accepted wrongly (apart from the 1-in-256 chance the old station-id check always had).
+The layout change is a different primed header under the same `3C FF C1` mark. The three firmware branches (ESP32 iGate, T-Deck tracker, Dire Wolf) were updated to it on 26 October 2026. The ESP32 iGate and Dire Wolf codecs pass the new vectors in their host tests (103 primed vectors; Dire Wolf also the unknown-frame test). The T-Deck branch carries the byte-identical codec file of the iGate branch. **None of the three has been built into firmware or run on the air since the change** (no firmware build was possible where this was done), so treat the new layout as untested on real radios until it has been.
 
 ### 2. A cut-short frame decoded to some text (fixed for primed frames; open for full frames)
 
@@ -48,8 +48,7 @@ but would reject frames from an encoder that is valid but not byte-identical to 
 A Linux tracker displayed compressed frames as garbage text, so "existing firmware drops them" is not true everywhere
 (spec 01 had said so, after checking one firmware's source). The spec now says a receiver MUST drop any `3C FF` frame
 whose third byte it does not know. Firmware that does not follow it will show compressed frames as garbage until it is
-changed, which is another reason transmit is off by default. Still to check: that each firmware branch here follows
-the rule.
+changed, which is another reason transmit is off by default. The ESP32 iGate, T-Deck tracker and Dire Wolf branches now drop unknown `3C FF` types.
 
 ### 4. Cost in flash
 
@@ -69,7 +68,5 @@ tight, and the T-Deck tracker build is at 72.5%. This limits which boards can ca
 
 ## Still open
 
-* Update the three firmware branches to the new primed layout and to the unknown-frame rule (they are separate
-  repositories and change together).
 * Whether a two-byte text check is worth the extra byte.
 * The re-encode check for full frames.

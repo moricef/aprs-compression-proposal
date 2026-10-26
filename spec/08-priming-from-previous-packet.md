@@ -27,6 +27,8 @@ same model from its copy of packet N-1 and decodes.
 
 ## Wire format (reference codec)
 
+**Changed 26 October 2026, not compatible with the first layout.** The first layout had a 6-byte header with no text check byte (a primed frame could decode to the wrong text from a stale reference that shared the 8-bit reference check). The layout below adds the text check at byte 5. The frame mark is still `3C FF C1`, so builds from before this change must be upgraded together with the rest; see `docs/known-issues.md`.
+
 Implemented in `reference/aprs_ppm.c`; `make test` checks it against `test/vectors_primed_v1.txt`.
 
     offset  size  meaning
