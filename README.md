@@ -83,19 +83,17 @@ reported as is.
 
 ## What this does not show yet
 
-* **One link.** About 2 miles, signal around -95 to -98 dBm at the gateway, a few hours to one night, mild weather.
-  Not tested: a busy channel, collisions, a really weak signal, other boards, other spreading factors, a stock iGate
-  or tracker meeting a compressed frame.
-* **Receivers without the code can't read compressed frames.** They hear and ignore them. Transmit is therefore
-  off by default and is meant for places where every receiver that matters has the code. A compressed frame
-  that an iGate with the code hears reaches APRS-IS as a normal packet.
-* **A lost full frame also costs the primed frame after it.** That is the price of priming, and why a full frame
-  is sent at least every second packet.
-* **No plain-frame control** ran alongside the overnight test, so it does not say whether the same three beacons
-  would have been lost uncompressed.
-* **Replays use one table, trained on one evening of mostly European data.** The saving varies by device type
-  and country ([docs/per-country-estimate.md](docs/per-country-estimate.md)). The raw captures hold real
-  callsigns and positions and are not published, only the aggregates.
+* **One link, so far.** About 2 miles, signal around -95 to -98 dBm at the gateway, one night, mild weather. Not yet
+  tried: a busy channel, a really weak signal, other boards or spreading factors, a stock iGate or tracker meeting a
+  compressed frame.
+* **Receivers without the code can't read compressed frames.** They hear and ignore them, so transmit is off by
+  default and meant for places where every receiver that matters has the code. A compressed frame that an iGate
+  with the code hears reaches APRS-IS as a normal packet.
+* **The table was trained on about 25 countries, but on one evening's capture, taken during European hours.** Most of
+  its LoRa packets are European. The US share is small (440 of 10,841 test packets) and saves 43%, in line with the
+  41% overall, but a bigger North American sample would firm that up
+  ([docs/per-country-estimate.md](docs/per-country-estimate.md)). The raw captures hold real callsigns and positions
+  and are not published, only the aggregates.
 
 ## What exists
 
