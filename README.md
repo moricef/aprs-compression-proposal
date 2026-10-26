@@ -19,8 +19,9 @@ APRS text is very repetitive. Nearly every packet carries the same repeater path
 software (`APLRT1` for a LoRa tracker), a station repeats its own comment and symbol in every beacon, and the digits of a
 position barely change from one beacon to the next. Sender and receiver share a small fixed table of "what usually comes next", so the
 likely characters cost almost nothing and only the surprises cost bits. Nothing is learned on the air, and the table
-ships with the software. The method is called **PPM**, *prediction by partial matching*, a classic text-compression
-technique: each character is predicted from the three before it.
+ships with the software. The method is called **PPM**, *prediction by partial matching*, a text-compression technique
+from 1984 (Cleary and Witten) whose PPMd variant is a standard method in 7-Zip and RAR archives. Here, each character is
+predicted from the three before it.
 
 Two kinds of compressed frame:
 
