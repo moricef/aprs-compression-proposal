@@ -62,13 +62,9 @@ result decoded back; the average size is what is on the air.
 
 ```
 plain                    ███████████████████████████████████ 70.7 B
-a binary "native" frame  ██████████████████████████ 51.8 B   27% smaller
 APRS-PPM, one frame      █████████████████ 33.2 B            53% smaller
 APRS-PPM, full + primed  ████████████████ 32.1 B             55% smaller
 ```
-
-The "native" frame is a different community draft, a binary layout designed around the APRS fields; see
-[docs/alternatives-considered.md](docs/alternatives-considered.md) for the comparison and its limits.
 
 ### On bigger sets
 
@@ -80,8 +76,13 @@ The "native" frame is a different community draft, a binary layout designed arou
 The table was trained on 70% of the stations in a separate three-hour capture and tested on the other 30%, so the
 earlier study's figures are on stations it had never seen: **41% fewer bytes** per frame without priming, and about
 **55%** with a full frame every second packet ([docs/per-country-estimate.md](docs/per-country-estimate.md)).
-On compact VHF Mic-E packets the saving is smaller and the native frame does better for single frames; that is
-reported as is.
+On compact VHF Mic-E packets the saving is smaller; that is reported as is.
+
+The "native frame" column is moricef's draft 0, a binary layout for LoRa APRS with typed fields, packed callsigns and optional
+receiver data. Its aims go beyond size, so it is shown as a yardstick, one packet at a time, and not as a rival: on Mic-E,
+which is already compact, it is a little smaller than one APRS-PPM frame. The two are not exclusive, since its text part uses a
+fixed code that this model could in principle replace (not tried). The comparison and its limits are in
+[docs/alternatives-considered.md](docs/alternatives-considered.md).
 
 ## What this does not show yet
 
