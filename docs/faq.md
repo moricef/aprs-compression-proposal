@@ -16,7 +16,7 @@ In the ESP32 firmware the expanded packet is the only copy there is. APRS-IS, th
 
 ## Is the text really identical?
 
-Yes. The compression is lossless: every frame we compared with what was sent expanded to the same text, and the reference codec passes 26 + 103 test vectors.
+Yes. The compression is lossless: every frame we compared with what was sent expanded to the same text, and the reference codec reproduces 129 worked examples exactly (26 full frames and 103 primed ones, each written down as bytes on the air and the text they must expand to).
 
 ## Do I have to change my tracker or my iGate?
 

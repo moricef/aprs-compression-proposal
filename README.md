@@ -104,7 +104,7 @@ reported as is.
 | [ESP32 iGate firmware](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression) | Receive always on, transmit opt-in |
 | [Direwolf, LoRa HAT channel](https://github.com/radiohound/direwolf/tree/feature/lora-compression) | Receive always on, transmit opt-in; an iGate that expands compressed frames and gates them as normal packets |
 | [T-Deck tracker firmware](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/ppm-compression) | Receive always on, transmit opt-in |
-| [`spec/`](spec) and [`reference/`](reference) | The specifications, a plain-C codec, the frozen table and 26 + 103 test vectors |
+| [`spec/`](spec) and [`reference/`](reference) | The specifications, a plain-C codec, the frozen table and 129 worked examples (test vectors) to check an implementation against |
 
 These are shown as an idea that works, not as a request. No pull request will be opened unless a maintainer says
 one would be welcome. They are not part of the Direwolf LoRa driver pull request (#638).
