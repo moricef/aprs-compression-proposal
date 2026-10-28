@@ -11,6 +11,9 @@
  * Environment (all optional):
  *   LAYOUTS=mask   bit 0 whole, bit 1 hybrid A, bit 2 hybrid B (default 7 = all)
  *   PACKPATH=0     old path cost (2 + text length) instead of packed callsign elements
+ *   NATIVE=1       cost source, destination and path exactly as moricef's native encoder does (moricef/LoRa_APRS_iGate,
+ *                  branch rxt, src/native_aprs.cpp, encElement): no path code table, path block = 1 header byte + its elements, destination as an element (DSTCODE=1 keeps the code table)
+ *   DUMPCOST=1     print "source destination path" native bytes for each row and exit (to check against the real encoder)
  *   NOHOP=1        skip the "after one relay hop" pass
  *   RXT=R          each of R relays adds one 4-byte RXT tuple, plus one mask byte once (relayed frames only; default 0)
  *   RXTFULL=1      add the RXT bytes to full frames only, not to primed frames
@@ -59,6 +62,40 @@ static int path_native(const char *p) {
 }
 static int path_code(const char *p) { for (int i = 0; CODES[i]; i++) if (!strcmp(CODES[i], p)) return i; return -1; }
 
+/* NATIVE=1: one address element as moricef's encoder writes it (encElement in moricef/LoRa_APRS_iGate, branch rxt, src/native_aprs.cpp).
+   WIDEn[-N][*] with n, N 1..7: 1 byte. 1 to 6 of A-Z0-9, optional -SSID 1..255 without a leading zero, optional *: 5 bytes,
+   6 when the SSID is above 30. Anything else: 1 + text length, up to 31 characters. Returns -1 for an element it cannot carry. */
+static int NATIVE = 0, DSTCODE = 0;
+static int elem_native(const char *e, int l) {
+    int i = 5;
+    if (l >= 5 && !strncmp(e, "WIDE", 4) && e[4] >= '1' && e[4] <= '7') {
+        if (i < l && e[i] == '-') i = (i + 1 < l && e[i + 1] >= '1' && e[i + 1] <= '7') ? i + 2 : -1;
+        if (i > 0 && i < l && e[i] == '*') i++;
+        if (i == l) return 1;
+    }
+    i = 0; while (i < l && i < 6 && ((e[i] >= 'A' && e[i] <= 'Z') || (e[i] >= '0' && e[i] <= '9'))) i++;
+    if (i > 0) {
+        int ssid = 0, ok = 1;
+        if (i < l && e[i] == '-') {
+            int j = i + 1; while (j < l && j < i + 4 && e[j] >= '0' && e[j] <= '9') { ssid = ssid * 10 + e[j] - '0'; j++; }
+            if (j == i + 1 || e[i + 1] == '0' || ssid > 255) ok = 0; else i = j;
+        }
+        if (ok && i < l && e[i] == '*') i++;
+        if (ok && i == l) return ssid > 30 ? 6 : 5;
+    }
+    return (l >= 1 && l <= 31) ? 1 + l : -1;
+}
+/* path block: one header byte (element count), then each element. -1 if an element cannot be carried or there are more than 15. */
+static int path_block_native(const char *p) {
+    int tot = 1, n = 0; const char *e = p;
+    while (*e) {
+        const char *c = strchr(e, ','); int l = c ? (int)(c - e) : (int)strlen(e);
+        int b = elem_native(e, l); if (b < 0 || ++n > 15) return -1;
+        tot += b; e += l; if (*e == ',') e++;
+    }
+    return tot;
+}
+
 /* LoRa airtime (s), explicit header, CRC, CR 4/5, 8-symbol preamble, low-data-rate-optimise at SF11/12 */
 static double airtime2(int bytes, int sf) {
     double tsym = pow(2, sf) / 125000.0; int de = sf >= 11;
@@ -91,7 +128,7 @@ static int in_group(const Row *r, int g, int hopped) {
                  case G_HOP: return hopped; } return 0; }
 
 /* returns frame bytes; layout 0 = whole packet, 1 = path outside. extra = path block bytes (layout 1). Verifies decode. */
-static long fails, escapes, pathrows; static int RXTH = 0, RXTFULL = 0; /* relays that each append a 4-byte tuple; +1 mask byte once */
+static long fails, escapes, pathrows, unencodable; static int RXTH = 0, RXTFULL = 0; /* relays that each append a 4-byte tuple; +1 mask byte once */
 static int send_one(int layout, int N, const Row *r, int hopped, const char *hp, int *kindout) {
     uint8_t t[300]; int tl; int extra = 0; char dst[64];
     const char *path = hopped ? hp : r->path;
@@ -103,10 +140,16 @@ static int send_one(int layout, int N, const Row *r, int hopped, const char *hp,
     const char *info = colon + 1;
     int pcode = path_code(r->path); pathrows++;
     int pathextra = hopped ? 6 : (pcode >= 0 ? 1 : path_native(path)); if (!hopped && pcode < 0) escapes++;
+    if (NATIVE) { pathextra = path_block_native(path); if (pathextra < 0) { unencodable++; return -1; } }
     if (layout == 0) { tl = snprintf((char *)t, 300, "%.*s>%s%s%s:%s", srcl, r->text, dst, *path ? "," : "", path, info); }
     else if (layout == 1) { tl = snprintf((char *)t, 300, "%.*s>%s:%s", srcl, r->text, dst, info); extra = pathextra; }
     else { tl = snprintf((char *)t, 300, ":%s", info);               /* leading ':' so the model sees a familiar start */
            int dc = dst_code(dst);
+           if (NATIVE) {
+               int sb = elem_native((const char *)r->text, srcl), db = DSTCODE && dc >= 0 ? 1 : elem_native(dst, dl);
+               if (sb < 0 || db < 0) { unencodable++; return -1; }
+               extra = sb + db + pathextra;
+           } else
            extra = (src_packable(r->text, srcl) ? 5 : 1 + srcl) + (dc >= 0 ? 1 : 1 + (int)strlen(dst)) + pathextra; }
     if (tl > 255) return -1;
     St *s = get(r->src);
@@ -129,7 +172,7 @@ static int send_one(int layout, int N, const Row *r, int hopped, const char *hp,
     if (n != (size_t)tl || memcmp(back, t, tl)) { fails++; return -1; }
     if (kind != 1) { memcpy(s->srx, back, n); s->srl = (int)n; }
     /* path block round trip (layout 1): code table must give the original path back */
-    if (layout == 1 && !hopped) { int code = path_code(r->path); if (code >= 0 && strcmp(CODES[code], r->path)) fails++; }
+    if (layout == 1 && !hopped && !NATIVE) { int code = path_code(r->path); if (code >= 0 && strcmp(CODES[code], r->path)) fails++; }
     *kindout = kind;
     if (layout == 2 && kind == 1) extra -= 1;                    /* station id not needed: source is readable */
     if (hopped && RXTH > 0 && (!RXTFULL || kind != 1)) extra += 4 * RXTH + 1;               /* RXT: one tuple per relay + mask byte */
@@ -140,6 +183,8 @@ int main(int argc, char **argv) {
     if (getenv("PACKPATH")) PACKPATH = atoi(getenv("PACKPATH"));
     if (getenv("RXTFULL")) RXTFULL = atoi(getenv("RXTFULL"));
     if (getenv("RXT")) RXTH = atoi(getenv("RXT"));
+    if (getenv("NATIVE")) NATIVE = atoi(getenv("NATIVE"));
+    if (getenv("DSTCODE")) DSTCODE = atoi(getenv("DSTCODE"));
     FILE *f = fopen(argv[1], "r"); char line[1024]; rows = calloc(MAXROWS, sizeof(Row)); tab = calloc(HT, sizeof(St));
     while (fgets(line, sizeof line, f) && nrows < MAXROWS) {
         char *p[5]; char *q = line; int i;
@@ -149,12 +194,20 @@ int main(int argc, char **argv) {
         r->tl = (int)strlen(p[4]); memcpy(r->text, p[4], r->tl + 1);
     }
     fclose(f);
+    if (getenv("DUMPCOST")) {
+        for (int i = 0; i < nrows; i++) {
+            const char *t = (const char *)rows[i].text, *gt = strchr(t, '>'), *d = gt + 1, *c = d;
+            while (*c && *c != ',' && *c != ':') c++;
+            printf("%d %d %d\n", elem_native(t, (int)(gt - t)), elem_native(d, (int)(c - d)), path_block_native(rows[i].path));
+        }
+        return 0;
+    }
     printf("%d packets\n", nrows);
     int Ns[8], nN = 0; for (int i = 2; i < argc; i++) Ns[nN++] = atoi(argv[i]); if (!nN) Ns[nN++] = 2;
     int lmask = getenv("LAYOUTS") ? atoi(getenv("LAYOUTS")) : 7, hpmax = getenv("NOHOP") ? 1 : 2;
     for (int hp_on = 0; hp_on < hpmax; hp_on++) {
       for (int ni = 0; ni < nN; ni++) for (int layout = 0; layout < 3; layout++) { if (!(lmask >> layout & 1)) continue;
-        Acc a[NG]; memset(a, 0, sizeof a); memset(tab, 0, sizeof(St) * HT); fails = 0; escapes = 0; pathrows = 0;
+        Acc a[NG]; memset(a, 0, sizeof a); memset(tab, 0, sizeof(St) * HT); fails = 0; escapes = 0; pathrows = 0; unencodable = 0;
         for (int i = 0; i < nrows; i++) {
             Row *r = &rows[i]; char hpth[96]; int hopped = hp_on ? hop(r, hpth) : 0; int kind = 0;
             int fl = send_one(layout, Ns[ni], r, hopped, hpth, &kind);
@@ -173,6 +226,7 @@ int main(int argc, char **argv) {
                 GN[g], a[g].n, a[g].bytes / a[g].n, a[g].plain / a[g].n, 100 * (1 - a[g].bytes / a[g].plain),
                 100 * (1 - a[g].ac12 / a[g].ap12), 100 * (1 - a[g].ac7 / a[g].ap7), 100.0 * a[g].primed / a[g].n); }
         if (layout == 1) printf("  path block: %ld rows, %ld needed the escape (%.1f%%)\n", pathrows, escapes, 100.0 * escapes / (pathrows ? pathrows : 1));
+        if (NATIVE && unencodable) printf("  skipped: %ld rows the native encoder cannot carry\n", unencodable);
       }
     }
     return 0;
