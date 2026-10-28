@@ -10,6 +10,7 @@
  *
  * Environment (all optional):
  *   LAYOUTS=mask   bit 0 whole, bit 1 hybrid A, bit 2 hybrid B (default 7 = all)
+ *   PACKPATH=0     old path cost (2 + text length) instead of packed callsign elements
  *   NOHOP=1        skip the "after one relay hop" pass
  *   RXT=R          each of R relays adds one 4-byte RXT tuple, plus one mask byte once (relayed frames only; default 0)
  *   RXTFULL=1      add the RXT bytes to full frames only, not to primed frames
@@ -31,7 +32,31 @@ static Row *rows; static int nrows;
 static const char *CODES[] = { "", "WIDE1-1", "WIDE1-1,WIDE2-1", "WIDE2-1", "WIDE2-2", "WIDE1-1,WIDE2-2", "TCPIP*", NULL };
 static const char *DCODES[] = { "APLRG1","APLRT1","APLWS2","APLRFD","APLC13","APLOX1","APLT00","APLRFT","APLHM0","APLETK","APLC12","APLG01","APLHI0","APL",NULL };
 static int dst_code(const char *d){ for(int i=0;DCODES[i];i++) if(!strcmp(DCODES[i],d)) return i; return -1; }
-static int src_packable(const char *s,int l){ int b=0; while(b<l && s[b]!='-') b++; if(b>6) return 0; for(int i=0;i<b;i++){ char c=s[i]; if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9'))) return 0;} return 1; }
+/* A callsign packs into 5 bytes when its base is 1 to 6 letters or digits and its SSID is absent or a number 0 to 15 (moricef's encoder keeps other SSIDs as text). */
+static int call_packable(const char *s, int l) {
+    int b = 0; while (b < l && s[b] != '-') b++;
+    if (b < 1 || b > 6) return 0;
+    for (int i = 0; i < b; i++) { char c = s[i]; if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) return 0; }
+    if (b == l) return 1;
+    int v = 0, n = l - b - 1; if (n < 1 || n > 2) return 0;
+    for (int i = b + 1; i < l; i++) { if (s[i] < '0' || s[i] > '9') return 0; v = v * 10 + s[i] - '0'; }
+    return v <= 15;
+}
+static int src_packable(const char *s, int l) { return call_packable(s, l); }
+/* Native path block for a path outside the code table: one header byte, then per element 1 byte for WIDEn-N, 5 bytes for a packable callsign
+   (the used mark * is one of its bits), otherwise 1 + the element's text length. PACKPATH=0 restores the old 2 + text length. */
+static int PACKPATH = 1;
+static int path_native(const char *p) {
+    if (!PACKPATH) return 2 + (int)strlen(p);
+    int tot = 1; const char *e = p;
+    while (*e) {
+        const char *c = strchr(e, ','); int l = c ? (int)(c - e) : (int)strlen(e);
+        if (l >= 7 && !strncmp(e, "WIDE", 4) && e[4] >= '1' && e[4] <= '7' && e[5] == '-' && l == 7) tot += 1;
+        else { int cl = l; if (cl && e[cl - 1] == '*') cl--; tot += call_packable(e, cl) ? 5 : 1 + l; }
+        e += l; if (*e == ',') e++;
+    }
+    return tot;
+}
 static int path_code(const char *p) { for (int i = 0; CODES[i]; i++) if (!strcmp(CODES[i], p)) return i; return -1; }
 
 /* LoRa airtime (s), explicit header, CRC, CR 4/5, 8-symbol preamble, low-data-rate-optimise at SF11/12 */
@@ -77,7 +102,7 @@ static int send_one(int layout, int N, const Row *r, int hopped, const char *hp,
     int dl = (int)(c - dstp); memcpy(dst, dstp, dl); dst[dl] = 0;
     const char *info = colon + 1;
     int pcode = path_code(r->path); pathrows++;
-    int pathextra = hopped ? 6 : (pcode >= 0 ? 1 : 2 + (int)strlen(path)); if (!hopped && pcode < 0) escapes++;
+    int pathextra = hopped ? 6 : (pcode >= 0 ? 1 : path_native(path)); if (!hopped && pcode < 0) escapes++;
     if (layout == 0) { tl = snprintf((char *)t, 300, "%.*s>%s%s%s:%s", srcl, r->text, dst, *path ? "," : "", path, info); }
     else if (layout == 1) { tl = snprintf((char *)t, 300, "%.*s>%s:%s", srcl, r->text, dst, info); extra = pathextra; }
     else { tl = snprintf((char *)t, 300, ":%s", info);               /* leading ':' so the model sees a familiar start */
@@ -112,6 +137,7 @@ static int send_one(int layout, int N, const Row *r, int hopped, const char *hp,
 }
 
 int main(int argc, char **argv) {
+    if (getenv("PACKPATH")) PACKPATH = atoi(getenv("PACKPATH"));
     if (getenv("RXTFULL")) RXTFULL = atoi(getenv("RXTFULL"));
     if (getenv("RXT")) RXTH = atoi(getenv("RXT"));
     FILE *f = fopen(argv[1], "r"); char line[1024]; rows = calloc(MAXROWS, sizeof(Row)); tab = calloc(HT, sizeof(St));

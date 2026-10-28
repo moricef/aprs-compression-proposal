@@ -8,6 +8,14 @@ Train the three modes on the same files with the same --min-count and --holdout 
 Train with --holdout 0.3: stations in hash buckets 0..2 stay out of training (prep.py writes exactly those stations).
 The 16-bit offset limit caps the table at 65,535 symbol entries; raise --min-count until it fits (about 128 for ~175,000 packets).
 
+Merging with other data (a shared table from several networks):
+  --dump-counts FILE.gz   also write the training counts (order, context, symbol, count), pruned at --dump-min, so others can add to them
+  --base-counts FILE.gz   start from such a counts file (ours, published in tables/) and add your own packets on top
+  --base-weight W         scale the base counts (1.0 = as published); your packets count 1 each, times --boost for matching stations
+  --boost W --boost-re R  count packets from sources matching the regex R W times (for example a country's prefixes)
+  --max-kb N              raise --min-count until the table is at most N KB and fits the 16-bit offsets
+Counts files hold only byte-context counts at or above --dump-min, no packet text.
+
 Original description of the trainer:
 Train the static order-3 model for APRS-PPM and write the C table (model/aprs_ppm_model_v1.c).
 
@@ -63,6 +71,13 @@ def main():
     ap.add_argument("--version", type=int, default=1)
     ap.add_argument("--mode", default="whole", choices=("whole", "nopath", "info"))
     ap.add_argument("--dest-prefix", default="APL")
+    ap.add_argument("--dump-counts")
+    ap.add_argument("--dump-min", type=int, default=8)
+    ap.add_argument("--base-counts")
+    ap.add_argument("--base-weight", type=float, default=1.0)
+    ap.add_argument("--boost", type=float, default=1.0)
+    ap.add_argument("--boost-re", default="")
+    ap.add_argument("--max-kb", type=float, default=0)
     ap.add_argument("--holdout", type=float, default=0.0)
     ap.add_argument("--test-out")
     a = ap.parse_args()
@@ -83,29 +98,58 @@ def main():
 
     ORD = 3
     tabs = [collections.defaultdict(collections.Counter) for _ in range(ORD + 1)]
+    boost_re = re.compile(a.boost_re.encode()) if a.boost_re else None
     for t in train:
+        w = a.boost if boost_re and boost_re.match(rows[t]) else 1
         for i, ch in enumerate(t):
             for k in range(min(ORD, i) + 1):
                 key = int.from_bytes(t[i - k:i], "big") if k else 0
-                tabs[k][key][ch] += 1
+                tabs[k][key][ch] += w
+    if a.base_counts:
+        n_base = 0
+        for line in gzip.open(a.base_counts, "rt"):
+            if line.startswith("#"): continue
+            k, key, ch, c = line.split()
+            tabs[int(k)][int(key, 16)][int(ch)] += a.base_weight * int(c); n_base += 1
+        print(f"added {n_base} base count entries from {a.base_counts} (weight {a.base_weight})", file=sys.stderr)
+    if a.dump_counts:
+        with gzip.open(a.dump_counts, "wt") as f:
+            f.write(f"# order context(hex) symbol count; byte-context counts >= {a.dump_min}, from {len(train)} training packets\n")
+            for k in range(ORD + 1):
+                for key in sorted(tabs[k]):
+                    for sy, c in sorted(tabs[k][key].items()):
+                        if c >= a.dump_min: f.write(f"{k} {key:x} {sy} {int(round(c))}\n")
 
-    keys, offs, tots, syms, cnts, ctx_counts = [], [], [], [], [], []
-    for k in range(ORD + 1):
-        ks, os_, ts = [], [], []
-        for key in sorted(tabs[k]):
-            kept = sorted((s, c) for s, c in tabs[k][key].items() if c >= a.min_count)
-            if not kept:
-                continue
-            top = max(c for _, c in kept)
-            if top > 255:                         # counts are stored in one byte; keep the proportions
-                kept = [(s, max(1, c * 255 // top)) for s, c in kept]
-            tot = sum(c for _, c in kept)
-            ks.append(key); os_.append(len(syms)); ts.append(tot)
-            for s, c in kept:
-                syms.append(s); cnts.append(c)
-        os_.append(len(syms))
-        assert len(syms) < 65536, "offsets are 16-bit; model too large for this format"
-        keys.append(ks); offs.append(os_); tots.append(ts); ctx_counts.append(len(ks))
+    def build(min_count):
+        keys, offs, tots, syms, cnts, ctx_counts = [], [], [], [], [], []
+        for k in range(ORD + 1):
+            ks, os_, ts = [], [], []
+            for key in sorted(tabs[k]):
+                kept = sorted((s, round(c)) for s, c in tabs[k][key].items() if c >= min_count)
+                kept = [(s, c) for s, c in kept if c > 0]
+                if not kept:
+                    continue
+                top = max(c for _, c in kept)
+                if top > 255:                         # counts are stored in one byte; keep the proportions
+                    kept = [(s, max(1, c * 255 // top)) for s, c in kept]
+                tot = sum(c for _, c in kept)
+                ks.append(key); os_.append(len(syms)); ts.append(tot)
+                for s, c in kept:
+                    syms.append(s); cnts.append(c)
+            os_.append(len(syms))
+            keys.append(ks); offs.append(os_); tots.append(ts); ctx_counts.append(len(ks))
+        return keys, offs, tots, syms, cnts, ctx_counts
+
+    min_count = a.min_count
+    while True:
+        keys, offs, tots, syms, cnts, ctx_counts = build(min_count)
+        size = sum(ctx_counts) * 5 + len(syms) * 2  # flash estimate
+        fits = len(syms) < 65536 and (not a.max_kb or size / 1024 <= a.max_kb)
+        if fits or not (a.max_kb or len(syms) >= 65536): break
+        min_count = min_count + 1 if min_count < 20 else int(min_count * 1.05) + 1
+    assert len(syms) < 65536, "offsets are 16-bit; model too large for this format"
+    if min_count != a.min_count: print(f"min count raised from {a.min_count} to {min_count} to fit", file=sys.stderr)
+    a.min_count = min_count
 
     def arr(ctype, name, vals):
         body = ",".join(str(v) for v in vals)
