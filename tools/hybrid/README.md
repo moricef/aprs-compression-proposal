@@ -14,11 +14,11 @@ sent and compared with the original, and the run reports decode failures (must b
 
 ## Credit
 
-**RXT is moricef's design**: digipeaters appending per-hop reception measurements (RSSI, SNR, frequency offset, time to hop), his RXT v1 and v2
-formats and the native-frame version with its mask byte (`docs/RXT.md`, `docs/RXT_V2.md` in `moricef/LoRa_APRS_iGate`, branch `rxt`). This harness only
-counts its size. The native part and several of the other ideas come from his native LoRa APRS frame (`moricef/LoRa_APRS_iGate` branch `rxt`,
+**RXT was created by Jon N7UV**: digipeaters appending per-hop reception measurements (RSSI, SNR, frequency offset, time to hop). moricef worked
+with Jon on its extensions and its integration into the native format: the RXT v2 format and the native-frame version with its mask byte
+(`docs/RXT.md`, `docs/RXT_V2.md` in `moricef/LoRa_APRS_iGate`, branch `rxt`). This harness only counts its size. The native part and several of the other ideas come from his native LoRa APRS frame (`moricef/LoRa_APRS_iGate` branch `rxt`,
 `moricef/LoRa_APRS_Tracker` branch `devel`) and his measurements on the Ariège and Arizona captures: a native frame that structures the
-fields and ties each RXT measurement to the relay that made it, the RXT tuple and mask byte, packed callsigns and short path codes, keeping the
+fields and ties each RXT measurement to the relay that made it, the RXT tuple and mask byte as integrated by him, packed callsigns and short path codes, keeping the
 RXT block outside the compressed payload, "source in clear, then PPM of the rest" (the model for hybrid B) and the relay timing method. The
 native bytes in `hybrid_layouts.c` are simplified stand-ins for those fields, not his encoder; his encoder is used only for the native column
 (`tools/compare_native/`). Hybrid A, the matched-table comparison, the mixed-reception model and this harness are new in this work.
