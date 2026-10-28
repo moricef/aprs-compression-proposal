@@ -14,7 +14,9 @@ sent and compared with the original, and the run reports decode failures (must b
 
 ## Credit
 
-The native part and several of the ideas come from moricef's native LoRa APRS frame and RXT work (`moricef/LoRa_APRS_iGate` branch `rxt`,
+**RXT is moricef's design**: digipeaters appending per-hop reception measurements (RSSI, SNR, frequency offset, time to hop), his RXT v1 and v2
+formats and the native-frame version with its mask byte (`docs/RXT.md`, `docs/RXT_V2.md` in `moricef/LoRa_APRS_iGate`, branch `rxt`). This harness only
+counts its size. The native part and several of the other ideas come from his native LoRa APRS frame (`moricef/LoRa_APRS_iGate` branch `rxt`,
 `moricef/LoRa_APRS_Tracker` branch `devel`) and his measurements on the Ariège and Arizona captures: a native frame that structures the
 fields and ties each RXT measurement to the relay that made it, the RXT tuple and mask byte, packed callsigns and short path codes, keeping the
 RXT block outside the compressed payload, "source in clear, then PPM of the rest" (the model for hybrid B) and the relay timing method. The
