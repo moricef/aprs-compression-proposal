@@ -12,6 +12,15 @@ APRS frame, so the numbers can be checked and rerun on other captures (for examp
 Bytes are measured with the real reference codec (`reference/aprs_ppm.c`); every frame is decoded by a receiver that holds only what it was
 sent and compared with the original, and the run reports decode failures (must be 0).
 
+## Credit
+
+The native part and several of the ideas come from moricef's native LoRa APRS frame and RXT work (`moricef/LoRa_APRS_iGate` branch `rxt`,
+`moricef/LoRa_APRS_Tracker` branch `devel`) and his measurements on the Ariège and Arizona captures: a native frame that structures the
+fields and ties each RXT measurement to the relay that made it, the RXT tuple and mask byte, packed callsigns and short path codes, keeping the
+RXT block outside the compressed payload, "source in clear, then PPM of the rest" (the model for hybrid B) and the relay timing method. The
+native bytes in `hybrid_layouts.c` are simplified stand-ins for those fields, not his encoder; his encoder is used only for the native column
+(`tools/compare_native/`). Hybrid A, the matched-table comparison, the mixed-reception model and this harness are new in this work.
+
 ## Quick start
 
     INPUTS="capture1.txt capture2.txt.gz" tools/hybrid/run_pipeline.sh
