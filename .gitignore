@@ -2,3 +2,11 @@ build/
 data/
 *.o
 .DS_Store
+
+# hybrid tools: local work and GPL files that must stay out of the repo
+tools/hybrid/work/
+tools/hybrid/bench/libs/
+tools/hybrid/bench/.pio/
+tools/hybrid/bench/src/data_*.h
+tools/compare_native/native/
+*.tsv
