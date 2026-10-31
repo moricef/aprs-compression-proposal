@@ -12,6 +12,7 @@ LACF (spec/10):  make lacf-ending   (ending, CRC-16 and receiver against test/ve
   lacf_core.h        the ending, CRC-16, encoder and receiver of spec/10 as code (include after reference/aprs_ppm.c)
   lacf_ending.c      property tests for it (also: build/lacf_ending stress TEXTS TRIALS; gen / check for the vectors)
   fast_freq.h        a faster build_freq with byte-identical output; fast_freq_test.c proves it
+  lacf_py/           a second implementation in Python, written from spec 01 and spec 10 alone (lacf.py, test_lacf.py, AMBIGUITIES.md); build/lacf_ending recv is the C side of the receiver comparison
   esp32-timing/      PlatformIO project for a LILYGO LoRa32 v2.1: pio run -e keysram -t upload (envs: lora32 = reference, lora32fast, keysram, lora32ram, lora32prof)
   results-esp32-timing.txt, results-lacf-*.txt   the numbers quoted in the doc
 

@@ -41,7 +41,7 @@ fast-freq: build/fast_freq_test
 	build/fast_freq_test $(or $(TEXTS),test/synthetic_packets.txt)
 
 lacf-vectors: build/lacf_ending
-	build/lacf_ending gen < test/synthetic_packets.txt > test/vectors_lacf_v1.txt
+	cat test/synthetic_packets.txt test/lacf_edge_packets.txt | build/lacf_ending gen > test/vectors_lacf_v1.txt
 
 vectors: build/ppm_tool
 	build/ppm_tool gen < test/synthetic_packets.txt > test/vectors_v1.txt

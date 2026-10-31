@@ -11,3 +11,4 @@ tools/hybrid/bench/src/data_*.h
 tools/compare_native/native/
 *.tsv
 tools/integrity/esp32-timing/.pio/
+__pycache__/

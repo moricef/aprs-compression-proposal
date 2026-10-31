@@ -32,13 +32,14 @@ After the last text byte is encoded, the encoder holds `low` (up to 33 bits, wit
 
 1. If `low >= 2^32`: add 1 to the payload so far (propagating the carry through the bytes already written) and set `low = low - 2^32`.
 2. Let `hi = low + range - 1`.
-3. For `nb = 0, 1, 2, 3, 4`: let `blk = 2^(8*(4-nb))` and `v = ceil(low / blk) * blk`. If `v + blk - 1 <= hi`, stop.
-   (`blk` values are the 32-bit values a decoder could see if it read `nb` bytes and then anything at all.)
+3. For `nb = 1, 2, 3, 4` in turn: let `blk = 2^(8*(4-nb))` and `v = ceil(low / blk) * blk` (the first multiple of `blk` that is `>= low`). If `v + blk - 1 <= hi`, stop.
+   (If a decoder reads `nb` bytes and then anything at all, the 32-bit value it sees is some number from `v` to `v + blk - 1`; the condition says that every such number lies inside `[low, hi]`.
+   `nb = 0` can never succeed, because `range < 2^32`. Because `range >= 2^24` after the last normalisation, `nb` is in fact always 1 or 2; 3 and 4 are never reached.)
 4. If `v >= 2^32`: add 1 to the payload so far and set `v = v - 2^32`.
 5. Append the top `nb` bytes of `v` (most significant first).
 6. **Do not strip trailing zero bytes.** A zero last byte is sent.
 
-`nb = 4` always succeeds (`blk = 1`, `v = low`). The result is the fewest bytes after which **any** following bytes decode to the same text: a receiver that
+The loop always stops by `nb = 2`. The result is the fewest bytes after which **any** following bytes decode to the same text: a receiver that
 reads past the payload into a relay tail, random bytes or nothing gets the same text. Spec 01's ending (the fewest bytes assuming zeros follow, then stripping zeros)
 is replaced; on 14,293 real frames the new ending is on average 0.25 bytes longer.
 
@@ -48,10 +49,10 @@ The encoder is deterministic: the same text always gives the same bytes, and a s
 
 Given the received bytes after the LoRa CRC has passed:
 
-1. Check `3C FF <mark>`; drop the frame if the third byte is unknown, and never show it as text (spec 01).
-2. Decode `L` text bytes with the range decoder from byte 6 onward. Bytes beyond the end of the frame count as zero (as in spec 01).
+1. Drop the frame if it is shorter than 6 bytes, if it does not start `3C FF` + a mark this receiver knows (never show an unknown one as text, spec 01), or if `L = 0`.
+2. The payload is everything from byte 6 to the end of the frame. Decode `L` text bytes with the range decoder from byte 6 onward. Bytes beyond the end of the frame count as zero (as in spec 01).
 3. Compute the CRC-16 of the decoded text; if it differs from bytes 4 to 5, **drop the frame**.
-4. Re-encode the decoded text with the sender's rules (header, CRC, ending) and call the result `E` (`6 + m` bytes). If `E`'s payload is not the first `m` bytes of the received payload, **drop the frame**.
+4. Re-encode the decoded text with the sender's rules (header, CRC, ending) and call the result `E` (`6 + m` bytes). **Drop the frame** if the sender would have declined to send it compressed (`6 + m >= 3 + L`), if the received payload is shorter than `m` bytes, or if `E`'s payload is not the first `m` bytes of the received payload.
 5. The payload is exactly those `m` bytes. Any bytes after them are a relay tail. A receiver that does not allow a tail drops the frame if there are any.
 6. Only an accepted frame may be shown, gated, forwarded, or kept as a reference for priming (spec 08).
 
@@ -60,8 +61,8 @@ accept and drop answers as the two-pass form; `tools/integrity/lacf_ending.c` te
 
 ## Conformance
 
-`test/vectors_lacf_v1.txt` holds frames made from fabricated packets (format as `vectors_v1.txt`). An implementation conforms if `encode(text) == frame` for every vector (declining
-where it shows `-`) and the receiver accepts each frame and returns the text. `make lacf-ending` checks the reference code against the vectors and runs the property tests.
+`test/vectors_lacf_v1.txt` holds frames made from fabricated packets (format as `vectors_v1.txt`); the last lines are made-up texts chosen because they reach the rare paths: a carry during a shift, a carry pending at the end, `v >= 2^32` in step 4, and texts that are not smaller than the plain frame (shown as `-`). An implementation conforms if `encode(text) == frame` for every vector (declining
+where it shows `-`) and the receiver accepts each frame and returns the text. In this repository `make lacf-ending` checks the reference C code against the vectors and runs the property tests, and `tools/integrity/lacf_py/` is a second implementation written from the spec alone (it found the unclear points fixed in this revision, `AMBIGUITIES.md`).
 
 ## Measured (see the doc for the tables)
 
@@ -77,5 +78,5 @@ where it shows `-`) and the receiver accepts each frame and returns the text. `m
   to wrong text, and a LACF receiver drops a spec 01 frame. Both ends must run the same build. **Before anyone else runs it, change the mark** (the plan was a new model version number with the same table, `3C FF 82`, so that old receivers drop the frame under the existing
   "unknown version: drop, never show as text" rule; a flag bit is the alternative). In the code the mark is one constant per file.
 * Primed frames (spec 08) keep their own one-byte text check; the re-encode check was measured on them and is much weaker there (docs/truncated-payloads-and-integrity.md).
-* A second, independent implementation of the encoder and the receiver (the check needs byte-identical encoders).
+* A third implementation in the language of an actual firmware (the check needs byte-identical encoders). A second one exists (Python, written from this text alone) and agrees with the C reference on 14,305 real texts and 11,996 damaged frames.
 * The T-Deck's processor was not timed.

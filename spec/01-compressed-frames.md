@@ -62,6 +62,9 @@ frames is not heard by stations that do not decode them (see 02-capability-annou
   same packet, packed big-endian into a 3-byte key), each with a list of (byte, count) pairs.
   Counts are 8-bit; a context's total `n` is the sum of its stored counts and `u` is the number of
   stored pairs.
+* In `model/aprs_ppm_model_v1.c`: `KEYSk` holds the sorted 3-byte keys of order `k` (for `k < 3` the `k`
+  history bytes are right-aligned, the leading key bytes are zero); `OFFSk` has one entry more than there are
+  contexts, and its entries index ONE shared symbol/count array across all orders (order 1 starts where order 0 ends).
 
 ## Prediction (normative)
 
@@ -80,7 +83,7 @@ All arithmetic is integer. All values are unsigned.
         rem = floor(rem * u / denom)
     floor_share = rem >> 8
     for each byte value s in 0..255:
-        freq[s] = 1 + floor( (pr[s] + floor_share) * (65536 - 256) / 2^32 )
+        freq[s] = 1 + floor( (pr[s] + floor_share) * (65536 - 256) / 2^32 )     (the product needs about 48 bits: compute it in 64 bits)
     total = sum(freq[0..255])            (always <= 65536)
 
 The `+ 1` guarantees every byte value is encodable, including bytes the model never saw.
@@ -93,6 +96,9 @@ The `+ 1` guarantees every byte value is encodable, including bytes the model ne
                                while range < 2^24: shift
     shift:                     if low >= 2^32: add 1 to the output so far (propagate carry), low -= 2^32
                                output byte (low >> 24); low = (low << 8) & 0xFFFFFFFF; range <<= 8
+
+`low` may be 2^32 or more (a carry pending in bit 32) after any encode step, with no shift in between; the carry is added to the output at the next shift
+or, at the end, by the finishing step. In `shift` the carry is applied BEFORE the byte is output.
 
 Start: `low = 0`, `range = 0xFFFFFFFF`. For each text byte, encode with `cum = sum(freq[0..byte-1])`.
 

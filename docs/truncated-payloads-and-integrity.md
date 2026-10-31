@@ -118,6 +118,18 @@ Cut frames: 0 wrongly accepted at every cut size (1 to 16 bytes), with and witho
 These rows apply only after the LoRa CRC has passed, which is a small fraction of corrupted frames; the end-to-end rate was not computed. The CRC-16 alone behaves like a 16-bit check (about 1 in 65,536); the two checks together showed none in 2.85 million trials, and 0 of 2.85 million
 means the rate is probably below about 1 in 950,000 (95% bound). The new ending makes C much stronger than the current ending's 1.3% to 6.2% for the same damage. Zero observed cut frames out of 14,298 means the rate is probably below about 1 in 4,800 (95% bound).
 
+## A second implementation, written from the spec alone
+
+The check needs byte-identical encoders, so a second implementation was written in Python 3 ([`tools/integrity/lacf_py/`](../tools/integrity/lacf_py/)) by an agent that had only spec 01, spec 10, the model data and the conformance vectors, not this repository's C code.
+It matched all 20 vectors on the first run. Against this repository's C code, on data the Python author never saw:
+
+* **Encoder:** the vectors for all 14,305 real texts are byte-identical (14,293 frames, 12 declined as not smaller than plain), 0 differences.
+* **Receiver:** 11,996 frames made from 800 real frames (intact, intact with a 6-byte relay tail, cuts of 1, 2, 3, 6, 8 and 16 bytes, cuts into the payload behind a tail, 1, 2, 3 and 8 flipped bits, random payload): **0 disagreements** between the two receivers, and neither accepted a damaged frame (`build/lacf_ending recv`, the C side of the comparison).
+
+It also found 23 unclear points ([`AMBIGUITIES.md`](../tools/integrity/lacf_py/AMBIGUITIES.md)). The ones that mattered were fixed in the spec: the model file's layout and key alignment, the 64-bit product in the probability formula, a carry pending in bit 32, `nb = 0` (it can never succeed, and `nb` is always 1 or 2), what the receiver does with a frame the sender
+would have declined (drop it), frames shorter than 6 bytes and `L = 0` (drop), and what counts as the payload. One of them was a real disagreement between the two implementations (the C receiver dropped a not-smaller-than-plain frame, the Python one accepted it); the spec now says drop and the Python code follows. Vectors for the rare paths (carry during a
+shift, carry at the end, `v >= 2^32`, declined texts) were added in [`test/lacf_edge_packets.txt`](../test/lacf_edge_packets.txt).
+
 ## What was chosen, and what it costs
 
 **Chosen for the byte plan: check C plus a CRC-16 of the text**, with a deterministic encoder whose ending is the fewest closing bytes after which any following bytes still decode to the same text. On the air it costs about 2.25 bytes per full frame (2 for the CRC-16, 0.25 for the ending) and
@@ -144,7 +156,7 @@ What it costs, plainly:
 
 * Cuts at the start of a frame, or inside a byte.
 * The new ending is implemented in [`lacf_core.h`](../tools/integrity/lacf_core.h) on this repository's reference codec, written from [spec/10](../spec/10-lacf-ending-and-roundtrip-check.md), and in a private copy of the ESP32 iGate library ([`igate-library-private-copy.patch`](../tools/integrity/igate-library-private-copy.patch)).
-  It is not in any firmware, and a second independent implementation has not been written.
+  It is not in any firmware.
 * The T-Deck tracker firmware's own decoder (the tests ran on the codec library and the reference codec, not on the device).
 
 ## Open

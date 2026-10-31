@@ -89,8 +89,24 @@ static int stress(const char *path, int trials)
     return 0;
 }
 
+/* recv: lines "N <frame hex>" (no relay tail allowed) or "T <frame hex>" (a tail allowed) on stdin; prints the accepted text as hex, or "-" for a dropped frame.
+ * Used to compare this receiver with the independent Python one (tools/integrity/lacf_py) on the same damaged frames. */
+static int recv_mode(void)
+{
+    static char line[2000]; uint8_t fr[400], text[300]; size_t fl, tl, pay;
+    while (fgets(line, sizeof line, stdin)) {
+        char *h = line + 2; size_t i;
+        if (line[0] != 'N' && line[0] != 'T') continue;
+        for (fl = 0; h[2 * fl] && h[2 * fl + 1] && h[2 * fl] != '\n' && fl < sizeof fr; fl++) { unsigned x; sscanf(h + 2 * fl, "%2x", &x); fr[fl] = (uint8_t)x; }
+        tl = lacf_receive(fr, fl, text, &pay, line[0] == 'T');
+        if (!tl) puts("-"); else { for (i = 0; i < tl; i++) printf("%02x", text[i]); putchar('\n'); }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
+    if (argc > 1 && !strcmp(argv[1], "recv")) return recv_mode();
     if (argc > 3 && !strcmp(argv[1], "stress")) return stress(argv[2], atoi(argv[3]));
     if (argc > 1 && !strcmp(argv[1], "gen")) return vectors(0, NULL);
     if (argc > 2 && !strcmp(argv[1], "check")) return vectors(1, argv[2]);
