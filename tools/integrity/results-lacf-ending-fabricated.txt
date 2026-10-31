@@ -18,3 +18,5 @@ cut off 16 bytes                   0 of 3000   (0.000%)               0 of 3000 
 3 random bits flipped             0 of 3000   (0.000%)
 8 random bits flipped             0 of 3000   (0.000%)
 payload replaced by random        0 of 3000   (0.000%)
+
+one pass receiver against the two pass one: 0 disagreements

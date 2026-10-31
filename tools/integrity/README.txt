@@ -17,6 +17,11 @@ Payload rules of spec/11 (tested on a whole-text TEST frame, 3C FF 81 + 6 byte h
   esp32-timing/      PlatformIO project for a LILYGO LoRa32 v2.1: pio run -e keysram -t upload (envs: lora32 = reference, lora32fast, keysram, lora32ram, lora32prof)
   results-esp32-timing.txt, results-lacf-*.txt   the numbers quoted in the doc
 
+Notes after the independent reviews (31 October 2026):
+  * The test frame (3C FF 81 + 6 byte header, no V byte, size rule 6 + n < 3 + L) is not the layout of spec 11 (content field V, L, CRC, payload; 4 + n bytes; kinds 2 and 3). The payload rules are the same; kind 3 (position block + comment-only table) and the destination/path parse have no executable test yet.
+  * rxt_tail_test.py mode marked-crc and rxt_crc_check.py test a block CRC that spec 11 did NOT adopt (measured option only); mode marked-range matches the spec's tuple maxima (89, 88, 89, 89).
+  * xcheck_py_vs_c.py is the C-versus-Python receiver comparison (damaged frames); run it with build/lacf_ending or the tracker library test tool.
+
 Files
   trunc_test.c        the same cut test on the C decoder in the author's Dire Wolf port (his test bench; not needed for the ESP32 or T-Deck results)
   trunc_esp.cpp       the same on the ESP32 iGate library (lib/AprsCompress), built natively

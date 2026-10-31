@@ -49,7 +49,7 @@
 The result has the right length and a wrong tail. For example, in one frame a tail `...|)_%H!a|` decoded as `...|)_%;X50`: the front of the packet is intact, the comment or telemetry at the end is wrong, and nothing marks it. (How much of the text is correct on average was not measured here.)
 
 **Corruption that gets past the CRC** (full frames): 1, 2, 3 or 8 flipped bits decode to wrong text 99.3% to 99.98% of the time, and a payload replaced by random bytes 99.5%
-to 99.7%. For 1 to 3 flipped bits a CRC-16 would normally catch the error, so these rows show the decoder's own rejection power, which is close to none for full frames.
+to 99.7%. These rows count frames that already passed the LoRa CRC, which essentially never lets 1 to 3 flipped bits through, so they show the decoder's own rejection power, which is close to none for full frames.
 
 **Primed frames** (they carry a one-byte CRC-8 text check, [spec 08](../spec/08-priming-from-previous-packet.md)), n = 14,298:
 
@@ -119,13 +119,13 @@ Cut frames: 0 wrongly accepted at every cut size (1 to 16 bytes), with and witho
 | 8 bits flipped | 571,720 | 263 (1 in 2,173) | 11 (1 in 52,000) | **0** |
 | payload replaced by random bytes | 571,720 | 250 (1 in 2,286) | 10 (1 in 57,000) | **0** |
 
-These rows apply only after the LoRa CRC has passed, which is a small fraction of corrupted frames; the end-to-end rate was not computed. The CRC-16 alone behaves like a 16-bit check (about 1 in 65,536); the two checks together showed none in 2.85 million trials, and 0 of 2.85 million
+These rows apply only after the LoRa CRC has passed, which is a small fraction of corrupted frames; the end-to-end rate was not computed. The CRC-16 alone behaves like a 16-bit check (about 1 in 65,536); the two checks together showed none in 2.85 million trials (later reviews found rare accepted-wrong frames, 1 in 180 million random payload damages and 6 in 90.3 million trials that replaced one of the last three payload bytes, see spec 11), and 0 of 2.85 million
 means the rate is probably below about 1 in 950,000 (95% bound). The new ending makes C much stronger than the current ending's 1.3% to 6.2% for the same damage. Zero observed cut frames out of 14,298 means the rate is probably below about 1 in 4,800 (95% bound).
 
 ## A second implementation, written from the spec alone
 
 The check needs byte-identical encoders, so a second implementation was written in Python 3 ([`tools/integrity/lacf_py/`](../tools/integrity/lacf_py/)) by an agent that had only spec 01, spec 10, the model data and the conformance vectors, not this repository's C code.
-It matched all 20 vectors on the first run. Against this repository's C code, on data the Python author never saw:
+It matched all 20 vectors of that time on the first run (the file now has 27, with the edge cases added afterwards). Against this repository's C code, on data the Python author never saw:
 
 * **Encoder:** the vectors for all 14,305 real texts are byte-identical (14,293 frames, 12 declined as not smaller than plain), 0 differences.
 * **Receiver:** 11,996 frames made from 800 real frames (intact, intact with a 6-byte relay tail, cuts of 1, 2, 3, 6, 8 and 16 bytes, cuts into the payload behind a tail, 1, 2, 3 and 8 flipped bits, random payload): **0 disagreements** between the two receivers, and neither accepted a damaged frame (`build/lacf_ending recv`, the C side of the comparison).
@@ -151,7 +151,7 @@ it rejected every truncation and every damaged frame in the test.
 **Check C only works with the new ending.** With the ending the codec uses today, C rejects almost nothing: re-encoding a cut frame's wrong text produces the cut bytes again as that text's own shortest ending. Measured with this repository's reference codec on the same 14,298 real texts
 ([`trunc_ref.c`](../tools/integrity/trunc_ref.c), [`results-ref-real.txt`](../tools/integrity/results-ref-real.txt)), the share of cut frames that C still accepts with wrong text is 85.2% (1 byte cut), 90.2% (2), 93.7% (3), 95.4% (4) and 97.1% (16).
 For frames damaged inside, C helps with today's ending but leaves a residual: wrongly accepted 6.2% (1 bit flipped), 2.6% (2), 2.1% (3), 1.3% (8 bits) and 1.4% (random bytes), against 99.4% to 100% for the plain decoder. The deterministic ending (previous table) brings the cut-frame figure to 0 in every case tested; mid-frame
-corruption under the new ending was **not** measured. So C and the new ending are one change, not two.
+corruption under the new ending is measured further below (the re-encode check alone leaves 1 in 100 to 1 in 2,600 of the damage that already passed the LoRa CRC). So C and the new ending are one change, not two.
 
 What it costs, plainly:
 
@@ -160,7 +160,7 @@ What it costs, plainly:
   (all checked against the reference at 2.39 million model positions, [`fast_freq_test.c`](../tools/integrity/fast_freq_test.c)) bring that down: a `build_freq` without 64-bit arithmetic and without a 256-entry scan per entry ([`fast_freq.h`](../tools/integrity/fast_freq.h)): 7.9 ms; copying the key tables (35 KB)
   to RAM, because the binary searches thrash the flash cache: 6.4 ms; and a receiver that re-encodes while it decodes, since both need the same probabilities for the same character: **a full receive with check C in 6.3 ms**, check C costing nothing measurable. Copying the whole model (127 KB) instead of the keys gave 5.5 ms for the plain decode.
   Two other tries were slower on this chip and were dropped (a float estimate with an integer correction, and a reciprocal multiply instead of the divide). On a desktop machine the same decode takes about 60 microseconds, so desktop figures do **not** predict the ESP32.
-  All 20 conformance vectors came out of the board byte-identical to the host's, and the receiver accepted them. The 6.3 ms was measured without WiFi running.
+  All 20 conformance vectors of that run (27 in the file now) came out of the board byte-identical to the host's, and the receiver accepted them. The 6.3 ms was measured without WiFi running.
   **On the T-Deck (ESP32-S3, 240 MHz)** the unmodified reference code takes 12.8 ms to decode and 25.4 ms with check C in two passes; the fast `build_freq` brings the plain decode to 5.0 ms and a one-pass receive with check C to **5.0 ms**; copying the key tables to RAM only saves another 0.3 ms there (4.7 ms), so the copy is not needed on the T-Deck. Vectors identical to the host's ([`results-esp32-timing.txt`](../tools/integrity/results-esp32-timing.txt)). This is the codec alone in a test sketch, not the tracker firmware.
 * **Every encoder must produce identical bytes** for the same text and the same model, or its good frames are dropped by a receiver that applies C. The encoding rule (including the exact ending) therefore has to be
   written into the specification, and a second implementation has to match it.
@@ -188,8 +188,8 @@ What it costs, plainly:
   | S + C (the text byte replaced by C) | 13,433 (13%) |
   | S + T + C | 55 (0.055%) |
 
-  A decode against a wrong reference is re-encoded with the same wrong reference, so the two cancel except in the closing bytes, and C catches fewer than half. It cannot take the place of the text check byte. Added on top of S and T it cuts the wrongly accepted
-  texts by about 2.3 times (129 to 55), which is not worth 25 to 50 ms on an ESP32 for a case the reference check byte has already filtered 255 times in 256. Not tested: the deterministic ending (the test used the current ending, so it may change the 46%), and references
+  A decode against a wrong reference is re-encoded with the same wrong reference, so the two cancel except in the closing bytes, and C catches 54% (46% pass). It cannot take the place of the text check byte. Added on top of S and T it cuts the wrongly accepted
+  texts by about 2.3 times (129 to 55), which was not worth the two-pass cost of about 16 ms on an ESP32 at the time (a one-pass receiver costs nothing measurable, see "Receiver time" in spec 11) for a case the reference check byte has already filtered 255 times in 256. Later measured: with the final ending and the one-pass receiver, wrong-table decodes pass the re-encode check only about 0.4% of the time (spec 11, "Integrity"); the 46% is specific to primed wrong references with the old ending. Not tested: references
   that match the 8-bit reference check, which is the real-world case (a wrong reference reaches the decoder only 1 time in 256; these figures apply to those).
 * A two-byte text check instead of C was weighed and **rejected in favour of both**: the CRC-16 meets the 1 in 65,536 target on its own, and C removes the damage that happens to re-encode to itself and supplies the payload end.
 * How the relay tail (RXT) is delimited when C is not used.

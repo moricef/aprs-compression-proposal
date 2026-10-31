@@ -12,8 +12,8 @@ random.seed(1131)
 NPATH = 4                                      # path elements in the modelled header; mask bits must be below this
 MODE = sys.argv[3] if len(sys.argv) > 3 else "plain"
 MARKED = MODE in ("marked", "marked-crc", "marked-range")
-RANGE = MODE == "marked-range"               # also reject a tuple whose bytes exceed the field maxima (RSSI 89, SNR 88, frequency offset and time to hop 93): no extra bytes
-CRC = MODE == "marked-crc"                     # tuples | CRC-16 of (tuples + mask), low byte first | mask: the relay recomputes it when it appends   # "marked": the mask byte has bit 7 set (path elements 0 to 6 only) and tuple bytes are 0..93, so a tuple byte is never a mask
+RANGE = MODE == "marked-range"               # also reject a tuple whose bytes exceed the field maxima (RSSI 89, SNR 88, frequency offset 89, time to hop 89): no extra bytes
+CRC = MODE == "marked-crc"                     # NOT ADOPTED in spec 11 (kept as a measured option): tuples | CRC-16 of (tuples + mask), low byte first | mask: the relay recomputes it when it appends   # "marked": the mask byte has bit 7 set (path elements 0 to 6 only) and tuple bytes are 0..93, so a tuple byte is never a mask
 
 def build(text):
     f = L.encode(text)
@@ -23,7 +23,7 @@ def build(text):
 def with_rxt(section, k):
     if k == 0: return section, False, None
     bits = sorted(random.sample(range(NPATH), min(k, NPATH))); mask = sum(1 << b for b in bits) | (0x80 if MARKED else 0)
-    tuples = b"".join(bytes([random.randrange(90), random.randrange(89), random.randrange(94), random.randrange(94)]) if MARKED else bytes(random.randrange(256) for _ in range(4)) for _ in bits)
+    tuples = b"".join(bytes([random.randrange(90), random.randrange(89), random.randrange(90), random.randrange(90)]) if MARKED else bytes(random.randrange(256) for _ in range(4)) for _ in bits)
     if CRC:
         c = L.crc16_x25(tuples + bytes([mask]))
         return section + tuples + bytes([c & 0xFF, c >> 8, mask]), True, (tuples, mask)
@@ -41,7 +41,7 @@ def receive(sec, rxt_flag):
         if k < 1 or (mask & 0x7F) >> NPATH or len(sec) < 4 + 1 + extra + 4 * k: return None
         blk = len(sec) - 1 - extra - 4 * k
         tup = sec[blk:blk + 4 * k]
-        if RANGE and any(tup[i] > (89, 88, 93, 93)[i % 4] for i in range(len(tup))): return None
+        if RANGE and any(tup[i] > (89, 88, 89, 89)[i % 4] for i in range(len(tup))): return None
         if CRC and L.crc16_x25(tup + bytes([mask])) != sec[-3] | (sec[-2] << 8): return None
         rxt = (tup, mask); body = sec[:blk]
     else:
