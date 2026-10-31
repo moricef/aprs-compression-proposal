@@ -5,6 +5,7 @@
 | Status | **Draft for the LoRa APRS Compact Frame (LACF) byte plan. Not a standard. Implemented only in the test code in this repository (`tools/integrity/`) and in a timing sketch for an ESP32; not in any firmware. Frame mark kept at `3C FF 81` for now, see Open.** |
 | Depends on | 01 Compressed frames (the codec and model v1 are unchanged) |
 | Replaces | the ending ("Finishing") and the missing integrity check of 01 for frames that carry this layout |
+| Role | **The integrity rules of the PPM payload (ending, CRC-16, re-encode check) for [spec 11](11-native-ppm-frame-byte-plan.md), the byte plan of the format actually proposed (hybrid B). The standalone whole-text frame defined below is a test vehicle and a size baseline, not the plan: a relay would have to decompress and recompress it.** |
 | Evidence | `docs/truncated-payloads-and-integrity.md` (why, and every number), `tools/integrity/lacf_core.h` (the rule as code), `test/vectors_lacf_v1.txt` |
 
 ## Why
