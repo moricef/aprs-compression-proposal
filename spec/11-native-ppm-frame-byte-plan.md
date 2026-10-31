@@ -2,7 +2,7 @@
 
 > **DRAFT, WORK IN PROGRESS.** Not a standard, and not yet seen or agreed by F4MLV (moricef). No firmware implements it, and nothing has been tested on the air. Details will change; do not build deployed software from this text. Where it is weak or undecided is listed under "Open" and "Not yet measured".
 >
-> *Last changed 31 October 2026.*
+> *Last changed 1 November 2026.*
 
 | | |
 |---|---|
