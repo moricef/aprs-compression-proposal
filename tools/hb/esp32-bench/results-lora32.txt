@@ -1,0 +1,16 @@
+Relay pipeline benchmark of the spec 11 reference frame (tools/hb, make hb-test) on a LILYGO LoRa32 v2.1 (ESP32-PICO-D4, 240 MHz), 31 October 2026.
+Build: -O2, the faster build_freq (fast_freq.h, byte-identical output), model tables read from flash, the benchmark in its own 24 KB task.
+50 fabricated packets: 36 varied, the 12 longest of the 500 vectors, and two hand-made worst cases (a 253-character text; a 7-element path). 10 repetitions each, mean per packet.
+"relay" is hb_relay, which first verifies the frame (decode, CRC, re-encode check) and then rewrites the path, copies the content and appends the tuple.
+
+                      mean       max
+encode (own packet)   11.5 ms    47.2 ms   (hb_encode also decodes what it built, to check the round trip)
+receive (verify)       5.5 ms    23.8 ms
+relay hop (complete)   7.4 ms    24.2 ms   (31 of the 50 packets are relayable)
+
+WiFi off vs on (soft AP and a background scan on the other core): identical to 0.1 ms.
+Longest frame in the set: 239 bytes (253-character text): receive 23.8 ms, relay 24.2 ms; SF7, BW 125 kHz, CR 4/5 airtime of that frame 374 ms (a 255-byte frame: 400 ms).
+Worst relay against the airtime of its own frame: about 10% (a 117-byte frame: 20 ms of work, 195 ms on the air). The firmware printed 20.1% for the worst "receive + relay", which counts the verification twice.
+Stack: the benchmark task used 10,376 bytes. The default Arduino loop task has 8,192 and overflowed on the first try, so firmware must run this code in a task with at least 12 KB.
+Free heap during the run: 283 KB at start, 226 KB minimum (the board was not connected to WiFi as a client).
+Not measured: the T-Deck (the flash was not allowed), a client WiFi connection with APRS-IS traffic, the real iGate task load.

@@ -1,0 +1,169 @@
+import os
+import unittest
+
+import hb
+
+TEST = os.path.join(hb.ROOT, 'test')
+
+
+def read_vectors(name):
+    rows = []
+    with open(os.path.join(TEST, name), 'rb') as fh:
+        data = fh.read()
+    for ln in data.split(b'\n'):
+        if ln and not ln.startswith(b'#'):
+            rows.append([bytes.fromhex(x.decode()) if x != b'-' else None for x in ln.split()])
+    return rows
+
+
+VEC = read_vectors('vectors_hb_v1.txt')
+RELAY = read_vectors('vectors_hb_relay_v1.txt')
+
+
+def ppm_frames():
+    out = []
+    for fr, pkt in VEC:
+        if hb._parse(fr)['kind'] >= 2 and fr[hb._parse(fr)['cstart']] >> 6 == 0:
+            out.append((fr, pkt))
+    return out
+
+
+def accepted(r):
+    return isinstance(r, bytes)
+
+
+class Vectors(unittest.TestCase):
+    def test_counts(self):
+        self.assertEqual(len(VEC), 500)
+        self.assertEqual(len(RELAY), 246)
+
+    def test_encode(self):
+        bad = [i for i, (fr, pkt) in enumerate(VEC) if hb.encode(pkt) != fr]
+        self.assertEqual(bad, [])
+
+    def test_decode(self):
+        bad = [i for i, (fr, pkt) in enumerate(VEC) if hb.decode(fr) != pkt]
+        self.assertEqual(bad, [])
+
+    def test_relay(self):
+        for i, (rx, tx, pkt) in enumerate(RELAY):
+            self.assertEqual(hb.relay(rx, 'N0RLY-1', bytes([50, 20, 45, 10])), tx, i)
+            self.assertEqual(hb.decode(tx), pkt, i)
+
+    def test_packets_file_matches(self):
+        with open(os.path.join(TEST, 'hb_packets.txt'), 'rb') as fh:
+            pk = fh.read().split(b'\n')
+        pk = [p for p in pk if p]
+        self.assertEqual(pk, [p for _, p in VEC])
+
+    def test_crc(self):
+        self.assertEqual(hb.crc16_x25(b'123456789'), 0x906E)
+
+    def test_determinism(self):
+        for fr, pkt in VEC[:100]:
+            self.assertEqual(hb.encode(pkt), hb.encode(pkt))
+
+
+class Integrity(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.ppm = ppm_frames()
+
+    def test_have_ppm_frames(self):
+        self.assertGreater(len(self.ppm), 100)
+
+    def test_cuts_dropped(self):
+        for fr, _ in self.ppm:
+            for n in range(1, len(fr)):
+                self.assertFalse(accepted(hb.decode(fr[:len(fr) - n])), (fr.hex(), n))
+
+    def test_appended_dropped(self):
+        tails = [b'\x00', b'\xff', b'\x00\x00', b'abc', b'\x80', b'\x81', b'\x7f\x7f\x7f\x7f\x7f\x7f']
+        for fr, _ in self.ppm:
+            for t in tails:
+                self.assertFalse(accepted(hb.decode(fr + t)), (fr.hex(), t))
+
+    def test_content_coding_flip(self):
+        for fr, pkt in self.ppm:
+            i = hb._parse(fr)['cstart']
+            for bit in range(8):
+                g = bytearray(fr)
+                g[i] ^= 1 << bit
+                self.assertFalse(accepted(hb.decode(bytes(g))), (fr.hex(), bit))
+
+    def test_raw_vectors_exist_and_decode(self):
+        raw = [(f, p) for f, p in VEC if hb._parse(f)['kind'] >= 2 and f[hb._parse(f)['cstart']] >> 6 == 3]
+        self.assertGreater(len(raw), 10)
+
+
+class Rxt(unittest.TestCase):
+    PKT = b'N0CALL>APLRG1,N0RLY-3*,N0RLY-5*,WIDE1-1:>Fixed station, solar powered, 433.775 MHz LoRa APRS iGate on a hill'
+
+    @classmethod
+    def setUpClass(cls):
+        cls.base = hb.encode(cls.PKT)
+        assert cls.base is not None and cls.base[hb._parse(cls.base)['cstart']] >> 6 == 0, 'need a PPM frame'
+
+    def with_block(self, tuples, mask):
+        f = bytearray(self.base)
+        f[3] |= 8
+        return bytes(f) + b''.join(bytes(t) for t in tuples) + bytes([mask])
+
+    def test_one_tuple(self):
+        f = self.with_block([(1, 2, 3, 4)], 0x82)
+        self.assertEqual(hb.decode(f), self.PKT)
+
+    def test_three_tuples(self):
+        f = self.with_block([(1, 2, 3, 4), (89, 88, 89, 89), (0, 0, 0, 0)], 0x87)
+        self.assertEqual(hb.decode(f), self.PKT)
+
+    def test_cut_inside_block(self):
+        f = self.with_block([(1, 2, 3, 4), (5, 6, 7, 8), (9, 10, 11, 12)], 0x87)
+        for n in range(1, 17):
+            self.assertFalse(accepted(hb.decode(f[:-n])), n)
+        for n in range(1, 13):
+            g = self.with_block([(1, 2, 3, 4)], 0x81)[:-n]
+            self.assertFalse(accepted(hb.decode(g)), n)
+
+    def test_tuple_byte_above_max(self):
+        for fld, mx in enumerate((89, 88, 89, 89)):
+            t = [1, 2, 3, 4]
+            t[fld] = mx
+            self.assertEqual(hb.decode(self.with_block([t], 0x81)), self.PKT)
+            t[fld] = mx + 1
+            self.assertFalse(accepted(hb.decode(self.with_block([t], 0x81))), fld)
+
+    def test_mask_without_marker(self):
+        self.assertFalse(accepted(hb.decode(self.with_block([(1, 2, 3, 4)], 0x01))))
+        self.assertFalse(accepted(hb.decode(self.with_block([(1, 2, 3, 4)], 0x02))))
+
+    def test_mask_bad(self):
+        self.assertFalse(accepted(hb.decode(self.with_block([], 0x80))))                    # k = 0
+        self.assertFalse(accepted(hb.decode(self.with_block([(1, 2, 3, 4)], 0x88))))        # bit 3 >= 3 path elements
+        self.assertFalse(accepted(hb.decode(self.with_block([(1, 2, 3, 4)], 0x83))))        # k=2 but one tuple present
+
+    def test_relay_appends(self):
+        pkt = b'N0CALL>APLRG1,WIDE1-1,WIDE2-1:>Fixed station, solar powered, 433.775 MHz LoRa APRS iGate on a hill'
+        fr = hb.encode(pkt)
+        out = hb.relay(fr, 'N0RLY-1', bytes([50, 20, 45, 10]))
+        self.assertEqual(out[-5:], bytes([50, 20, 45, 10, 0x81]))
+        self.assertEqual(hb.decode(out), b'N0CALL>APLRG1,N0RLY-1*,WIDE2-1:>Fixed station, solar powered, 433.775 MHz LoRa APRS iGate on a hill')
+        out2 = hb.relay(out, 'N0RLY-2', bytes([1, 2, 3, 4]))      # next unused element is WIDE2-1: not relayed
+        self.assertIsNone(out2)
+
+
+class Edge(unittest.TestCase):
+    def test_not_encodable(self):
+        self.assertIsNone(hb.encode(b'nocolon'))
+        self.assertIsNone(hb.encode(b'A>B:' + b'x' * 256))
+
+    def test_roundtrips(self):
+        for p in (b'N0CALL>APRS:', b'N0CALL>APRS::ALL      :hi', b'N0CALL-0>APRS,WIDE2-3:x',
+                  b'LONGNAME-255>APRS,TCPIP*:!4903.50N/07201.75W-'):
+            fr = hb.encode(p)
+            self.assertIsNotNone(fr, p)
+            self.assertEqual(hb.decode(fr), p)
+
+
+if __name__ == '__main__':
+    unittest.main()

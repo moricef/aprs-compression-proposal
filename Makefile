@@ -47,6 +47,23 @@ vectors: build/ppm_tool
 	build/ppm_tool gen < test/synthetic_packets.txt > test/vectors_v1.txt
 	build/ppm_tool gen-primed < test/synthetic_primed_pairs.txt > test/vectors_primed_v1.txt
 
+# spec 11 reference frame (tools/hb): build, vectors, fault injection on generated packets
+build/hb_test: tools/hb/hb.c tools/hb/hb.h tools/hb/hbi.c tools/hb/hbc.c tools/hb/hb_payload.h tools/hb/hb_test.c $(SRC)
+	@mkdir -p build
+	$(CC) $(CFLAGS) -c tools/hb/hbi.c -o build/hbi.o
+	$(CC) $(CFLAGS) -c tools/hb/hbc.c -o build/hbc.o
+	$(CC) $(CFLAGS) -Itools/hb -c tools/hb/hb.c -o build/hb.o
+	$(CC) $(CFLAGS) -Itools/hb tools/hb/hb_test.c build/hb.o build/hbi.o build/hbc.o -o $@
+
+hb-test: build/hb_test
+	build/hb_test check test/vectors_hb_v1.txt
+	python3 tools/hb/gen_packets.py 3000 > build/hb_packets.txt
+	build/hb_test props build/hb_packets.txt
+
+hb-vectors: build/hb_test
+	python3 tools/hb/gen_packets.py 500 > test/hb_packets.txt
+	build/hb_test gen < test/hb_packets.txt > test/vectors_hb_v1.txt
+
 clean:
 	rm -rf build
-.PHONY: test vectors clean integrity lacf-ending lacf-vectors fast-freq
+.PHONY: test vectors clean integrity lacf-ending lacf-vectors fast-freq hb-test hb-vectors

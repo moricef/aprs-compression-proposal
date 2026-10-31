@@ -40,7 +40,8 @@ F4MLV proposed using the two unused information-kind values to say which coder w
 The first byte of the content field is `V`, present in **every** frame of kinds 2 and 3:
 
     V = cc vvvvvv
-    cc      2 bits   content coding: 0 = PPM, 1 = raw text; 2 and 3 are reserved and a receiver drops the frame
+    cc      2 bits   content coding: 0 (binary 00) = PPM, 3 (binary 11) = raw text; 1 and 2 are reserved and a receiver drops the frame.
+                     The two codings differ in both bits on purpose: a single flipped bit then lands on a reserved value and the frame is dropped, instead of turning PPM content into raw text, which has no check.
     vvvvvv  6 bits   version of the table set: it names the PPM tables AND the destination list (64 sets); a receiver that does not hold it drops the frame
 
 PPM content (`cc = 0`):
@@ -50,10 +51,10 @@ PPM content (`cc = 0`):
     CRC      2 bytes   CRC-16/X-25 (below), low byte first
     payload  n bytes   range coder bytes of spec 01, ending as in "PPM payload rules" below
 
-Raw content (`cc = 1`): `V` followed by the text itself, up to the RXT block or the end of the frame (no `L`, no CRC). It is used when PPM would not shrink the text.
+Raw content (`cc = 3`): `V` followed by the text itself, up to the RXT block or the end of the frame (no `L`, no CRC). It is used when PPM would not shrink the text.
 
 * Kind 2 carries the whole information field. Kind 3 follows a position block and carries only the comment that remains.
-* **What the CRC covers** (PPM content only): the kind bits and the reserved bit of the header (`header & 0x07`), `V`, the source and the destination as TNC2 text (the destination decoded through the destination list), and the information field rebuilt from the position block and the decoded text.
+* **What the CRC covers** (PPM content only). The CRC input is, in this order: the byte `header & 0x07` (the kind bits and the reserved bit); the byte `V`; the source as TNC2 text; the byte `>` (0x3E); the destination as TNC2 text (decoded through the destination list); the byte `:` (0x3A); and the information field (the text after the first `:` of the TNC2 packet), rebuilt from the position block and the decoded text.
   It does not cover the path or the rest of the header (the path count and the RXT bit), which relays change. A relay that only rewrites the path and appends a tuple therefore never recomputes it, and a receiver holding the wrong destination list, or receiving a damaged source, destination or `V`, fails the CRC.
 * The payload length is not sent; the receiver derives it (Receiver, step 3).
 
@@ -68,8 +69,8 @@ The tables' own header says "model version 2", which they share with the whole-p
 
 ### Fallback to raw text
 
-The encoder uses PPM content only when it is shorter than raw content: `4 + n < 1 + L` bytes (PPM: `V`, `L`, CRC and payload; raw: `V` and the text). Otherwise it sends raw content (`cc = 1`) in the same kind, so the frame still uses the destination list and the RXT rules.
-Kinds 0 and 1 stay draft 0 exactly, for reaching a draft-0 receiver; the senders of this plan do not use them for fallback. On our packets 15% of information fields do not shrink with the info-native table and 6% of comments with the comment-only table (about a third on the harness's data).
+The encoder uses PPM content only when it is shorter than raw content: `4 + n < 1 + L` bytes (PPM: `V`, `L`, CRC and payload; raw: `V` and the text). Otherwise it sends raw content (`cc = 3`) in the same kind, so the frame still uses the destination list and the RXT rules.
+**Decided 1 November 2026 (Walter): draft 0 is not used; only this format. A receiver of this plan drops a frame of kind 0 or 1** (the reference code in C and Python does, and the cross-check agrees on it). The remarks below and elsewhere that treat kinds 0 and 1 as draft-0 frames describe the older plan and are kept only until they are cleaned up. Kinds 0 and 1 stay draft 0 exactly, for reaching a draft-0 receiver; the senders of this plan do not use them for fallback. On our packets 15% of information fields do not shrink with the info-native table and 6% of comments with the comment-only table (about a third on the harness's data).
 After a position block, an empty comment sends no text (kind 3, raw content with nothing after `V`). These rules are the harness's `PLAINTEXT=1`. Senders must follow the size rule, and a receiver drops PPM content the encoder would not have sent (Receiver, step 5), the same way it drops a payload that is not the canonical encoding; any receiver decodes every coding it holds.
 
 ### Destination (versioned table, two bits reserved)
@@ -81,6 +82,8 @@ The destination is coded in one byte, `ff iiiiii`:
 * `iiiiii`, the low six bits, give 64 codes. **Codes 0 to 61 name the 62 most common destinations of that table version, in descending order of popularity** (code 0 is the most common), so the common ones are found first by a simple search. Code 62 is reserved (a receiver drops a frame that uses it); decided: it is kept reserved and not used as a 63rd destination. **Code 63 is the escape:** after it comes the draft-0 address element (5 bytes for an ordinary destination, so 6 in all; this is also the cost of a Mic-E destination, which draft 0 carries as a 5-byte element).
 * A destination that has no direct code is not in the table: it escapes. There are no patterns and no second tier of 2-byte codes. In both measured captures registry patterns almost never fired (0 packets of 8,062 in Ariège and 2 of 14,305 in ours).
 * **Each table version fills the 62 destination codes, in order of popularity, with the destinations that are most common then,** and need not keep the codes of the version before; the version names the list. A destination used only once is never given a code.
+
+**Set 1** (`vvvvvv = 1`) is the file [`tools/hybrid/tables/tocall_set1.txt`](../tools/hybrid/tables/tocall_set1.txt) (sha256 `0e076bfbe365edc040cc294b7b271495d6f2e3d76292be9cd3dae5c4e6bf7a35`): 62 destinations ranked on our packets plus the destinations reported from the French capture; `APU25N`, `BEACON` and other rare ones are not in it. It is experimental, like the tables.
 
 Measured on our 14,305 real packets (73 distinct destinations): the 62 most common as direct codes cover 99.9% of packets (the first five, `APLRG1`, `APLRT1`, `APLWS2`, `APLG01`, `APLRFD`, cover 88.8%), a mean of 1.0038 bytes per packet, against 1.015 for the v2 list of the harness (85 exact entries, 28 patterns). That ranking is made on the same data it is tested on, so it is optimistic; a real list is ranked on training stations and checked on held-out ones.
 The harness's v2 list ([`tools/hybrid/tables/tocall_table_v2.txt`](../tools/hybrid/tables/tocall_table_v2.txt), sha256 `e700581b...f59aff`, 85 exact destinations and 28 patterns) is the starting data, not the final list: its entries seen once or twice in the captures (`APU25N`, `BEACON`) would not earn a direct code, and the few `APL...` destinations seen here that it lacks (`APSTKI` 20 packets, `APLM2D` 6, `APLGMT` 5, `APLHT2` 4) would compete for the 62 codes.
@@ -137,11 +140,11 @@ Details and the other results are in [`docs/truncated-payloads-and-integrity.md`
 
 ## Receiver (normative)
 
-1. Drop the frame unless it starts `3C FF 02` and the information kind, the content coding `cc` (0 or 1) and the table-set version in `V` are known.
+1. Drop the frame unless it starts `3C FF 02` and the information kind, the content coding `cc` (0 or 3) and the table-set version in `V` are known.
 2. Parse header, addresses and path, and the position block (kind 3), as draft 0.
-3. If header bit 3 is set: the last byte is the mask. Drop the frame unless bit 7 is set, `k >= 1`, every set bit is below the path element count, and at least `4k + 1` bytes remain after the position block and, for PPM kinds, after the content CRC. The RXT block is the last `4k + 1` bytes, and **the frame is dropped if a tuple byte exceeds its field maximum**; the payload (PPM content), the raw text (`cc = 1`) or the text (kinds 0 and 1) is everything between the end of the position block or CRC and the block.
+3. If header bit 3 is set: the last byte is the mask. Drop the frame unless bit 7 is set, `k >= 1`, every set bit is below the path element count, and at least `4k + 1` bytes remain after the position block and, for PPM kinds, after the content CRC. The RXT block is the last `4k + 1` bytes, and **the frame is dropped if a tuple byte exceeds its field maximum**; the payload (PPM content), the raw text (`cc = 3`) or the text (kinds 0 and 1) is everything between the end of the position block or CRC and the block.
    If bit 3 is clear, there is no block and the payload or text is everything after.
-4. Decode `L` text bytes from the payload with the range decoder (the table chosen by the kind), rebuild the information field, and drop the frame unless its CRC-16 matches, computed over the input listed under Content field. Raw content (`cc = 1`) has no CRC and nothing more to check. (The CRC is what protects `L`: the re-encode check alone passes a frame whose `L` is one too large 70% of the time.)
+4. Decode `L` text bytes from the payload with the range decoder (the table chosen by the kind), rebuild the information field, and drop the frame unless its CRC-16 matches, computed over the input listed under Content field. Raw content (`cc = 3`) has no CRC and nothing more to check. (The CRC is what protects `L`: the re-encode check alone passes a frame whose `L` is one too large 70% of the time.)
 5. Re-encode the `L` text bytes with the sender's rules ("PPM payload rules", Ending). Drop the frame unless the result is **exactly** the payload (same length, same bytes), and drop it if the content field (`4 + n` bytes) is not shorter than `1 + L`, because the encoder would have sent raw content.
 6. Only an accepted frame may be shown, uploaded, relayed, or kept for later use.
 
@@ -165,6 +168,27 @@ A relay accepts a frame by the Receiver rules, which for PPM kinds decode the co
 Mic-E is not decoded or converted by this plan. A Mic-E packet is carried as received: the destination as the escape plus the 5-byte element (6 bytes, since its characters are the position), and the information field as raw text (kind 0), or as a PPM content field (kind 2) only if that is shorter, which is unusual because the field is printable binary. Relays forward it exactly as above. Converting Mic-E to a native position
 would save only 1 to 3 bytes per Mic-E packet, almost all of it in the destination, and would change the bytes of the packet; it is not worth that and is not part of this plan.
 If the sender used the destination SSID as a path code, the relay applies the usual rule to it; whether draft 0 does so is not checked.
+
+## Conformance (draft)
+
+An implementation conforms if, for every line of [`test/vectors_hb_v1.txt`](../test/vectors_hb_v1.txt) (`<frame hex> <TNC2 packet hex>`, 500 fabricated packets, table set 1 and destination list set 1), the encoder produces exactly that frame from the packet and the receiver accepts the frame and returns exactly that packet;
+and, for [`test/vectors_hb_relay_v1.txt`](../test/vectors_hb_relay_v1.txt) (`<received frame> <relayed frame> <relayed packet>`), the relay produces the relayed frame. The C reference is [`tools/hb/`](../tools/hb/) (`make hb-test`); the fabricated packets come from `tools/hb/gen_packets.py`.
+The frame bytes depend on these encoder choices, which are therefore part of the format:
+
+* **TNC2 packet:** `SOURCE>DESTINATION[,PATH...]:INFORMATION`, split at the first `>`, the first `:` after it, and the commas between them; at most 15 path elements; the frame must be at most 255 bytes and the information field at most 255 bytes, otherwise the packet is not encodable and a plain frame is sent. The encoder decodes what it built and uses the frame only if the packet comes back byte for byte.
+* **Address elements** (draft 0): `WIDEn` or `WIDEn-N` with `n` 1 to 7 and `N` 1 to `n`, optionally followed by `*`, is one byte `0 s nnn NNN` (`s` = the `*`, `N` = 0 when there is no `-N`). A callsign of 1 to 6 characters `A-Z0-9`, optionally `-SSID` (a decimal number 1 to 255 with no leading zero), optionally `*`, is `1 0 s xxxxx` (`xxxxx` the SSID, or 31 with the SSID in one extra byte after the callsign when it is above 30) followed by the 6 characters (padded with spaces) as four bytes, big endian, in base 40 over the alphabet space, `A` to `Z`, `0` to `9` (space is 0, `A` is 1, `0` is 27).
+  Anything else (lower case, `-0`, `-05`, longer names) is a text element `1 1 lllll` and its 1 to 31 bytes.
+  Tactical and other names that do not fit (longer than 6 characters, lower case, other characters) travel as text elements and are never rejected for their content.
+  **A receiver drops a frame with an element that no encoder can produce (strict rule):** a `WIDE` byte with `n` = 0 or `N` above `n`; a callsign element whose four-byte value is 40^6 (4,096,000,000) or more or has a base-40 digit above 36 (the alphabet has 37 symbols), that is empty, or that has a space inside it; any element that runs past the end of the frame; a text element of length 0; a NUL byte (0x00) anywhere in the decoded text (an encoder is given a text string and cannot produce one). This covers the source, the destination escape and every path element, and it costs nothing because the receiver parses them anyway. The content of a text element is not checked, so the rule gives less protection where the path is text.
+* **Destination:** a byte `00 iiiiii` with the index when the destination text equals an entry of the destination list (exact match, no `*`); otherwise the byte `0x3F` (code 63) and the destination as an address element.
+* **Kind:** the encoder uses kind 3 when the information field starts with a position, otherwise kind 2. A position is: a data type indicator `!`, `=`, `/` or `@`; for `/` and `@` a timestamp of six digits and one of `z`, `h`, `/`; then an uncompressed position (`ddmm.hhN` or `S`, a table character, `dddmm.hhE` or `W`, a symbol character; 19 characters, digits only in the numbers) or a compressed one (a table character from `/ \ A-Z a-j`, four and four base-91 characters, a symbol character and three characters `c s T`; 13 characters).
+  If the position block built from it does not rebuild the information field exactly, kind 2 is used.
+* **Position block** (draft 0): a flags byte (bits 1-0 the data type indicator 0 `!`, 1 `=`, 2 `/`, 3 `@`; bit 2 timestamp; bit 3 compressed; bit 4 course/speed present, uncompressed only; bit 5 altitude present; bit 6 compressed with `c s` both spaces, so that only `T` follows), then the timestamp as three bytes (the six digits as a number times 4, plus 0, 1 or 2 for `z`, `h`, `/`), then the position: uncompressed is six bytes holding (latitude in hundredths of a minute times 2, plus 1 for south) times 2^22 plus (longitude in hundredths of a minute times 2, plus 1 for west), then the table and symbol characters, then (bit 4) three bytes of course times 1024 plus speed when the 7 characters `ddd/ddd` follow the position;
+  compressed is seven bytes holding the latitude's four base-91 characters as a number times 2^27 plus the longitude's, then the table and symbol characters, then the one byte `T` (bit 6) or the three bytes `c s T`. Altitude (bit 5): the first `/A=` followed by six digits, or by `-` and five digits, within the first 255 bytes of the comment is removed from it and stored as one byte (its offset in the remaining comment) and three bytes (the altitude in feet, 24-bit two's complement). What remains of the comment is the text.
+  **A receiver drops a position block that no encoder can produce (strict rule):** flags bit 7 set; bit 4 (course/speed) together with bit 3 (compressed); bit 6 without bit 3; a timestamp value above 999999 or with unit code 3; a latitude above 90 degrees or a longitude above 180 degrees (uncompressed, in hundredths of a minute: 540000 and 1080000); a compressed latitude or longitude of 91^4 or more; a course or a speed above 999; an altitude outside -99999 to 999999; an altitude offset beyond the comment.
+
+* **Content:** the text is the information field (kind 2) or the comment that remains (kind 3), at most 255 bytes. PPM content is used when the payload (from the table: info-native for kind 2, comment-only for kind 3) satisfies `4 + n < 1 + L`; otherwise raw content, and an empty text is raw content with nothing after `V`.
+* **Relay vectors:** the relay callsign is `N0RLY-1` and its tuple is the bytes `50 20 45 10`. The relay takes the first path element that has no `*`: `WIDE1-1` becomes `N0RLY-1*`; `WIDE2-2` becomes `N0RLY-1*,WIDE2-1`; with any other first unused element, or no path, the packet is not relayed and has no vector. The header gets the new path count and the RXT bit; the position block and the content field are copied byte for byte; the block is the old tuples, the relay's tuple at the index of its element, and the mask.
 
 ## Size
 
@@ -200,7 +224,7 @@ so a sender must enable it and a receiver must act on its status. It cannot see 
 | PPM payload | LoRa CRC, then the re-encode check and the content CRC | the re-encode check rejects every cut | the re-encode check passes about 0.4% of wrong-table decodes (up to 2.1% for some table pairs), the content CRC alone all but 2 of 360,000, both together 0 of 360,000 |
 | Information field (position block and comment) | LoRa CRC and the content CRC, end to end across relays | the content CRC | the content CRC |
 | RXT tuples and mask | LoRa CRC only, plus the marker and range checks | the marked mask byte | not covered (see below) |
-| Raw content (`cc = 1`) and kinds 0 and 1 | LoRa CRC only (`V` is checked for a known version) | nothing | nothing |
+| Raw content (`cc = 3`) and kinds 0 and 1 | LoRa CRC only (`V` is checked for a known version) | nothing | nothing |
 
 So the plan meets the VHF level per hop for channel noise on every byte, and is stronger than VHF for the information field across relays. It is **not** end-to-end protection for the path, the path count, RXT tuples or raw text, and a kind-bit flip into a raw kind is not caught.
 
@@ -292,7 +316,7 @@ His tracker (`moricef/LoRa_APRS_Tracker`, branch `devel`, `src/lora_utils.cpp` a
 
 ## Open
 
-* **The destination byte needs no disambiguation inside kinds 2 and 3.** Draft-0 decoders reject any information kind above 1, so a frame of kind 2 or 3 never reaches an address-element parser built for draft 0; this plan defines the destination field of those kinds as the code byte (escape plus a draft-0 element), and there is nothing to tell apart. The consequence is that **kinds 0 and 1 cannot use the table** without breaking draft-0 decoders (their address parser accepts every first byte below 0x80 as a `WIDEn-N` element). A raw-text fallback frame therefore stays in the new family, as raw content (`cc = 1` in `V`).
+* **The destination byte needs no disambiguation inside kinds 2 and 3.** Draft-0 decoders reject any information kind above 1, so a frame of kind 2 or 3 never reaches an address-element parser built for draft 0; this plan defines the destination field of those kinds as the code byte (escape plus a draft-0 element), and there is nothing to tell apart. The consequence is that **kinds 0 and 1 cannot use the table** without breaking draft-0 decoders (their address parser accepts every first byte below 0x80 as a `WIDEn-N` element). A raw-text fallback frame therefore stays in the new family, as raw content (`cc = 3` in `V`).
 * **Table version: decided.** `V = cc vvvvvv` is mandatory in every frame of kinds 2 and 3 (0 bytes on PPM frames, 1 byte on raw frames, about 0.1 byte per packet on average); `vvvvvv` names the PPM tables and the destination list together. Needs F4MLV's agreement.
 * **Header gap: closed in part.** The content CRC now covers the kind bits, `V`, source and destination. A flipped kind bit that turns kind 2 or 3 into 0 or 1 is not caught, since raw kinds carry no check; with channel noise it cannot pass the LoRa CRC, so it needs a relay or encoder fault.
 * **Distribute destination-list updates over the air.** The list is small (62 destinations are about 310 bytes, two frames, about 18 s at SF12), so a station that sees an unknown list version could ask its nearest neighbour, or an iGate could fetch and verify it and pass it on. The PPM tables (about 150 KB, 600 full frames) cannot go this way. Needs a version field, a signature from a key built into the firmware, rate-limited requests, and old versions kept. Not designed.
