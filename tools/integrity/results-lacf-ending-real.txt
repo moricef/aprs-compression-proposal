@@ -1,0 +1,20 @@
+14305 texts (real texts, not in this repository); LACF frames made: 14293; deterministic (same bytes on a second encode): 14293
+average frame bytes: current ending 40.79, LACF ending 43.04 (+2.25)
+any continuation decodes to the same text (0 to 8 bytes: random, 0x00, 0xFF): 385911 of 385911
+minimal (with the last byte dropped, 0x00 or 0xFF after it fails): 14293 of 14293
+receiver accepts intact frame with the right text and payload length: no tail 14293 of 14293, 6 byte tail 14293 of 14293
+
+damage (LoRa CRC still valid) no tail: wrong accepted            6 byte tail: wrong accepted       
+cut off  1 bytes                   0 of 14293  (0.000%)          n/a (only the tail is cut)
+cut off  2 bytes                   0 of 14293  (0.000%)          n/a (only the tail is cut)
+cut off  3 bytes                   0 of 14293  (0.000%)          n/a (only the tail is cut)
+cut off  4 bytes                   0 of 14293  (0.000%)          n/a (only the tail is cut)
+cut off  6 bytes                   0 of 14290  (0.000%)          n/a (only the tail is cut)
+cut off  8 bytes                   0 of 14270  (0.000%)               0 of 14293  (0.000%)
+cut off 12 bytes                   0 of 14126  (0.000%)               0 of 14290  (0.000%)
+cut off 16 bytes                   0 of 13731  (0.000%)               0 of 14221  (0.000%)
+1 random bit flipped              0 of 14293  (0.000%)
+2 random bits flipped             0 of 14228  (0.000%)
+3 random bits flipped             0 of 14293  (0.000%)
+8 random bits flipped             0 of 14293  (0.000%)
+payload replaced by random        0 of 14293  (0.000%)

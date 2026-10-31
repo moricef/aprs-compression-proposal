@@ -7,6 +7,14 @@ Run first (needs only this repository):  make integrity
   trunc_ref.c         full-frame cuts, bit flips and random payloads, plain decoder vs check C, on fabricated packets or on your own text file;
                       results-ref-fabricated.txt (what make integrity prints) and results-ref-real.txt (the author's real texts, which are not in the repository)
 
+LACF (spec/10):  make lacf-ending   (ending, CRC-16 and receiver against test/vectors_lacf_v1.txt and on fabricated packets)
+                 make fast-freq     (the faster build_freq must equal the reference; TEXTS=file for your own texts)
+  lacf_core.h        the ending, CRC-16, encoder and receiver of spec/10 as code (include after reference/aprs_ppm.c)
+  lacf_ending.c      property tests for it (also: build/lacf_ending stress TEXTS TRIALS; gen / check for the vectors)
+  fast_freq.h        a faster build_freq with byte-identical output; fast_freq_test.c proves it
+  esp32-timing/      PlatformIO project for a LILYGO LoRa32 v2.1: pio run -e keysram -t upload (envs: lora32 = reference, lora32fast, keysram, lora32ram, lora32prof)
+  results-esp32-timing.txt, results-lacf-*.txt   the numbers quoted in the doc
+
 Files
   trunc_test.c        the same cut test on the C decoder in the author's Dire Wolf port (his test bench; not needed for the ESP32 or T-Deck results)
   trunc_esp.cpp       the same on the ESP32 iGate library (lib/AprsCompress), built natively

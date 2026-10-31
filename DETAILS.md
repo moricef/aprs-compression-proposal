@@ -111,6 +111,7 @@ position packets fit; it has no comment field; and its position field is the ord
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
 | [08 Priming with a station's last full packet](spec/08-priming-from-previous-packet.md) | Wire format + C reference codec + 103 test vectors + firmware; about 65% saved on real LoRa pairs (real codec bytes), 62-70% in simulation. Host-tested only |
 | [09 Structured header for position packets](spec/09-structured-header-layout.md) | Idea: a compact fixed layout for callsign, path and position plus an order-3 comment; about 4-7 B smaller than order-3 alone on LoRa position packets (arithmetic) |
+| [10 LACF: ending, CRC-16 and re-encode check](spec/10-lacf-ending-and-roundtrip-check.md) | Draft: a payload end that does not depend on what follows, a CRC-16 of the text, and a receiver that re-encodes; measured on 14,293 real frames and on an ESP32 (6.3 ms per frame); frame mark undecided |
 | [Direwolf notes](docs/direwolf-notes.md) | Where the Direwolf implementation is (LoRa HAT channel, built) and planning notes for the VHF part |
 | [Other methods considered, APRS 438, and why APRS-PPM was chosen](docs/alternatives-considered.md) | Comparison table and the reasoning |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |

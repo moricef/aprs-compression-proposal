@@ -1,0 +1,17 @@
+LACF receiver timing on a LILYGO LoRa32 v2.1 (ESP32-PICO-D4, 240 MHz, Arduino core, -O2, no WiFi), 31 October 2026.
+48 fabricated packets of 30 to 89 characters, 20 repetitions each, mean per frame. All 20 conformance vectors (test/vectors_lacf_v1.txt) came out of the board
+byte-identical to the host's and were accepted by the receiver in every build. Per-packet rows: esp32-timing/ (build with pio run -e <env>).
+
+build                                                  plain decode   receive with check C   what check C adds
+reference build_freq (reference/aprs_ppm.c), two passes   16.2 ms        32.2 ms               16.0 ms
+fast build_freq (fast_freq.h), two passes                  7.9 ms        15.8 ms                7.8 ms
+fast + 35 KB key tables copied to RAM, two passes          6.4 ms        12.7 ms                6.3 ms
+fast + whole model (127 KB) in RAM, two passes             5.5 ms        11.0 ms                5.6 ms
+fast, one pass (decoder feeds the re-encoder)              7.9 ms         7.9 ms               -0.1 ms (not measurable)
+fast + 35 KB keys in RAM, one pass                         6.4 ms         6.3 ms               -0.1 ms (not measurable)
+
+Tried and dropped (slower on this chip): a float estimate corrected by integer arithmetic, and a reciprocal multiply, in place of the 32 bit divide
+(the chip divides and multiplies-high in hardware); both cost 1 to 3 ms more than the plain divide.
+CRC-16 (bitwise, 48 packets): about 20 to 60 microseconds per frame.
+The profile in the first fast build showed the cycles per character going to the flash reads of the key tables (about 11,000), the per-entry arithmetic (about 33,000)
+and the final 256 entry loop (about 10,000); copying the key tables to RAM took the first from about 11,000 to about 2,400.

@@ -19,6 +19,9 @@ static int find_context(const aprs_ppm_order_t *t, uint32_t key)
     return -1;
 }
 
+#ifdef APRS_PPM_FAST_BUILD_FREQ
+#include APRS_PPM_FAST_BUILD_FREQ     /* optional faster build_freq with identical output (tools/integrity/fast_freq.h); the reference below is the definition */
+#else
 /* Blend orders 3..0 (PPM method C: escape weight u/(n+u)) in 32.32 fixed point, add a uniform
  * floor so every byte value stays encodable, and fill freq[256]. Returns the total (<= 65536).
  *
@@ -73,6 +76,8 @@ static uint32_t build_freq(const uint8_t *hist, size_t pos, uint16_t *freq,
     }
     return total;
 }
+
+#endif /* APRS_PPM_FAST_BUILD_FREQ */
 
 /* ---- range coder ---------------------------------------------------------------------------- */
 
