@@ -1,5 +1,9 @@
 # Proposal draft 11 - Hybrid B: native frame with a PPM-coded content field (byte plan)
 
+> **DRAFT, WORK IN PROGRESS.** Not a standard, and not yet seen or agreed by F4MLV (moricef). No firmware implements it, and nothing has been tested on the air. Details will change; do not build deployed software from this text. Where it is weak or undecided is listed under "Open" and "Not yet measured".
+>
+> *Last changed 31 October 2026.*
+
 | | |
 |---|---|
 | Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV, not yet seen or agreed by F4MLV. No native encoder implements it; the PPM payload's integrity rules and the RXT tail are tested (below).** |

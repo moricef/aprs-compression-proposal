@@ -1,5 +1,7 @@
 # Truncated payloads and integrity checks
 
+> **WORK IN PROGRESS.** A measurement record, not a specification. The numbers are from one set of real packets and from test code; the format they support is the draft in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which is not agreed and not implemented.
+
 > **Note on framing (31 October 2026).** These measurements were taken on a standalone whole-text test frame (`3C FF 81`, a 6-byte header). That frame was a test vehicle and is **not** the proposal: PPM of the whole packet is not the plan. The proposed format is hybrid B in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which carries the payload rules defined and tested here (deterministic ending, CRC-16, re-encode check). The payload results below stand; passages about the frame mark and header describe the test frame.
 
 | | |
