@@ -1,0 +1,17 @@
+14305 texts (real texts, not in this repository)
+full frames made: 14298; intact frames accepted by check C with the right text: 14298
+
+damage (LoRa CRC still valid)   frames  plain decoder: wrong accepted check C: wrong accepted     
+cut off  1 bytes                 14298   14298 (100.00%)              12183 (85.208%)
+cut off  2 bytes                 14298   14298 (100.00%)              12891 (90.159%)
+cut off  3 bytes                 14298   14298 (100.00%)              13396 (93.691%)
+cut off  4 bytes                 14298   14298 (100.00%)              13634 (95.356%)
+cut off  6 bytes                 14294   14294 (100.00%)              13820 (96.684%)
+cut off  8 bytes                 14272   14272 (100.00%)              13815 (96.798%)
+cut off 12 bytes                 14112   14112 (100.00%)              13767 (97.555%)
+cut off 16 bytes                 13692   13692 (100.00%)              13300 (97.137%)
+ 1 random bits flipped            14298   14217 ( 99.43%)                893 (6.246%)
+ 2 random bits flipped            14246   14246 (100.00%)                376 (2.639%)
+ 3 random bits flipped            14298   14298 (100.00%)                307 (2.147%)
+ 8 random bits flipped            14298   14298 (100.00%)                186 (1.301%)
+payload replaced by random       14298   14298 (100.00%)                194 (1.357%)

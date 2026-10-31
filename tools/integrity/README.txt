@@ -3,8 +3,12 @@ Truncation and integrity tests (see docs/truncated-payloads-and-integrity.md)
 The packet texts are NOT included: they hold real callsigns and positions. Make your own file with one APRS text (the part after ':' of a TNC2 line,
 or whole TNC2 lines, as each program's header says) per line, from your own receiver log or an APRS-IS capture filtered on the LoRa destination codes.
 
+Run first (needs only this repository):  make integrity
+  trunc_ref.c         full-frame cuts, bit flips and random payloads, plain decoder vs check C, on fabricated packets or on your own text file;
+                      results-ref-fabricated.txt (what make integrity prints) and results-ref-real.txt (the author's real texts, which are not in the repository)
+
 Files
-  trunc_test.c        Dire Wolf C decoder (src/loracompress.c): cut a full frame, classify the decode
+  trunc_test.c        the same cut test on the C decoder in the author's Dire Wolf port (his test bench; not needed for the ESP32 or T-Deck results)
   trunc_esp.cpp       the same on the ESP32 iGate library (lib/AprsCompress), built natively
   trunc_store.cpp     a garbled full frame stored as a reference, then the next primed frame
   ovr_test.cpp        how many bytes past its end the decoder reads; relay-tail (RXT) test
@@ -14,6 +18,7 @@ Files
   igate-library-private-copy.patch   the library changes the ending experiments need (encodeCanon, decodeCanon, encodeIndep); a private copy, not for the iGate repo
   results*.txt        the numbers quoted in the doc
 
+The tests below are the ones behind the doc's ending, relay-tail and ESP32 library numbers. They need the ESP32 iGate firmware's library checked out, and the ending tests need the patched copy.
 Build (examples; adjust include paths to your checkouts)
   c++ -O2 -std=c++17 -I <igate>/lib/AprsCompress/src trunc_esp.cpp <igate>/lib/AprsCompress/src/*.cpp -o trunc_esp
   cc  -O2 -include string.h -include stdio.h -include stdlib.h -I <direwolf>/src trunc_test.c <direwolf>/src/loracompress.c -o trunc_test   (macOS needs the -include lines)

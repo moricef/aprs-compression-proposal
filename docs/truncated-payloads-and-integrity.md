@@ -6,12 +6,12 @@
 | Question from | F4MLV, issue #7 on moricef/LoRa_APRS_Tracker: a payload cut short before transmission is sent with a valid LoRa CRC, so we must verify that the decoder rejects it before deciding that no further check is needed |
 | Depends on | [01 Compressed frames](../spec/01-compressed-frames.md), [08 Priming](../spec/08-priming-from-previous-packet.md) |
 | Branch | `lacf` (LoRa APRS Compact Frame, LACF): the work on the byte plan for a native compact frame with this integrity rule |
-| Code | [`tools/integrity/`](../tools/integrity/) |
+| Code | [`tools/integrity/`](../tools/integrity/); `make integrity` runs the part that needs only this repository (fabricated packets) |
 
 ## Short version
 
 1. **The decoder does not reject a truncated full frame.** Cut 1 to 6 bytes off the end of a full frame (`3C FF 81`) and it is accepted 100% of the
-   time, with the right length and a wrong tail. The LoRa CRC cannot help: it is computed after the cut.
+   time, with the right length and a wrong tail (the position fields at the front are usually intact). The LoRa CRC cannot help: it is computed after the cut.
 2. **Appending a relay tail (RXT) breaks the current frame ending**, independently of truncation: with 6 bytes after the payload, only 83.8% of
    intact frames still decode to the right text.
 3. **Three checks were measured.** Decode, re-encode, compare (check C) rejected every cut frame in the test, with 0 extra bytes on the air once the
@@ -21,11 +21,11 @@
 
 ## What was tested
 
-* **Packets.** 14,305 unique real LoRa APRS texts: 5,188 heard on the radio in an Arizona network over a day, and the packets of a 25-minute APRS-IS capture
-  filtered on the LoRa destination codes (11,647 packets worldwide). 14,298 of them compress to a full frame smaller than the plain frame (7 do not).
+* **Packets.** 14,305 unique real LoRa APRS texts from two sources: a receiver log from an Arizona network, and an APRS-IS capture filtered on the LoRa destination codes
+  (the per-source counts were not kept with the results). 14,298 of them compress to a full frame smaller than the plain frame (7 do not).
   The texts are **not** in this repository: they contain real callsigns and positions. See `tools/integrity/README.md` to build the same kind of file.
-* **Two decoders, the same algorithm.** The ESP32 iGate firmware's library (`lib/AprsCompress`, order-3 model, version 1) built natively, and the Dire Wolf
-  C decoder (release 2.0.0). They gave the same numbers wherever both were run.
+* **Targets and decoders.** The platforms this is meant for are the T-Deck tracker firmware and the ESP32 iGate firmware. The ESP32 iGate library (`lib/AprsCompress`, order-3 model, version 1) was built natively and tested;
+  this repository's reference codec (`reference/aprs_ppm.c`) gives the same truncation numbers, and so does the C decoder in the author's Dire Wolf port, which is his test bench and not a deployment target.
 * **Method.** Encode every text as a full frame, cut 1 to 16 bytes off the end (the cut frame still has a valid LoRa CRC because the sender made the cut), decode it,
   and classify the result: rejected, same text, a shorter text that is a prefix, or a different text. "Wrongly accepted" means the decoder returned text that is not the original.
   Intact frames decode back exactly in 14,298 of 14,298 cases.
@@ -42,8 +42,7 @@
 | 16 bytes | 0.87% | 99.13% |
 | a random cut point | 0.00% | 100% |
 
-The result has the right length with the first 97% of the text correct and a wrong tail. For example a tail `...|)_%H!a|` decoded as `...|)_%;X50`. The position fields at the
-front are intact; the comment or telemetry at the end is wrong, and nothing marks it.
+The result has the right length and a wrong tail. For example, in one frame a tail `...|)_%H!a|` decoded as `...|)_%;X50`: the front of the packet is intact, the comment or telemetry at the end is wrong, and nothing marks it. (How much of the text is correct on average was not measured here.)
 
 **Corruption that gets past the CRC** (full frames): 1, 2, 3 or 8 flipped bits decode to wrong text 99.3% to 99.98% of the time, and a payload replaced by random bytes 99.5%
 to 99.7%. For 1 to 3 flipped bits a CRC-16 would normally catch the error, so these rows show the decoder's own rejection power, which is close to none for full frames.
@@ -56,7 +55,7 @@ to 99.7%. For 1 to 3 flipped bits a CRC-16 would normally catch the error, so th
 | 2 bytes | 99.84% | 0.16% |
 | 3 bytes | 99.99% | 0.007% (1 frame; too few to rely on) |
 
-Bit flips: 97% to 99.7% rejected, 0.09% to 0.13% wrongly accepted. A payload of random bytes: 0 accepted in 14,298. An 8-bit check leaves about 1 in 256 undetected,
+Bit flips: 97% to 99.7% rejected, 0.09% to 0.15% wrongly accepted. A payload of random bytes: 0 accepted in 14,298. An 8-bit check leaves about 1 in 256 undetected,
 which is what the 1-byte cut shows (0.34% against 0.39%).
 
 **A garbled full frame also poisons the next primed frames.** The ESP32 iGate stores whatever it decoded as the reference for that station. After a full frame accepted 2 bytes
@@ -67,7 +66,7 @@ all 53, so no wrong text came out of that path. It is a safe failure, but it cos
 
 The encoder ends each frame with the fewest bytes it can and strips trailing zero bytes; the decoder reads zeros past the end of the payload. So an intact frame asks the decoder for
 bytes beyond its end: **3 bytes beyond in 82.1% of frames, 4 in 17.8%, 5 in 0.06%**. If a relay appends RXT bytes, the decoder reads them instead of zeros.
-**With 6 bytes appended, 11,978 of 14,298 intact frames (83.8%) decode to the right text and the other 16.2% silently decode to wrong text.** So a relay tail needs a different ending
+**With 6 bytes appended, 11,978 of 14,298 intact frames (83.8%) decode to the right text and the other 16.2% do not decode to the right text.** So a relay tail needs a different ending
 whatever else is decided.
 
 A rule "reject if the decoder asked for more than 5 bytes beyond the end" costs nothing on the air and rejects no good frame, but catches only 7.4% of 1-byte cuts, 27.6% of 3-byte cuts,
@@ -103,10 +102,15 @@ are rejected by A and C (100%) and by B 99.6% at 16 bytes (0.39% wrongly accepte
 **Chosen for the byte plan: check C**, with a deterministic encoder whose ending is the fewest closing bytes after which any following bytes still decode to the same text. On the air it costs about 0.3 bytes per frame and
 it rejected every truncation in the test.
 
+**Check C only works with the new ending.** With the ending the codec uses today, C rejects almost nothing: re-encoding a cut frame's wrong text produces the cut bytes again as that text's own shortest ending. Measured with this repository's reference codec on the same 14,298 real texts
+([`trunc_ref.c`](../tools/integrity/trunc_ref.c), [`results-ref-real.txt`](../tools/integrity/results-ref-real.txt)), the share of cut frames that C still accepts with wrong text is 85.2% (1 byte cut), 90.2% (2), 93.7% (3), 95.4% (4) and 97.1% (16).
+For frames damaged inside, C helps with today's ending but leaves a residual: wrongly accepted 6.2% (1 bit flipped), 2.6% (2), 2.1% (3), 1.3% (8 bits) and 1.4% (random bytes), against 99.4% to 100% for the plain decoder. The deterministic ending (previous table) brings the cut-frame figure to 0 in every case tested; mid-frame
+corruption under the new ending was **not** measured. So C and the new ending are one change, not two.
+
 What it costs, plainly:
 
 * **Receiver time.** The independent tester measured one decode on an ESP32-PICO-D4 (240 MHz, codec alone) at 12 to 29 ms (0.3 ms per character), so a round trip is about **25 to 50 ms per received full frame**
-  ([known issues](known-issues.md)). On a desktop machine the same decode takes 59 to 73 microseconds, and the re-encode adds 57 to 72: the board is 200 to 400 times slower, so desktop figures do **not** predict
+  ([known issues](known-issues.md)). On a desktop machine the same decode takes about 60 microseconds, and the re-encode adds about 57 (one Mac, one run): the board is roughly 200 to 400 times slower, so desktop figures do **not** predict
   the ESP32. 25 to 50 ms is small against the seconds between frames at SF12 and not small at SF7.
 * **Every encoder must produce identical bytes** for the same text and the same model, or its good frames are dropped by a receiver that applies C. The encoding rule (including the exact ending) therefore has to be
   written into the specification, and a second implementation has to match it.
@@ -116,14 +120,14 @@ What it costs, plainly:
 
 * Corruption in the middle of a frame under check C (only the plain decoder and check B were measured with bit flips).
 * Cuts at the start of a frame, or inside a byte.
-* The deterministic ending and check C in the Dire Wolf C decoder (the full-frame truncation test was run on both decoders; the ending experiments only on the iGate library, in a private copy: [`igate-library-private-copy.patch`](../tools/integrity/igate-library-private-copy.patch)).
+* The deterministic ending exists only in a private copy of the ESP32 iGate library ([`igate-library-private-copy.patch`](../tools/integrity/igate-library-private-copy.patch)), not in the reference codec in this repository or in any firmware.
 * Check C with a time measurement on an ESP32 (the 25 to 50 ms are the tester's figures for the current decode and encode).
-* The Tracker firmware's own decoder.
+* The T-Deck tracker firmware's own decoder (the tests ran on the codec library and the reference codec, not on the device).
 
 ## Open
 
 * **Can check C replace the one-byte text check in primed frames? Measured: no.** 9,078 real packets that have an earlier packet from the same station were encoded as primed frames against the true reference (check C accepted all 9,078).
-  Each was then decoded against 11 wrong references (earlier packets of the station, and the true reference with 1 or 2 characters changed), 100,229 decodes in all, with the 8-bit reference check ignored so that every wrong reference got a chance
+  Each was then decoded against about 11 wrong references (earlier packets of the station, and the true reference with 1 or 2 characters changed), 100,229 decodes in all, with the 8-bit reference check ignored so that every wrong reference got a chance
   ([`primed_c_test.c`](../tools/integrity/primed_c_test.c), [`results-primed-c.txt`](../tools/integrity/results-primed-c.txt)). 100,104 of them gave wrong text. How many passed each filter:
 
   | Filter on the decoded text | Wrong texts accepted (of 100,104) |
