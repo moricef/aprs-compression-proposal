@@ -1,0 +1,2 @@
+N0CALL-7>APLRT1,N0RLY-1*,N0RLY-2*,N0RLY-3*,WIDE1-1,WIDE2-2:=4012.34N/11201.56W>Fixed station, solar powered, 433.775 MHz LoRa APRS iGate on a hill. Fixed station, solar powered, 433.775 MHz LoRa APRS iGate on a hill. Fixed station, solar powered, 43
+TEST-1>APLRG1,WIDE1-1:>Hello from the field, this is a longer comment that goes on for a while. Hello from the field, this is a longer comment that goes on for a while. Hello from the field, this is a longer comment that goes on for a while. Hello from 

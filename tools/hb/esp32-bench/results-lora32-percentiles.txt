@@ -1,0 +1,43 @@
+Percentile benchmark of the spec 11 reference frame (tools/hb) on a LILYGO LoRa32 v2.1 (ESP32-PICO-D4, 240 MHz), 1 November 2026.
+Build: -O2, -DHB_FAST, tables in flash, 24 KB task. 400 fabricated packets with the length distribution of real traffic (make_packets.py), 3 repetitions each; stress cases separate.
+
+spec 11 relay pipeline benchmark: ESP32-PICO-D4, 240 MHz, free heap 255792
+
+WiFi off: 400 fabricated packets with the length distribution of real traffic (median 80, 95th 151 characters), 3 repetitions each
+  encode (tracker, iGate TX) mean    8.46   median    4.04   95th   22.08   99th   22.46   max   24.66  ms
+  receive + verify           mean    3.94   median    1.93   95th   11.04   99th   11.17   max   12.31  ms
+  relay hop (digipeater)     mean    4.16   median    2.23   95th   11.41   99th   11.61   max   12.60  ms (includes its own verify)
+  relay hop / SF7 airtime    mean    3.57   median    2.56   95th    8.97   99th   10.07   max   10.16  % of the frame's own time on air
+  SF7 airtime of the frame   mean  101.27   median   97.54   95th  215.30   99th  235.78   max  246.02  ms
+  by size (SF7, 125 kHz, CR 4/5; SF12 for comparison):
+    text  frame plain SF7 frame SF7 frame SF12    encode   receive     relay relay/SF7
+     30B    29B      72ms      67ms     1647ms    0.87ms    0.03ms    0.11ms     0.2%
+     49B    36B     103ms      77ms     1974ms    2.49ms    0.04ms    0.10ms     0.1%
+     80B    40B     149ms      82ms     1974ms    2.89ms    1.50ms    1.94ms     2.4%
+    110B    56B     190ms     108ms     2630ms   16.31ms    8.06ms    8.46ms     7.9%
+    150B   132B     251ms     220ms     5087ms   24.66ms   12.30ms   12.60ms     5.7%
+    183B   150B     297ms     246ms     5579ms   22.11ms   11.07ms   11.46ms     4.7%
+  stress cases (not part of the percentiles):
+    text 249 chars, frame 117 B, SF7 airtime 195 ms: encode 38.60, receive 19.36, relay 19.98 ms (10.3% of airtime)
+    text 253 chars, frame 239 B, SF7 airtime 374 ms: encode 46.36, receive 23.11, relay 23.39 ms (6.3% of airtime)
+  stack used so far: 10416 of 24576 bytes
+
+WiFi on (soft AP + scan): 400 fabricated packets with the length distribution of real traffic (median 80, 95th 151 characters), 3 repetitions each
+  encode (tracker, iGate TX) mean    8.48   median    4.04   95th   22.11   99th   22.46   max   24.69  ms
+  receive + verify           mean    3.94   median    1.93   95th   11.04   99th   11.17   max   12.31  ms
+  relay hop (digipeater)     mean    4.17   median    2.25   95th   11.41   99th   11.65   max   12.60  ms (includes its own verify)
+  relay hop / SF7 airtime    mean    3.57   median    2.56   95th    8.97   99th   10.09   max   10.27  % of the frame's own time on air
+  SF7 airtime of the frame   mean  101.27   median   97.54   95th  215.30   99th  235.78   max  246.02  ms
+  by size (SF7, 125 kHz, CR 4/5; SF12 for comparison):
+    text  frame plain SF7 frame SF7 frame SF12    encode   receive     relay relay/SF7
+     30B    29B      72ms      67ms     1647ms    0.87ms    0.03ms    0.10ms     0.2%
+     49B    36B     103ms      77ms     1974ms    2.49ms    0.04ms    0.10ms     0.1%
+     80B    40B     149ms      82ms     1974ms    2.89ms    1.50ms    1.94ms     2.4%
+    110B    56B     190ms     108ms     2630ms   16.50ms    8.10ms    8.48ms     7.9%
+    150B   132B     251ms     220ms     5087ms   24.69ms   12.31ms   12.60ms     5.7%
+    183B   150B     297ms     246ms     5579ms   22.22ms   11.08ms   11.48ms     4.7%
+  stress cases (not part of the percentiles):
+    text 249 chars, frame 117 B, SF7 airtime 195 ms: encode 38.60, receive 19.37, relay 19.97 ms (10.3% of airtime)
+    text 253 chars, frame 239 B, SF7 airtime 374 ms: encode 46.37, receive 23.12, relay 23.39 ms (6.3% of airtime)
+min free heap 196112; stack used by the benchmark task: 10416 of 24576 bytes (the default Arduino loop task has 8192)
+DONE
