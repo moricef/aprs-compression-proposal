@@ -134,6 +134,7 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 * [Known issues and findings from testing](docs/known-issues.md): what other testers found, and what was fixed
 * [Spec 11, the byte plan for the first common format (draft)](spec/11-native-ppm-frame-byte-plan.md): hybrid B, native frame with PPM content, RXT at the end; work in progress
 * [Truncated payloads and integrity checks (work in progress)](docs/truncated-payloads-and-integrity.md): what a cut-short frame decodes to, the checks measured
+* [Hybrid frame: airtime saved and processor time](docs/hybrid-savings-and-timing.md): measured on 14,305 real packets and on an ESP32, with the relayed-traffic effect
 * [Questions and answers](docs/faq.md): does it still work on normal LoRa APRS, what reaches APRS-IS, what a stock iGate does
 * [How it works, in plain language](docs/how-it-works.md) and [why not 438 or an off-the-shelf compressor](docs/alternatives-considered.md)
 * [The over-the-air test log](docs/over-the-air-test.md), with a section updated as the long run continues
