@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """How much smaller LACF frames are than plain frames, from two vector files (format "<frame hex or -> <text hex>").
   build/ppm_tool gen < texts.txt > v1.txt            (current format, spec 01)
-  build/lacf_ending gen < texts.txt > lacf.txt       (LACF, spec 10)
+  build/lacf_ending gen < texts.txt > lacf.txt       (whole-text test frame with the payload rules of spec 11)
   python3 tools/integrity/size_stats.py lacf.txt v1.txt
 A packet that does not compress to a smaller frame is sent plain (3 + L bytes). Airtime: LoRa formula, BW 125 kHz, CR 4/5, 8 preamble symbols, explicit header, CRC on."""
 import math, sys

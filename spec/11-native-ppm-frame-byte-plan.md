@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV, not yet seen or agreed by F4MLV. No native encoder implements it; the PPM payload's integrity rules and the RXT tail are tested (below).** |
-| Builds on | moricef's native frame, draft 0 (`docs/LORA_APRS_NATIVE_FRAME_DRAFT0.md`, `moricef/LoRa_APRS_iGate`, branch `rxt`); hybrid B of `tools/hybrid/` and its tables (`tools/hybrid/tables/`); spec 10 (ending, CRC-16, re-encode check) |
-| Replaces | the standalone whole-text frame `3C FF 81` of spec 10 as a frame format. Spec 10 stays as the integrity rules of the PPM payload. PPM of the whole packet is **not** the plan: a relay would have to decompress, edit the path and recompress |
+| Builds on | moricef's native frame, draft 0 (`docs/LORA_APRS_NATIVE_FRAME_DRAFT0.md`, `moricef/LoRa_APRS_iGate`, branch `rxt`); hybrid B of `tools/hybrid/` and its tables (`tools/hybrid/tables/`); the PPM payload rules below (ending, CRC-16, re-encode check) |
+| Replaces | nothing that was ever on the air. An earlier draft of this repository defined a standalone whole-text frame (`3C FF 81`); that was never the plan and has been withdrawn. PPM of the whole packet is **not** the plan: a relay would have to decompress, edit the path and recompress |
 
 ## What this is
 
@@ -35,8 +35,8 @@ F4MLV proposed using the two unused information-kind values to say which coder w
 
     V        1 byte    version of the table set (below); a receiver drops a version it does not hold
     L        1 byte    number of text bytes coded, 1..255
-    CRC      2 bytes   CRC-16/X-25 (spec 10) of the information field as the iGate would upload it, low byte first
-    payload  n bytes   range coder bytes of spec 01, ending as in spec 10 ("Ending")
+    CRC      2 bytes   CRC-16/X-25 (below) of the information field as the iGate would upload it, low byte first
+    payload  n bytes   range coder bytes of spec 01, ending as in "PPM payload rules" below
 
 * Kind 2 codes the whole information field (`:INFO` of the harness). Kind 3 follows a position block and codes only the comment that remains.
 * The CRC covers the information field rebuilt from the position block and the decoded text. A relay rewrites the path but not the information field, so it never recomputes the CRC.
@@ -78,6 +78,36 @@ This placement (end of frame, mask byte last) is K6ATV's proposal in issue 7 (co
 A relay builds its outgoing frame from the front: new header and path, then the position block and content field copied byte for byte, then the old tuples, its own tuple, and the new mask. If there was no block it creates one (tuple, mask) and sets header bit 3.
 A relayed frame grows by 5 bytes for the first relay and 4 for each further one.
 
+## PPM payload rules (normative)
+
+These apply to the `payload` of the content field. The model, the range coder and every probability are those of spec 01 with the table the kind and `V` select.
+
+**Why.** A payload cut short before it is sent carries a valid LoRa CRC, because the sender computes the CRC after the cut, and a decoder that pads missing input with zeros turns the cut payload into plausible text.
+Measured on 14,298 real full frames, the unmodified decoder accepted every frame cut by 1 to 6 bytes, with the right length and a wrong tail. The rules below make the end of the payload unambiguous and make the receiver prove that the payload is the one an encoder would have sent.
+
+**Ending.** After the last text byte is encoded, the encoder holds `low` (up to 33 bits, with a carry pending in bit 32) and `range`. Then:
+
+1. If `low >= 2^32`: add 1 to the payload so far (propagating the carry through the bytes already written) and set `low = low - 2^32`.
+2. Let `hi = low + range - 1`.
+3. For `nb = 1, 2, 3, 4` in turn: let `blk = 2^(8*(4-nb))` and `v = ceil(low / blk) * blk` (the first multiple of `blk` that is `>= low`). If `v + blk - 1 <= hi`, stop.
+   (If a decoder reads `nb` bytes and then anything at all, the 32-bit value it sees is some number from `v` to `v + blk - 1`; the condition says that every such number lies inside `[low, hi]`.
+   `nb = 0` can never succeed, because `range < 2^32`. Because `range >= 2^24` after the last normalisation, `nb` is in fact always 1 or 2; 3 and 4 are never reached.)
+4. If `v >= 2^32`: add 1 to the payload so far and set `v = v - 2^32`.
+5. Append the top `nb` bytes of `v` (most significant first).
+6. **Do not strip trailing zero bytes.** A zero last byte is sent.
+
+The result is the fewest bytes after which **any** following bytes decode to the same text. Spec 01's ending (the fewest bytes assuming zeros follow, then stripping zeros) is replaced for these frames; the new ending is on average 0.25 bytes longer.
+The encoder is deterministic: the same text always gives the same bytes, and a second implementation MUST produce them exactly, because the receiver check depends on it.
+
+**CRC-16.** CRC-16/X-25, the AX.25 frame check: polynomial 0x1021 reflected (0x8408), initial value 0xFFFF, final xor 0xFFFF; the CRC of the ASCII string `123456789` is 0x906E. It is sent low byte first.
+
+**Receiver equivalence.** The receiver decodes `L` text bytes, checks the CRC-16, re-encodes the text with the rules above and requires the result to equal the payload exactly (same length, same bytes). Decoding and re-encoding use the same probabilities for the same character,
+so a receiver MAY re-encode while it decodes (one pass over the model instead of two); it must give the same accept and drop answers as the two-pass form. The CRC is checked before the comparison, so a damaged frame is dropped as early as possible.
+
+**Measured.** Cut frames: 0 wrongly accepted at every cut size (1 to 16 bytes), 13,731 to 14,293 per size, with and without a relay tail. Damage inside the payload after the LoRa CRC has passed (1, 2, 3 and 8 flipped bits, random payload): the re-encode check alone leaves 1 in 208 to 1 in 2,286,
+the CRC-16 alone about 1 in 52,000 to 1 in 142,000, and the two together **0 of about 2.85 million**, which meets the 1 in 65,536 of the AX.25 frame check. Two independent implementations (C and Python, the second written from the rules alone) agree on all 14,305 real texts and on 11,996 damaged frames.
+Details and the other results are in [`docs/truncated-payloads-and-integrity.md`](../docs/truncated-payloads-and-integrity.md).
+
 ## Receiver (normative)
 
 1. Drop the frame unless it starts `3C FF 02` and the information kind, the version `V` and the table versions are known.
@@ -85,10 +115,10 @@ A relayed frame grows by 5 bytes for the first relay and 4 for each further one.
 3. If header bit 3 is set: the last byte is the mask. Drop the frame unless bit 7 is set, `k >= 1`, every set bit is below the path element count, and at least `4k + 1` bytes remain after the CRC. The RXT block is the last `4k + 1` bytes; the payload is everything between the CRC and the block.
    If bit 3 is clear, the payload is everything after the CRC.
 4. Decode `L` text bytes from the payload with the range decoder (the table chosen by the kind), rebuild the information field, and drop the frame unless its CRC-16 matches.
-5. Re-encode the `L` text bytes with the sender's rules (spec 10 "Ending"). Drop the frame unless the result is **exactly** the payload (same length, same bytes).
+5. Re-encode the `L` text bytes with the sender's rules ("PPM payload rules", Ending). Drop the frame unless the result is **exactly** the payload (same length, same bytes).
 6. Only an accepted frame may be shown, uploaded, relayed, or kept for later use.
 
-Steps 4 and 5 may be done in one pass over the model (spec 10 "Receiver"). Because the payload lies exactly between the CRC and the RXT block, there is no tail to guess about; a damaged or cut frame changes where the payload ends and step 5 fails.
+Steps 4 and 5 may be done in one pass over the model ("PPM payload rules", Receiver equivalence). Because the payload lies exactly between the CRC and the RXT block, there is no tail to guess about; a damaged or cut frame changes where the payload ends and step 5 fails.
 
 ## Size
 
@@ -102,13 +132,13 @@ Published figures for this combination, bytes saved against the plain frame incl
 | F4MLV Arizona, 2,659 packets (comment 15) | same | 43.8% |
 
 These do not include `V` and the CRC-16: the harness costs the PPM text with the native frame's own length byte, so the content field here is **3 bytes longer** than the harness assumes. With an average plain frame of 72 to 110 bytes that is roughly 3 to 4 points off each figure
-(an estimate from the average frame lengths; not measured). Dropping `V` (folding the version into the header) would give one byte back. The 50.2% of spec 10 is the whole-packet figure and is not the figure for this plan.
+(an estimate from the average frame lengths; not measured). Dropping `V` (folding the version into the header) would give one byte back. The 50.2% measured earlier on the whole-text test frame is the whole-packet figure and is not the figure for this plan.
 
 ## Integrity: what is measured
 
-Spec 10's results apply to the PPM payload: cut frames, 0 wrongly accepted at every size; with the CRC-16 and the re-encode check together 0 of about 2.85 million damaged frames accepted. Those runs used the whole-packet table of spec 01 on whole texts. The same checks were repeated with the hybrid B tables on real texts
+The payload rules were tested first on a whole-text test frame (withdrawn as a format; the results concern the payload and carry over): cut frames, 0 wrongly accepted at every size; with the CRC-16 and the re-encode check together 0 of about 2.85 million damaged frames accepted. Those runs used the whole-packet table of spec 01 on whole texts. The same checks were repeated with the hybrid B tables on real texts
 ([`results-hybridB-payload.txt`](../tools/integrity/results-hybridB-payload.txt)): the info-native table on 14,305 information fields (12,166 smaller than raw) and the comment-only table on 11,367 comments after a position (10,704 smaller than raw; the position is stripped with regular expressions, so this is an approximation of the draft-0 comment). For both tables the ending is deterministic and independent of what follows (328,482 of 328,482 and 289,008 of 289,008 decodes right with 0 to 8 following bytes),
-the receiver accepts every intact frame with and without a 6-byte tail, **0 cut frames are wrongly accepted at any cut size (1 to 16 bytes)**, 0 damaged frames (1, 2, 3, 8 flipped bits, random payload) are accepted, and the one-pass receiver agrees with the two-pass one. The frame header of those tests is spec 10's (6 bytes), not this plan's (4 bytes plus the native fields); the checks concern the payload.
+the receiver accepts every intact frame with and without a 6-byte tail, **0 cut frames are wrongly accepted at any cut size (1 to 16 bytes)**, 0 damaged frames (1, 2, 3, 8 flipped bits, random payload) are accepted, and the one-pass receiver agrees with the two-pass one. The frame header of those tests is the withdrawn test frame's (6 bytes), not this plan's (4 bytes plus the native fields); the checks concern the payload.
 Larger damage runs with the shipping combination (CRC-16 and re-encode check), 10 damaged copies per text and damage type ([`results-hybridB-stress.txt`](../tools/integrity/results-hybridB-stress.txt)): **0 wrongly accepted of about 608,000 trials (info-native table) and about 533,000 (comment-only table)**.
 The re-encode check alone leaves 1 in 181 to 1 in 2,644 (info-native) and 1 in 104 to 1 in 204 (comment-only: short comments leave less for the check to catch), and the CRC-16 alone about 1 in 40,000 to 1 in 120,000, so the two are needed together; a 95% upper bound for 0 of 1.14 million is about 1 in 380,000.
 

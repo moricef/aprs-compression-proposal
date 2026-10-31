@@ -1,4 +1,4 @@
-"""Independent second implementation of LACF (spec/10) on the model-v1 codec (spec/01).
+"""Independent second implementation of LACF (spec/11 payload rules) on the model-v1 codec (spec/01).
 Python 3, standard library only.  Written from the specs; spec sections cited in comments.
 
     python3 -I lacf.py gen < packets.txt     (one text per line -> vector lines)
@@ -84,7 +84,7 @@ def crc16_x25(data):
 
 # ---------------------------------------------------------------- encoder
 def _encode_payload(text):
-    """Range-code text, then apply the spec 10 'Ending (normative)'. Returns payload bytes."""
+    """Range-code text, then apply the spec 11 'Ending (normative)'. Returns payload bytes."""
     out = []
     low, rng = 0, MASK32
 
@@ -113,7 +113,7 @@ def _encode_payload(text):
             out.append(low >> 24)
             low = (low << 8) & MASK32
             rng <<= 8
-    # spec 10 Ending
+    # spec 11 Ending
     if low >= (1 << 32):                                   # 1.
         carry()
         low -= 1 << 32

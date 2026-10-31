@@ -27,7 +27,7 @@ build/lacf_ending: tools/integrity/lacf_ending.c $(SRC) reference/aprs_ppm.h ref
 	@mkdir -p build
 	$(CC) $(CFLAGS) tools/integrity/lacf_ending.c model/aprs_ppm_model_v1.c -o $@
 
-# the LACF ending and the receiver's re-encode check (spec/10), checked against its vectors and on fabricated packets
+# the LACF ending and the receiver's re-encode check (spec/11, PPM payload rules), checked against its vectors and on fabricated packets
 lacf-ending: build/lacf_ending
 	build/lacf_ending check test/vectors_lacf_v1.txt
 	build/lacf_ending

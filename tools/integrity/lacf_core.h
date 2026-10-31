@@ -1,5 +1,5 @@
-/* The LACF ending and the receiver's re-encode check (spec/10). Include AFTER reference/aprs_ppm.c (it uses that file's static coder functions). */
-/* --- spec/10 "Ending": the sender --- */
+/* The LACF ending and the receiver's re-encode check (spec/11 payload rules). Include AFTER reference/aprs_ppm.c (it uses that file's static coder functions). */
+/* --- spec/11 "PPM payload rules", Ending: the sender --- */
 static void lacf_finish(encoder_t *e)
 {
     uint64_t hi, v, blk; int nb, b;
@@ -16,7 +16,7 @@ static void lacf_finish(encoder_t *e)
     }
 }
 
-/* --- spec/10 "Frame": 3C FF 81 <L> <crc16 low> <crc16 high> <payload>.  CRC-16/X-25 (the AX.25 frame check), over the L text bytes. --- */
+/* --- TEST frame (not a format; spec 11 was withdrawn): 3C FF 81 <L> <crc16 low> <crc16 high> <payload>.  CRC-16/X-25 (the AX.25 frame check), over the L text bytes. --- */
 #define LACF_HDR 6
 static int lacf_crc_on = 1;                                               /* tests switch the CRC-16 off to measure the re-encode check alone */
 static uint16_t lacf_crc16(const uint8_t *p, size_t n)

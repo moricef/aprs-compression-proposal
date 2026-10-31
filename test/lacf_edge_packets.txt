@@ -1,4 +1,4 @@
-# Made-up texts, no real callsigns, chosen to reach the rare paths of the LACF ending (found by instrumenting the encoder; see spec/10 Conformance).
+# Made-up texts, no real callsigns, chosen to reach the rare paths of the LACF ending (found by instrumenting the encoder; see spec/11 PPM payload rules).
 N0CALL-10>APLRT1:!3259.52N/11741.60W>emi
 N0CALL-6>APLRT1:!3456.79N/11700.57W>pwn
 N0CALL-0>APLRT1:!3333.77N/11721.22W>kdb

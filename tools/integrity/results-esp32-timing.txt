@@ -29,7 +29,7 @@ Copying the key tables is worth only 0.3 ms here (against 1.5 ms on the LoRa32):
 Hybrid B tables (spec 11), 31 October 2026. The same fabricated packets, cut into what hybrid B hands to PPM: the information field (info-native table, kind 2) and
 the comment after a position (comment-only table, kind 3, position stripped by length). Only the texts that PPM can shrink are timed (28 information fields and 18 comments of
 the 48 packets; the rest go out raw, see spec 11 "Fallback to raw text"). Fast build_freq (fast_freq.h); "keys in RAM" copies the key tables of the hybrid table to RAM.
-Mean per frame, one pass = decode and re-encode together (the receiver of spec 10/11). Conformance vectors are for the v1 table and were skipped.
+Mean per frame, one pass = decode and re-encode together (the receiver of spec 11). Conformance vectors are for the v1 table and were skipped.
 
 board / table                                  build            plain decode   receive with check C, two passes   one pass
 LoRa32 (ESP32-PICO-D4)  info-native            fast               4.1 ms          8.5 ms                            4.2 ms

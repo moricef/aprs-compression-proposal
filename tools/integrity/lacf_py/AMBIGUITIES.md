@@ -1,3 +1,5 @@
+> Note (31 October 2026): "spec 10" below is the whole-text test frame draft that was withdrawn; its payload rules (ending, CRC-16, receiver check) are now in spec 11, "PPM payload rules". The findings stand.
+
 # Ambiguities found while implementing spec 01 + spec 10 independently
 
 Result: all 20 vectors in test/vectors_lacf_v1.txt matched on the first run (encode == frame, receive == text);

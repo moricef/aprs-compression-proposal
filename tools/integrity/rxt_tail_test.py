@@ -4,7 +4,7 @@ Models the part of a native PPM frame that matters for integrity, using the inde
     section = <model version 0x81> <L> <crc16 lo> <crc16 hi> <payload> [<tuple 4 B> * k <mask>]      (the RXT block ends the frame, mask byte last)
 The bytes before the section (header, addresses, path, position) are not modelled: the cut and the damage fall on the end of the frame, which is where truncation happens.
 Receiver rule of spec 11: if the header says an RXT block is present, the last byte is the mask, k = popcount(mask) must be 1..8 (1..7 when marked) with every set bit below the path count (marked: bit 7 must be set),
-and the block is the last 1 + 4k bytes; the payload is what lies between the CRC and the block; then spec 10 (decode, CRC-16, re-encode must equal the payload exactly)."""
+and the block is the last 1 + 4k bytes; the payload is what lies between the CRC and the block; then the payload rules of spec 11 (decode, CRC-16, re-encode must equal the payload exactly)."""
 import importlib.util, os, random, sys
 spec = importlib.util.spec_from_file_location("lacf", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lacf_py", "lacf.py"))
 L = importlib.util.module_from_spec(spec); spec.loader.exec_module(L)
@@ -35,7 +35,7 @@ def receive(sec, rxt_flag):
         rxt = (sec[len(sec) - 1 - 4 * k:-1], mask); body = sec[:len(sec) - 1 - 4 * k]
     else:
         body = sec
-    r = L.receive(bytes([0x3C, 0xFF]) + body[0:1] + body[1:2] + body[2:4] + body[4:], allow_tail=False)   # rebuild the 6 byte spec 10 frame
+    r = L.receive(bytes([0x3C, 0xFF]) + body[0:1] + body[1:2] + body[2:4] + body[4:], allow_tail=False)   # rebuild the 6 byte test frame of the payload tools
     if r is None: return None
     return r[0], rxt
 

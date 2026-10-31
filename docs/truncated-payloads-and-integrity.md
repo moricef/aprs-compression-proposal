@@ -1,5 +1,7 @@
 # Truncated payloads and integrity checks
 
+> **Note on framing (31 October 2026).** These measurements were taken on a standalone whole-text test frame (`3C FF 81`, a 6-byte header). That frame was a test vehicle and is **not** the proposal: PPM of the whole packet is not the plan. The proposed format is hybrid B in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which carries the payload rules defined and tested here (deterministic ending, CRC-16, re-encode check). The payload results below stand; passages about the frame mark and header describe the test frame.
+
 | | |
 |---|---|
 | Status | **Measured** on 14,298 real full frames (31 October 2026). A check is chosen for the byte plan (decode, re-encode, compare); it is **not yet written into a spec** and not tried on the air |
@@ -99,13 +101,13 @@ are rejected by A and C (100%) and by B 99.6% at 16 bytes (0.39% wrongly accepte
 
 ## Results: the new ending, written from the spec
 
-[`lacf_ending.c`](../tools/integrity/lacf_ending.c) implements the ending, the CRC-16 and the receiver rule of [spec/10](../spec/10-lacf-ending-and-roundtrip-check.md) on the reference codec (`make lacf-ending`; real-text results in
+[`lacf_ending.c`](../tools/integrity/lacf_ending.c) implements the ending, the CRC-16 and the receiver rule of [spec 11](../spec/11-native-ppm-frame-byte-plan.md) on the reference codec (`make lacf-ending`; real-text results in
 [`results-lacf-ending-real.txt`](../tools/integrity/results-lacf-ending-real.txt)). On the 14,293 real frames that are smaller than plain with the layout (14,298 before the two CRC bytes were added): deterministic (a second encode gives the same bytes) in all; average frame 43.04 bytes against 40.79 (**+2.25**: 2 for the CRC-16, 0.25 for the ending);
 385,911 of 385,911 decodes right with 0 to 8 bytes of random, 0x00 or 0xFF after the payload; minimal (drop the last byte and a 0x00 or 0xFF continuation fails) in all; intact frames accepted, with and without a 6-byte relay tail, with the payload end found correctly, in all.
 Cut frames: 0 wrongly accepted at every cut size (1 to 16 bytes), with and without the tail, as in the earlier private-copy run. The one-pass receiver agrees with the two-pass one on every call (0 disagreements).
 
 **Damage inside the frame is not zero with check C alone.** A damaged frame whose decoding happens to re-encode to itself is accepted. Wrong text accepted after the LoRa CRC has passed, 40 damaged copies of each of the 14,305 texts per row, with the shipping frame layout of
-[spec/10](../spec/10-lacf-ending-and-roundtrip-check.md) ([`results-lacf-stress.txt`](../tools/integrity/results-lacf-stress.txt)):
+[spec 11](../spec/11-native-ppm-frame-byte-plan.md) ([`results-lacf-stress.txt`](../tools/integrity/results-lacf-stress.txt)):
 
 | Damage | Trials | C alone | CRC-16 alone | **C + CRC-16** |
 |---|---|---|---|---|
@@ -160,12 +162,12 @@ What it costs, plainly:
   **On the T-Deck (ESP32-S3, 240 MHz)** the unmodified reference code takes 12.8 ms to decode and 25.4 ms with check C in two passes; the fast `build_freq` brings the plain decode to 5.0 ms and a one-pass receive with check C to **5.0 ms**; copying the key tables to RAM only saves another 0.3 ms there (4.7 ms), so the copy is not needed on the T-Deck. Vectors identical to the host's ([`results-esp32-timing.txt`](../tools/integrity/results-esp32-timing.txt)). This is the codec alone in a test sketch, not the tracker firmware.
 * **Every encoder must produce identical bytes** for the same text and the same model, or its good frames are dropped by a receiver that applies C. The encoding rule (including the exact ending) therefore has to be
   written into the specification, and a second implementation has to match it.
-* **A format change.** Frames from the builds that use the current ending would be dropped by a receiver that applies C with the new ending, and the two CRC-16 bytes change the header. The layout keeps the mark `3C FF 81` for now, so receivers built for spec 01 misread it and both ends must run the same build; the mark must change before anyone else runs it (spec/10 "Open").
+* **A format change.** Frames from the builds that use the current ending would be dropped by a receiver that applies C with the new ending, and the two CRC-16 bytes change the header. The layout keeps the mark `3C FF 81` for now, so receivers built for spec 01 misread it and both ends must run the same build; the mark must change before anyone else runs it (spec 11 "Open").
 
 ## Not tested
 
 * Cuts at the start of a frame, or inside a byte.
-* The new ending is implemented in [`lacf_core.h`](../tools/integrity/lacf_core.h) on this repository's reference codec, written from [spec/10](../spec/10-lacf-ending-and-roundtrip-check.md), and in a private copy of the ESP32 iGate library ([`igate-library-private-copy.patch`](../tools/integrity/igate-library-private-copy.patch)).
+* The new ending is implemented in [`lacf_core.h`](../tools/integrity/lacf_core.h) on this repository's reference codec, written from [spec 11](../spec/11-native-ppm-frame-byte-plan.md), and in a private copy of the ESP32 iGate library ([`igate-library-private-copy.patch`](../tools/integrity/igate-library-private-copy.patch)).
   It is not in any firmware.
 * The T-Deck tracker firmware's own decoder (the tests ran on the codec library and the reference codec, not on the device).
 

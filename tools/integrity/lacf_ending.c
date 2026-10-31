@@ -1,6 +1,6 @@
-/* The LACF ending and the receiver's re-encode check (spec/10), written from the spec text, on this repository's reference codec, and tested.
+/* The LACF ending and the receiver's re-encode check (spec/11 payload rules), written from the spec text, on this repository's reference codec, and tested.
  *   make lacf-ending      or      build/lacf_ending [texts.txt]
- * With no argument it uses 3000 fabricated packets. The frame mark is not decided yet (spec/10, "Open"); this test keeps 3C FF 81 so the frames line up
+ * With no argument it uses 3000 fabricated packets. The frame mark is not decided yet (spec/11, "Open"); this test keeps 3C FF 81 so the frames line up
  * with the reference codec's, and changes only the ending. */
 #include "../../reference/aprs_ppm.c"
 #include <stdio.h>
@@ -34,7 +34,7 @@ static int vectors(int check, const char *path)
 {
     char line[1000]; FILE *f = check ? fopen(path, "r") : stdin; int bad = 0, cnt = 0;
     if (!f) { perror(path); return 2; }
-    if (!check) printf("# LACF test vectors (spec/10): model v1 table, LACF ending. Format: <frame hex or -> <text hex>\n");
+    if (!check) printf("# LACF test vectors (spec/11 payload rules): model v1 table, LACF ending. Format: <frame hex or -> <text hex>\n");
     while (fgets(line, sizeof line, f)) {
         uint8_t text[400], fr[400], want[400], back[300]; size_t tl = 0, fl, wl = 0, pay; char *sp;
         if (line[0] == '#' || line[0] == '\n') continue;

@@ -7,13 +7,13 @@ Run first (needs only this repository):  make integrity
   trunc_ref.c         full-frame cuts, bit flips and random payloads, plain decoder vs check C, on fabricated packets or on your own text file;
                       results-ref-fabricated.txt (what make integrity prints) and results-ref-real.txt (the author's real texts, which are not in the repository)
 
-LACF (spec/10):  make lacf-ending   (ending, CRC-16 and receiver against test/vectors_lacf_v1.txt and on fabricated packets)
+Payload rules of spec/11 (tested on a whole-text TEST frame, 3C FF 81 + 6 byte header, which is not a format):  make lacf-ending   (ending, CRC-16 and receiver against test/vectors_lacf_v1.txt and on fabricated packets)
                  make fast-freq     (the faster build_freq must equal the reference; TEXTS=file for your own texts)
-  lacf_core.h        the ending, CRC-16, encoder and receiver of spec/10 as code (include after reference/aprs_ppm.c)
+  lacf_core.h        the ending, CRC-16, encoder and receiver of the spec/11 payload rules as code, with that test frame (include after reference/aprs_ppm.c)
   lacf_ending.c      property tests for it (also: build/lacf_ending stress TEXTS TRIALS; gen / check for the vectors)
   fast_freq.h        a faster build_freq with byte-identical output; fast_freq_test.c proves it
   rxt_tail_test.py   truncation and flips on the tail of a native PPM frame with RXT tuples (spec 11); results-rxt-tail-{plain,marked}.txt
-  lacf_py/           a second implementation in Python, written from spec 01 and spec 10 alone (lacf.py, test_lacf.py, AMBIGUITIES.md); build/lacf_ending recv is the C side of the receiver comparison
+  lacf_py/           a second implementation in Python, written from spec 01 and the (since withdrawn) spec 10 alone, i.e. the same payload rules (lacf.py, test_lacf.py, AMBIGUITIES.md); build/lacf_ending recv is the C side of the receiver comparison
   esp32-timing/      PlatformIO project for a LILYGO LoRa32 v2.1: pio run -e keysram -t upload (envs: lora32 = reference, lora32fast, keysram, lora32ram, lora32prof)
   results-esp32-timing.txt, results-lacf-*.txt   the numbers quoted in the doc
 
