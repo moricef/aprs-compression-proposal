@@ -76,9 +76,9 @@ Exact-entry coverage of the v2 list on the French capture (Ariège, 8,062 packet
 
     tuple 1 | tuple 2 | ... | tuple k | mask          the last byte of the frame is the mask
 
-* A tuple is 4 bytes as in draft 0: RSSI, SNR, frequency offset, time to hop, each the RXT character minus 33, so each byte is 0 to 93.
+* A tuple is 4 bytes as in draft 0: RSSI, SNR, frequency offset, time to hop, each the RXT character minus 33, so each byte is 0 to 89 (his encoder clamps every field to 90 values; SNR has 89 steps, 0 to 88).
 * The mask has **bit 7 set** as a marker. Bit j (0 to 6) set means that path element j (0 is the first element after the destination) carries a measurement. Tuples are in ascending order of j. `k` is the number of mask bits 0 to 6 that are set.
-* The block is `4k + 1` bytes. Bits at or above the path element count are not allowed. **Each tuple byte must not exceed its field's maximum** (RSSI 89, SNR 88, frequency offset 93, time to hop 93, as far as the RXT documents say; a receiver drops a frame with a tuple outside them): a free check on the tuples, which random damage fails about 98% of the time.
+* The block is `4k + 1` bytes. Bits at or above the path element count are not allowed. **Each tuple byte must not exceed its field's maximum** (RSSI 89, SNR 88, frequency offset 89, time to hop 89, from his encoder's clamping; a receiver drops a frame with a tuple outside them; his draft-0 decoder does not check this): a free check on the tuples, which random damage fails about 98% of the time.
 
 The tuples have no check of their own beyond the LoRa CRC, which already covers the whole frame at the level of VHF APRS (about 1 in 65,536); a block CRC would be recomputed by every relay and so add nothing the LoRa CRC does not give per hop.
 The marker makes the block safe against truncation: a tuple byte is never 0x80 or more, so after a cut inside the block the last byte can never be mistaken for a mask (tested below). It costs one path element against draft 0 (7 instead of 8).
@@ -136,7 +136,7 @@ Steps 4 and 5 may be done in one pass over the model ("PPM payload rules", Recei
 A relay forwards a frame it has accepted (Receiver, steps 1 to 6) with its own path update and its own RXT measurement, **without decoding the content**. The content is never converted: a Mic-E packet is forwarded as it was received (see Mic-E below).
 
 1. **Rewrite the front.** Decode the header, addresses and path of the native part to the TNC2 path, apply the usual digipeater rule (for example `WIDE1-1` becomes the relay's callsign with the used mark; `WIDEn-N` loses one hop), and encode the header, addresses and path again. This is cheap and needs no PPM decoding. The destination is copied as received
-   (a Mic-E destination is its 6 latitude characters, so it is the escape followed by the 5-byte element). *Draft 0 leaves a native relay state undefined and works on the TNC2 path; this step follows that.*
+   (a Mic-E destination is its 6 latitude characters, so it is the escape followed by the 5-byte element). *Draft 0 leaves a native relay state undefined and works on the TNC2 path; this step follows that. His iGate relay today decodes the whole native frame to TNC2, moves the measurements to their callsigns, adds its own tuple and encodes the whole frame again; for the PPM kinds the content field is copied instead of decoded and re-encoded, which his code does not do yet.*
 2. **Copy the rest unchanged**, byte for byte: the position block and the content (a content field with its CRC-16 and payload, or raw or Huffman text).
 3. **Find the index of the relay's own path element** after step 1, set that bit in the mask, and insert the relay's tuple in ascending order of index. Tuples already in the block keep their meaning only if their path elements keep their index; a relay that changes the number or order of elements before them must move the mask bits with them (draft 0 moves measurements by full callsign).
 4. **Fill the tuple at transmit time.** RSSI, SNR and frequency offset are those measured when the frame was received. Time to hop runs from the end of reception to the end of the relay's own transmission, including queue and backoff, so it is computed just before transmission starts from the queue time plus the time on air, which the frame length fixes.
@@ -208,10 +208,15 @@ The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text
 * The relay path end to end (path rewrite, RXT append, no PPM decode), including locating the end of the position block without decoding it.
 * A native encoder or decoder with this plan, and a complete RF chain with RXT (F4MLV's stated next step).
 
+## Extending the format later
+
+The information kind (header bits 1 and 0) is full once kinds 2 and 3 are taken, so a future need does not have to squeeze into this header. **A new header is a new frame type byte** (`3C FF xx`), with its own layout, defined when it is warranted. Receivers drop any `3C FF` type they do not know and never show it as text, so a new type is invisible to old firmware.
+Types in use or suggested: `01` plain text, `02` native (this plan and draft 0), `03` capability frame (suggested in issue 7), `80` to `FF` the whole-packet PPM frames of spec 01 and spec 08. Several different headers can therefore live side by side, each used where it fits.
+Inside this header, the content field's version byte `V` is allocated append-only and can name further table sets; relays copy the content field without reading it, so adding a table set changes nothing for them.
+
 ## Open
 
-* **Mechanism for the destination byte.** Every first byte of a draft-0 address element is taken (`0 s nnn NNN`, `1 0 s xxxxx`, `1 1 lllll`), so a code byte `ff iiiiii` needs a way to be told apart from an address element: unused first-byte values (many `0 s nnn NNN` values are not valid `WIDEn-N`) or a header flag.
-  Header bit 2 is free in PPM kinds, but kinds 0 and 1 would also want the table. Only F4MLV's encoder can settle this; the harness assumes 1 byte.
+* **The destination byte needs no disambiguation inside kinds 2 and 3.** Draft-0 decoders reject any information kind above 1, so a frame of kind 2 or 3 never reaches an address-element parser built for draft 0; this plan defines the destination field of those kinds as the code byte (escape plus a draft-0 element), and there is nothing to tell apart. The consequence is that **kinds 0 and 1 cannot use the table** without breaking draft-0 decoders (their address parser accepts every first byte below 0x80 as a `WIDEn-N` element). A raw-text fallback frame therefore needs to stay in the new family: **proposal:** for kinds 2 and 3, header bit 2 (free in this plan) says the content is raw text (1) or PPM (0), so fallback frames still use the table. Needs F4MLV's agreement.
 * **Which table version.** The direct codes change from version to version, so a receiver must know the version. The natural place is the same field as the PPM table set (`V`), which kinds 0 and 1 do not carry; either they carry it, or they do not use the table.
 * **What the two reserved bits mean.** Not decided; candidates are "decodes hybrid B", "appends RXT", a device class. A capability bit here would replace part of the capability announcement of spec 02.
 * **Kind values 2 and 3, or a new frame type.** F4MLV suggested the unused kinds himself; the issue also floated `01` text, `02` native, `03` capability, `80` to `FF` PPM. A draft-0 decoder that treats unknown kinds as errors will drop these frames, which must be checked in its code.
