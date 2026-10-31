@@ -1,0 +1,24 @@
+Re-encode check ALONE (no CRC-16: LACF_NOCRC=1) with the hybrid B info-native table on 286,100 texts: the 14,305 real information fields and 19 variants of each with 1 to 4 random characters replaced (variants are synthetic, so only the structure is real). Texts are not in the repository.
+
+286100 texts (from file); LACF frames made: 230645; deterministic (same bytes on a second encode): 230645
+average frame bytes: current ending 43.08, LACF ending 45.32 (+2.25)
+any continuation decodes to the same text (0 to 8 bytes: random, 0x00, 0xFF): 6227415 of 6227415
+minimal (with the last byte dropped, 0x00 or 0xFF after it fails): 230645 of 230645
+receiver accepts intact frame with the right text and payload length: no tail 230645 of 230645, 6 byte tail 230645 of 230645
+
+damage (LoRa CRC still valid) no tail: wrong accepted            6 byte tail: wrong accepted       
+cut off  1 bytes                   0 of 230645 (0.000%)          n/a (only the tail is cut)
+cut off  2 bytes                   0 of 230644 (0.000%)          n/a (only the tail is cut)
+cut off  3 bytes                   0 of 230644 (0.000%)          n/a (only the tail is cut)
+cut off  4 bytes                   0 of 230644 (0.000%)          n/a (only the tail is cut)
+cut off  6 bytes                   0 of 230633 (0.000%)          n/a (only the tail is cut)
+cut off  8 bytes                   0 of 230603 (0.000%)               0 of 230644 (0.000%)
+cut off 12 bytes                   0 of 229716 (0.000%)               0 of 230633 (0.000%)
+cut off 16 bytes                   0 of 222502 (0.000%)               0 of 230432 (0.000%)
+1 random bit flipped            825 of 230645 (0.358%)
+2 random bits flipped           136 of 229745 (0.059%)
+3 random bits flipped            48 of 230645 (0.021%)
+8 random bits flipped            22 of 230645 (0.010%)
+payload replaced by random       23 of 230645 (0.010%)
+
+one pass receiver against the two pass one: 0 disagreements

@@ -25,7 +25,7 @@ Agreed with F4MLV as the scope of the first experimental common format (comment 
 | Bits | Draft 0 | This plan |
 |---|---|---|
 | 7-4 | number of path elements, 0 to 15 | same |
-| 3 | an RXT block follows the path | **PPM kinds (2, 3): an RXT block ends the frame.** Kinds 0 and 1: as draft 0 |
+| 3 | an RXT block follows the path | **An RXT block ends the frame, for every kind (0 to 3).** This moves the block for kinds 0 and 1 (see Open) |
 | 2 | the text is Huffman coded | PPM kinds: reserved, must be 0 |
 | 1-0 | information kind: 0 raw, 1 position (2 and 3 unused) | **2 = information field as text, PPM coded. 3 = position block, then the comment PPM coded** |
 
@@ -72,19 +72,22 @@ Exact-entry coverage of the v2 list on the French capture (Ariège, 8,062 packet
 
 **Which table version is in use has no field yet** (see Open): the direct codes mean different destinations in different versions.
 
-### RXT block (header bit 3 set, PPM kinds)
+### RXT block (header bit 3 set, every kind)
 
     tuple 1 | tuple 2 | ... | tuple k | mask          the last byte of the frame is the mask
 
 * A tuple is 4 bytes as in draft 0: RSSI, SNR, frequency offset, time to hop, each the RXT character minus 33, so each byte is 0 to 93.
 * The mask has **bit 7 set** as a marker. Bit j (0 to 6) set means that path element j (0 is the first element after the destination) carries a measurement. Tuples are in ascending order of j. `k` is the number of mask bits 0 to 6 that are set.
-* The block is `4k + 1` bytes. Bits at or above the path element count are not allowed.
+* The block is `4k + 1` bytes. Bits at or above the path element count are not allowed. **Each tuple byte must not exceed its field's maximum** (RSSI 89, SNR 88, frequency offset 93, time to hop 93, as far as the RXT documents say; a receiver drops a frame with a tuple outside them): a free check on the tuples, which random damage fails about 98% of the time.
 
+The tuples have no check of their own beyond the LoRa CRC, which already covers the whole frame at the level of VHF APRS (about 1 in 65,536); a block CRC would be recomputed by every relay and so add nothing the LoRa CRC does not give per hop.
 The marker makes the block safe against truncation: a tuple byte is never 0x80 or more, so after a cut inside the block the last byte can never be mistaken for a mask (tested below). It costs one path element against draft 0 (7 instead of 8).
-This placement (end of frame, mask byte last) is K6ATV's proposal in issue 7 (comment 5): a relay appends without moving the content. For kinds 0 and 1 the block stays after the path as in draft 0.
+This placement (end of frame, mask byte last) is K6ATV's proposal in issue 7 (comment 5): a relay appends without moving the content, whatever the content is, and the content (PPM payload or text) is never touched by RXT, which is already compact binary and would not shrink. The same placement applies to every kind, so a relay needs one rule.
+For kinds 0 and 1 this **changes draft 0**, which puts the block after the path and has no check; it is a proposal that needs F4MLV's agreement, because his firmware sends and receives that layout.
+For kinds 0 and 1 the text has no length of its own when it is raw (draft 0: the text is the rest of the frame), so the receiver finds the block from the end: header bit 3 says the block exists, the last byte is the mask, and the text is everything before the block.
 
-A relay builds its outgoing frame from the front: new header and path, then the position block and content field copied byte for byte, then the old tuples, its own tuple, and the new mask. If there was no block it creates one (tuple, mask) and sets header bit 3.
-A relayed frame grows by 5 bytes for the first relay and 4 for each further one.
+A relay builds its outgoing frame from the front: new header and path, then the position block and content (a content field, or text for kinds 0 and 1) copied byte for byte, then the old tuples, its own tuple and the new mask. If there was no block it creates one (tuple, mask) and sets header bit 3.
+A relayed frame grows by **5 bytes for the first relay** (4 for the tuple, 1 for the mask) and 4 for each further one.
 
 ## PPM payload rules (normative)
 
@@ -120,13 +123,32 @@ Details and the other results are in [`docs/truncated-payloads-and-integrity.md`
 
 1. Drop the frame unless it starts `3C FF 02` and the information kind, the version `V` and the table versions are known.
 2. Parse header, addresses and path, and the position block (kind 3), as draft 0.
-3. If header bit 3 is set: the last byte is the mask. Drop the frame unless bit 7 is set, `k >= 1`, every set bit is below the path element count, and at least `4k + 1` bytes remain after the CRC. The RXT block is the last `4k + 1` bytes; the payload is everything between the CRC and the block.
-   If bit 3 is clear, the payload is everything after the CRC.
+3. If header bit 3 is set: the last byte is the mask. Drop the frame unless bit 7 is set, `k >= 1`, every set bit is below the path element count, and at least `4k + 1` bytes remain after the position block and, for PPM kinds, after the content CRC. The RXT block is the last `4k + 1` bytes, and **the frame is dropped if a tuple byte exceeds its field maximum**; the payload (PPM kinds) or the text (kinds 0 and 1) is everything between the end of the position block or CRC and the block.
+   If bit 3 is clear, there is no block and the payload or text is everything after.
 4. Decode `L` text bytes from the payload with the range decoder (the table chosen by the kind), rebuild the information field, and drop the frame unless its CRC-16 matches.
 5. Re-encode the `L` text bytes with the sender's rules ("PPM payload rules", Ending). Drop the frame unless the result is **exactly** the payload (same length, same bytes).
 6. Only an accepted frame may be shown, uploaded, relayed, or kept for later use.
 
 Steps 4 and 5 may be done in one pass over the model ("PPM payload rules", Receiver equivalence). Because the payload lies exactly between the CRC and the RXT block, there is no tail to guess about; a damaged or cut frame changes where the payload ends and step 5 fails.
+
+## Relay (draft)
+
+A relay forwards a frame it has accepted (Receiver, steps 1 to 6) with its own path update and its own RXT measurement, **without decoding the content**. The content is never converted: a Mic-E packet is forwarded as it was received (see Mic-E below).
+
+1. **Rewrite the front.** Decode the header, addresses and path of the native part to the TNC2 path, apply the usual digipeater rule (for example `WIDE1-1` becomes the relay's callsign with the used mark; `WIDEn-N` loses one hop), and encode the header, addresses and path again. This is cheap and needs no PPM decoding. The destination is copied as received
+   (a Mic-E destination is its 6 latitude characters, so it is the escape followed by the 5-byte element). *Draft 0 leaves a native relay state undefined and works on the TNC2 path; this step follows that.*
+2. **Copy the rest unchanged**, byte for byte: the position block and the content (a content field with its CRC-16 and payload, or raw or Huffman text).
+3. **Find the index of the relay's own path element** after step 1, set that bit in the mask, and insert the relay's tuple in ascending order of index. Tuples already in the block keep their meaning only if their path elements keep their index; a relay that changes the number or order of elements before them must move the mask bits with them (draft 0 moves measurements by full callsign).
+4. **Fill the tuple at transmit time.** RSSI, SNR and frequency offset are those measured when the frame was received. Time to hop runs from the end of reception to the end of the relay's own transmission, including queue and backoff, so it is computed just before transmission starts from the queue time plus the time on air, which the frame length fixes.
+5. **A relay that cannot finish the tuple in time sends none** (a frame without a block is valid) instead of sending a wrong one.
+6. **Drop duplicates** on the decoded APRS content (source, destination and information field), as draft 0 does; the path and RXT differ between copies and are ignored.
+7. **An iGate** decodes the frame to TNC2 for APRS-IS, MQTT and TNC output, removing the RXT block, and uploads the same source, destination and information field a text frame would have given.
+
+### Mic-E
+
+Mic-E is not decoded or converted by this plan. A Mic-E packet is carried as received: the destination as the escape plus the 5-byte element (6 bytes, since its characters are the position), and the information field as raw text (kind 0), or as a PPM content field (kind 2) only if that is shorter, which is unusual because the field is printable binary. Relays forward it exactly as above. Converting Mic-E to a native position
+would save only 1 to 3 bytes per Mic-E packet, almost all of it in the destination, and would change the bytes of the packet; it is not worth that and is not part of this plan.
+If the sender used the destination SSID as a path code, the relay applies the usual rule to it; whether draft 0 does so is not checked.
 
 ## Size
 
@@ -150,12 +172,22 @@ the receiver accepts every intact frame with and without a 6-byte tail, **0 cut 
 Larger damage runs with the shipping combination (CRC-16 and re-encode check), 10 damaged copies per text and damage type ([`results-hybridB-stress.txt`](../tools/integrity/results-hybridB-stress.txt)): **0 wrongly accepted of about 608,000 trials (info-native table) and about 533,000 (comment-only table)**.
 The re-encode check alone leaves 1 in 181 to 1 in 2,644 (info-native) and 1 in 104 to 1 in 204 (comment-only: short comments leave less for the check to catch), and the CRC-16 alone about 1 in 40,000 to 1 in 120,000, so the two are needed together; a 95% upper bound for 0 of 1.14 million is about 1 in 380,000.
 
-The RXT block is new. [`tools/integrity/rxt_tail_test.py`](../tools/integrity/rxt_tail_test.py) cuts 1 to 16 bytes off the end of 600 real packets carrying 0 to 3 tuples, and flips 1 and 3 bits, receiving with the rules above
-(results: [`results-rxt-tail-marked.txt`](../tools/integrity/results-rxt-tail-marked.txt)):
+**Target.** The undetected-error rate must be no worse than VHF APRS, whose AX.25 frame check is a CRC-16: about 1 in 65,536. The LoRa payload CRC (also 16 bits) covers every byte of the frame and already gives that level for random channel damage; for end-to-end damage it is multiplied by whatever our own checks let through.
+The LoRa CRC cannot see two things that issue 7 raised: a **payload cut before transmission** (the CRC is computed after the cut) and **a receiver decoding against the wrong reference or the wrong table** (the frame arrives intact). The checks in this plan address those, and nothing else needs a byte:
 
-* **With the marked mask byte: 0 of 21,564 cut frames were accepted**, at every cut size and tuple count.
-* **Without the marker** (a plain mask in the last byte, [`results-rxt-tail-plain.txt`](../tools/integrity/results-rxt-tail-plain.txt)) 73 of the same 21,564 cut frames were accepted with a wrong mask (cuts of 4 or 8 bytes inside the block, 17 to 34 of 600 for the cut sizes concerned), because a left-over tuple byte can look like a valid mask. That is why the marker is in the plan.
-* **Bit flips inside the tuples are not detected.** Nothing but the LoRa CRC covers the RXT bytes (a single flipped bit landed in a tuple and was accepted in 10% of frames with one tuple and 25% with three). This is the protection every field has today; extending the CRC-16 over the block would cost 2 bytes on relayed frames and every relay would recompute it. Not in this plan.
+* **Truncation of the PPM payload:** the re-encode check. Alone, without any CRC, 0 of about 230,000 cut frames per cut size were accepted (286,100 texts, [`results-hybridB-reencode-alone.txt`](../tools/integrity/results-hybridB-reencode-alone.txt)), so the rate is below about 1 in 77,000 at 95% confidence.
+* **Wrong table, wrong model, a second implementation that differs:** the re-encode check cannot see these (decode and re-encode use the same wrong table; against a wrong reference it accepted 46% of wrong decodes), so the **content CRC-16** is kept: it is computed by the origin over the text, relays never touch it, and it catches the decode at about 1 in 65,536. It covers the position and the comment together.
+* **Truncation inside the RXT block:** the marked mask byte (below). **A damaged tuple:** the range check, which random damage fails about 98% of the time, and otherwise the LoRa CRC alone, which is VHF level.
+* **Everything else** (header, addresses, path, position, raw text) is covered by the LoRa CRC, which is VHF level. Primed mode, where a stale reference makes an intact frame decode wrongly, is not in this plan.
+
+Spec 11 spends 2 bytes on this (the content CRC-16) and none on the RXT block.
+
+**The RXT block** ([`tools/integrity/rxt_tail_test.py`](../tools/integrity/rxt_tail_test.py)), tested on 600 real packets carrying 0 to 3 tuples, with the rules above:
+
+* **Cut frames, 1 to 16 bytes off the end: 0 of 21,564 accepted** with the marked mask byte ([`results-rxt-tail-marked.txt`](../tools/integrity/results-rxt-tail-marked.txt)).
+  Without the marker (a plain mask in the last byte, [`results-rxt-tail-plain.txt`](../tools/integrity/results-rxt-tail-plain.txt)) 73 of the same cut frames were accepted with a wrong mask (cuts of 4 or 8 bytes inside the block, 17 to 34 of 600 for the cut sizes concerned), because a left-over tuple byte can look like a valid mask. That is why the marker is in the plan.
+* **Damage inside the block** (1 or 3 flipped bits, 36,000 trials): the range check lowers the share accepted from 87% and 68% to 68% and 32% (one and three tuples; [`results-rxt-tail-marked-range.txt`](../tools/integrity/results-rxt-tail-marked-range.txt)). Flips of a few bits are already caught by the LoRa CRC; the range check matters for random-looking damage. A CRC-16 over the block (tested: 0 accepted, and every 1- to 3-bit flip detected) was **not adopted**: it would be recomputed by every relay and
+  adds nothing the LoRa CRC does not give per hop ([`results-rxt-crc.txt`](../tools/integrity/results-rxt-crc.txt)).
 
 ## Receiver time (ESP32, measured)
 
@@ -170,6 +202,8 @@ The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text
 
 ## Not yet measured
 
+* **The RXT block with raw text (kinds 0 and 1).** The tail tests used PPM payloads. Raw or Huffman text has no check of its own (draft 0 relies on the LoRa CRC), so a cut that removes the whole block and part of the text is caught only if the new last byte fails the mask test; ASCII text almost always does, binary text may not. Not measured with real raw-text frames.
+
 * The size of a native PPM frame with a real native encoder, `V` and the CRC included.
 * The relay path end to end (path rewrite, RXT append, no PPM decode), including locating the end of the position block without decoding it.
 * A native encoder or decoder with this plan, and a complete RF chain with RXT (F4MLV's stated next step).
@@ -182,7 +216,8 @@ The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text
 * **What the two reserved bits mean.** Not decided; candidates are "decodes hybrid B", "appends RXT", a device class. A capability bit here would replace part of the capability announcement of spec 02.
 * **Kind values 2 and 3, or a new frame type.** F4MLV suggested the unused kinds himself; the issue also floated `01` text, `02` native, `03` capability, `80` to `FF` PPM. A draft-0 decoder that treats unknown kinds as errors will drop these frames, which must be checked in its code.
 * **Frozen tables.** The experimental set (`V = 1`) is trained on one capture. The first format needs a frozen set trained on several networks, and a decision on who maintains it (append-only).
-* **Where the RXT block goes for kinds 0 and 1** (draft 0 puts it after the path) and **seven path elements instead of eight.**
+* **RXT at the end for kinds 0 and 1 too.** K6ATV's choice: one rule for every frame, and the argument is the same as for PPM frames (a relay appends without moving bytes, and RXT is never inside the content). It changes draft 0 for kinds 0 and 1 and so needs F4MLV's agreement and a matching change in his firmware; frames from his current builds put the block after the path and would not interoperate for RXT. Also **seven path elements instead of eight**, because of the marker bit.
 * **Jon N7UV's view** on anything that changes what the tuple carries (the plan keeps the four measurements unchanged), and **F6BVP's** on identification: hybrid B keeps the source callsign recoverable in every frame, as F4MLV prefers.
 * **The `V` byte** could share bits with another field.
-* **Mic-E** goes as text; its destination escape costs 6 bytes in this plan (draft 0 has no Mic-E codec).
+* **Mic-E** is forwarded unchanged (decided: not worth converting). Open: whether draft 0 applies the destination-SSID path rule to a Mic-E destination.
+* **The relay procedure** above is a draft: path rewriting in native elements (the index of the relay's element, moving mask bits when elements change), and time to hop at transmit time, need F4MLV's firmware to confirm.

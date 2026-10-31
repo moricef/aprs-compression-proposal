@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Does the proposed native-frame tail (spec 11) catch truncation and damage?  python3 tools/integrity/rxt_tail_test.py texts.txt [N [marked]]
+"""Does the proposed native-frame tail (spec 11) catch truncation and damage?  python3 tools/integrity/rxt_tail_test.py texts.txt [N [plain|marked|marked-crc|marked-range]]
 Models the part of a native PPM frame that matters for integrity, using the independent LACF codec (tools/integrity/lacf_py):
     section = <model version 0x81> <L> <crc16 lo> <crc16 hi> <payload> [<tuple 4 B> * k <mask>]      (the RXT block ends the frame, mask byte last)
 The bytes before the section (header, addresses, path, position) are not modelled: the cut and the damage fall on the end of the frame, which is where truncation happens.
@@ -10,7 +10,10 @@ spec = importlib.util.spec_from_file_location("lacf", os.path.join(os.path.dirna
 L = importlib.util.module_from_spec(spec); spec.loader.exec_module(L)
 random.seed(1131)
 NPATH = 4                                      # path elements in the modelled header; mask bits must be below this
-MARKED = len(sys.argv) > 3 and sys.argv[3] == "marked"   # "marked": the mask byte has bit 7 set (path elements 0 to 6 only) and tuple bytes are 0..93, so a tuple byte is never a mask
+MODE = sys.argv[3] if len(sys.argv) > 3 else "plain"
+MARKED = MODE in ("marked", "marked-crc", "marked-range")
+RANGE = MODE == "marked-range"               # also reject a tuple whose bytes exceed the field maxima (RSSI 89, SNR 88, frequency offset and time to hop 93): no extra bytes
+CRC = MODE == "marked-crc"                     # tuples | CRC-16 of (tuples + mask), low byte first | mask: the relay recomputes it when it appends   # "marked": the mask byte has bit 7 set (path elements 0 to 6 only) and tuple bytes are 0..93, so a tuple byte is never a mask
 
 def build(text):
     f = L.encode(text)
@@ -20,7 +23,10 @@ def build(text):
 def with_rxt(section, k):
     if k == 0: return section, False, None
     bits = sorted(random.sample(range(NPATH), min(k, NPATH))); mask = sum(1 << b for b in bits) | (0x80 if MARKED else 0)
-    tuples = b"".join(bytes(random.randrange(94 if MARKED else 256) for _ in range(4)) for _ in bits)
+    tuples = b"".join(bytes([random.randrange(90), random.randrange(89), random.randrange(94), random.randrange(94)]) if MARKED else bytes(random.randrange(256) for _ in range(4)) for _ in bits)
+    if CRC:
+        c = L.crc16_x25(tuples + bytes([mask]))
+        return section + tuples + bytes([c & 0xFF, c >> 8, mask]), True, (tuples, mask)
     return section + tuples + bytes([mask]), True, (tuples, mask)
 
 def receive(sec, rxt_flag):
@@ -31,8 +37,13 @@ def receive(sec, rxt_flag):
         mask = sec[-1]
         if MARKED and not mask & 0x80: return None
         k = bin(mask & 0x7F).count("1")
-        if k < 1 or (mask & 0x7F) >> NPATH or len(sec) < 4 + 1 + 4 * k: return None
-        rxt = (sec[len(sec) - 1 - 4 * k:-1], mask); body = sec[:len(sec) - 1 - 4 * k]
+        extra = 2 if CRC else 0
+        if k < 1 or (mask & 0x7F) >> NPATH or len(sec) < 4 + 1 + extra + 4 * k: return None
+        blk = len(sec) - 1 - extra - 4 * k
+        tup = sec[blk:blk + 4 * k]
+        if RANGE and any(tup[i] > (89, 88, 93, 93)[i % 4] for i in range(len(tup))): return None
+        if CRC and L.crc16_x25(tup + bytes([mask])) != sec[-3] | (sec[-2] << 8): return None
+        rxt = (tup, mask); body = sec[:blk]
     else:
         body = sec
     r = L.receive(bytes([0x3C, 0xFF]) + body[0:1] + body[1:2] + body[2:4] + body[4:], allow_tail=False)   # rebuild the 6 byte test frame of the payload tools
@@ -61,6 +72,14 @@ for t in texts:
         note("intact k=%d" % k, 1, receive(full, flag), t, want_rxt)
         for cut in (1, 2, 3, 4, 5, 6, 8, 12, 16):
             if len(full) > cut + 4: note("cut%-2d k=%d" % (cut, k), 0, receive(full[:-cut], flag), t, want_rxt)
+        if flag:
+            blklen = (1 + (2 if CRC else 0) + 4 * k)
+            for nb in (1, 3):
+                for _ in range(10):
+                    b = bytearray(full)
+                    for _ in range(nb):
+                        p = len(b) - 1 - random.randrange(blklen); b[p] ^= 1 << random.randrange(8)
+                    if bytes(b) != full: note("block%d k=%d" % (nb, k), 0, receive(bytes(b), flag), t, want_rxt)
         for nb in (1, 3):
             b = bytearray(full)
             for _ in range(nb):

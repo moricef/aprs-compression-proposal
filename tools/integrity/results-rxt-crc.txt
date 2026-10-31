@@ -1,0 +1,5 @@
+CRC-16/X-25 over the RXT block (tuples + mask), stored in 2 bytes: every 1, 2 and 3 bit flip anywhere in tuples, mask or CRC, exhaustively
+  k=1 (7 byte block): 87948 flips tried, 0 undetected
+  k=2 (11 byte block): 340956 flips tried, 0 undetected
+  k=3 (15 byte block): 864300 flips tried, 0 undetected
+random bytes in place of a whole block: 25 of 2000000 pass the CRC (a 16 bit check expects about 31)

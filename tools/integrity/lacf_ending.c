@@ -106,16 +106,17 @@ static int recv_mode(void)
 
 int main(int argc, char **argv)
 {
+    if (getenv("LACF_NOCRC")) lacf_crc_on = 0;                                  /* measure the re-encode check alone */
     if (argc > 1 && !strcmp(argv[1], "recv")) return recv_mode();
     if (argc > 3 && !strcmp(argv[1], "stress")) return stress(argv[2], atoi(argv[3]));
     if (argc > 1 && !strcmp(argv[1], "gen")) return vectors(0, NULL);
     if (argc > 2 && !strcmp(argv[1], "check")) return vectors(1, argv[2]);
-    static char lines[20000][400]; static size_t len[20000]; int n = 0, i, j, k, bad = 0; FILE *f = NULL;
+    static char lines[300000][400]; static size_t len[300000]; int n = 0, i, j, k, bad = 0; FILE *f = NULL;
     long made = 0, sum_cur = 0, sum_new = 0, indep_ok = 0, indep_n = 0, minimal_ok = 0, minimal_n = 0, same = 0;
     long rx_ok = 0, rxt_ok = 0, cut_n[2][8] = {{0}}, cut_wrong[2][8] = {{0}}, fl_n[5] = {0}, fl_wrong[5] = {0};
     static const int cuts[] = {1, 2, 3, 4, 6, 8, 12, 16}, flips[] = {1, 2, 3, 8, 0};
     if (argc > 1) { f = fopen(argv[1], "r"); if (!f) { perror(argv[1]); return 2; } }
-    if (f) { while (n < 20000 && fgets(lines[n], sizeof lines[n], f)) { len[n] = strcspn(lines[n], "\r\n"); lines[n][len[n]] = 0; if (len[n]) n++; } fclose(f); }
+    if (f) { while (n < 300000 && fgets(lines[n], sizeof lines[n], f)) { len[n] = strcspn(lines[n], "\r\n"); lines[n][len[n]] = 0; if (len[n]) n++; } fclose(f); }
     else for (n = 0; n < 3000; n++) len[n] = (size_t)synth(lines[n], n);
     for (i = 0; i < n; i++) {
         uint8_t fr[400], cur[400], big[400], back[300]; size_t fl = lacf_encode((uint8_t *)lines[i], len[i], fr, sizeof fr), cl, pay;
