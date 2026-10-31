@@ -2,6 +2,9 @@
 #include <Arduino.h>
 #include "esp_timer.h"
 #include "texts.h"
+#include <stdarg.h>
+static String g_out;                       // everything printed, repeated from loop() so a late-opened serial port still sees the result
+static void P(const char *fmt, ...) { char b[400]; va_list a; va_start(a, fmt); vsnprintf(b, sizeof b, fmt, a); va_end(a); Serial.print(b); g_out += b; }
 extern "C" {
 extern uint32_t ffp[5];
 size_t x_model_to_ram(void);
@@ -34,8 +37,8 @@ static void hexval(const char *h, uint8_t *out, size_t *n) { *n = 0; for (size_t
 
 void setup() {
     Serial.begin(115200); delay(1500);
-    Serial.printf("\nLACF timing (%s): %s, %u MHz, %d texts, %d reps each\n", TIMING_BUILD, ESP.getChipModel(), (unsigned)getCpuFrequencyMhz(), (int)(sizeof TEXTS / sizeof *TEXTS), REPS);
-    { size_t b = x_model_to_ram(); if (b) Serial.printf("model copied to RAM: %u bytes, free heap now %u\n", (unsigned)b, (unsigned)ESP.getFreeHeap()); }
+    P("\nLACF timing (%s): %s, %u MHz, %d texts, %d reps each\n", TIMING_BUILD, ESP.getChipModel(), (unsigned)getCpuFrequencyMhz(), (int)(sizeof TEXTS / sizeof *TEXTS), REPS);
+    { size_t b = x_model_to_ram(); if (b) P("model copied to RAM: %u bytes, free heap now %u\n", (unsigned)b, (unsigned)ESP.getFreeHeap()); }
     int ok = 0;
     for (int i = 0; i < N_VECTORS; i++) {                                    // correctness first: the frame the board makes must equal the published vector
         uint8_t want[300]; size_t wl, tl = strlen(TEXTS[i]);
@@ -44,8 +47,8 @@ void setup() {
         size_t pay, r = fl ? x_receive(frame, fl, back, &pay, 0) : 0;
         if (fl == wl && !memcmp(frame, want, wl) && (!fl || (r == tl && !memcmp(back, TEXTS[i], tl)))) ok++;
     }
-    Serial.printf("vectors: %d of %d identical to the host's, and accepted by the receiver\n", ok, N_VECTORS);
-    Serial.println("len,frame,encode_current_us,encode_lacf_us,decode_us,receive_two_pass_us,receive_one_pass_us,crc16_us");
+    P("vectors: %d of %d identical to the host's, and accepted by the receiver\n", ok, N_VECTORS);
+    P("len,frame,encode_current_us,encode_lacf_us,decode_us,receive_two_pass_us,receive_one_pass_us,crc16_us\n");
     double s_dec = 0, s_c = 0, s_enc = 0, s_one = 0; int cnt = 0;
     for (size_t i = 0; i < sizeof TEXTS / sizeof *TEXTS; i++) {
         const uint8_t *t = (const uint8_t *)TEXTS[i]; size_t tl = strlen(TEXTS[i]), fl, pay;
@@ -68,15 +71,15 @@ void setup() {
         double one = (double)(t4b - t4) / REPS;
         s_one += one;
         double enc = (double)(t2 - t1) / REPS, dec = (double)(t3 - t2) / REPS, c = (double)(t4 - t3) / REPS;
-        Serial.printf("%u,%u,%.0f,%.0f,%.0f,%.0f,%.0f,%.1f\n", (unsigned)tl, (unsigned)fl, (double)(t1 - t0) / REPS, enc, dec, c, one, (double)(t5 - t4b) / REPS);
+        P("%u,%u,%.0f,%.0f,%.0f,%.0f,%.0f,%.1f\n", (unsigned)tl, (unsigned)fl, (double)(t1 - t0) / REPS, enc, dec, c, one, (double)(t5 - t4b) / REPS);
         s_enc += enc; s_dec += dec; s_c += c; cnt++;
     }
-    Serial.printf("MEAN over %d frames: encode %.0f us, plain decode %.0f us, receive with check C two passes %.0f us (C adds %.0f us), one pass %.0f us (C adds %.0f us)\n", cnt, s_enc / cnt, s_dec / cnt, s_c / cnt, (s_c - s_dec) / cnt, s_one / cnt, (s_one - s_dec) / cnt);
+    P("MEAN over %d frames: encode %.0f us, plain decode %.0f us, receive with check C two passes %.0f us (C adds %.0f us), one pass %.0f us (C adds %.0f us)\n", cnt, s_enc / cnt, s_dec / cnt, s_c / cnt, (s_c - s_dec) / cnt, s_one / cnt, (s_one - s_dec) / cnt);
 #ifdef FF_PROF
     { memset(ffp, 0, sizeof ffp); size_t chars = 0; for (size_t i = 0; i < sizeof TEXTS / sizeof *TEXTS; i++) { size_t tl = strlen(TEXTS[i]), fl = x_encode_lacf((const uint8_t *)TEXTS[i], tl, frame, sizeof frame); if (!fl) continue; memset(ffp, 0, sizeof ffp); x_decode(frame, 0, back, 0); }
       for (size_t i = 0; i < sizeof TEXTS / sizeof *TEXTS; i++) { size_t tl = strlen(TEXTS[i]), fl = x_encode_lacf((const uint8_t *)TEXTS[i], tl, frame, sizeof frame); if (!fl) continue; x_decode(frame, fl, back, sizeof back); chars += tl; }
-      Serial.printf("PROFILE per character (cycles): clear %u, find_context %u, entries %u, final loop %u\n", (unsigned)(ffp[0] / chars), (unsigned)(ffp[1] / chars), (unsigned)(ffp[2] / chars), (unsigned)(ffp[3] / chars)); }
+      P("PROFILE per character (cycles): clear %u, find_context %u, entries %u, final loop %u\n", (unsigned)(ffp[0] / chars), (unsigned)(ffp[1] / chars), (unsigned)(ffp[2] / chars), (unsigned)(ffp[3] / chars)); }
 #endif
-    Serial.println("DONE");
+    P("DONE\n");
 }
-void loop() { delay(1000); }
+void loop() { delay(6000); Serial.print("\n--- repeat of the result ---\n"); Serial.print(g_out); }

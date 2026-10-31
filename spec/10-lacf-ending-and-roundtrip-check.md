@@ -70,7 +70,7 @@ where it shows `-`) and the receiver accepts each frame and returns the text. In
 * Damage inside the frame after the LoRa CRC has passed (1, 2, 3 and 8 flipped bits, random payload), about 2.85 million trials: 0 wrongly accepted with the CRC-16 and the re-encode check together.
   The re-encode check alone leaves 1 in 208 to 1 in 2,286; the CRC-16 alone leaves about 1 in 52,000 to 1 in 142,000.
 * Cost: +2.25 bytes per full frame on average (+2 for the CRC-16, +0.25 for the ending).
-* Receiver time on an ESP32-PICO-D4 (LILYGO LoRa32 v2.1): 6.3 ms per received frame with a one-pass receiver and the key tables copied to RAM (32.2 ms with the unmodified reference code and two passes).
+* Receiver time on an ESP32-PICO-D4 (LILYGO LoRa32 v2.1): 6.3 ms per received frame with a one-pass receiver and the key tables copied to RAM (32.2 ms with the unmodified reference code and two passes); on the T-Deck's ESP32-S3 5.0 ms per frame with the same one-pass receiver and no RAM copy (25.4 ms unmodified, two passes).
 
 ## Open
 
@@ -79,4 +79,3 @@ where it shows `-`) and the receiver accepts each frame and returns the text. In
   "unknown version: drop, never show as text" rule; a flag bit is the alternative). In the code the mark is one constant per file.
 * Primed frames (spec 08) keep their own one-byte text check; the re-encode check was measured on them and is much weaker there (docs/truncated-payloads-and-integrity.md).
 * A third implementation in the language of an actual firmware (the check needs byte-identical encoders). A second one exists (Python, written from this text alone) and agrees with the C reference on 14,305 real texts and 11,996 damaged frames.
-* The T-Deck's processor was not timed.

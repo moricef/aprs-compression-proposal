@@ -15,3 +15,13 @@ Tried and dropped (slower on this chip): a float estimate corrected by integer a
 CRC-16 (bitwise, 48 packets): about 20 to 60 microseconds per frame.
 The profile in the first fast build showed the cycles per character going to the flash reads of the key tables (about 11,000), the per-entry arithmetic (about 33,000)
 and the final 256 entry loop (about 10,000); copying the key tables to RAM took the first from about 11,000 to about 2,400.
+
+LILYGO T-Deck (ESP32-S3, 240 MHz, 16 MB flash, Arduino core as in moricef's tracker firmware: platform espressif32 6.3.1, esp32-s3-devkitc-1, USB CDC), 31 October 2026,
+the same 48 fabricated packets, 20 repetitions each. The 20 conformance vectors were identical to the host's on the reference and the keys-in-RAM builds (the fast build's
+header lines were cut off in the capture; its timing was recorded).
+
+build                                                  plain decode   receive with check C (two passes)   one pass
+reference build_freq (reference/aprs_ppm.c)               12.8 ms        25.4 ms                              12.7 ms
+fast build_freq (fast_freq.h)                              5.0 ms        10.0 ms                               5.0 ms
+fast + 35 KB key tables copied to RAM                      4.7 ms         9.5 ms                               4.7 ms
+Copying the key tables is worth only 0.3 ms here (against 1.5 ms on the LoRa32): the S3 thrashes its cache much less. Free heap with the 35 KB copy: 339,040 bytes.
