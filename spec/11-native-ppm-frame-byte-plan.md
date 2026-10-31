@@ -7,31 +7,31 @@
 | | |
 |---|---|
 | Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV, not yet seen or agreed by F4MLV. No native encoder implements it; the PPM payload's integrity rules and the RXT tail are tested (below).** |
-| Builds on | moricef's native frame, draft 0 (`docs/LORA_APRS_NATIVE_FRAME_DRAFT0.md`, `moricef/LoRa_APRS_iGate`, branch `rxt`); hybrid B of `tools/hybrid/` and its tables (`tools/hybrid/tables/`); the PPM payload rules below (ending, CRC-16, re-encode check) |
+| Builds on | moricef's native frame (see History at the end); hybrid B of `tools/hybrid/` and its tables (`tools/hybrid/tables/`); the PPM payload rules below (ending, CRC-16, re-encode check) |
 | Replaces | nothing that was ever on the air. An earlier draft of this repository defined a standalone whole-text frame (`3C FF 81`); that was never the plan and has been withdrawn. PPM of the whole packet is **not** the plan: a relay would have to decompress, edit the path and recompress |
 
 ## What this is
 
 This is **hybrid B** of `tools/hybrid/`: the native part (source, destination, path, RXT) is structured so a relay can edit it; the PPM part is only the content, which a relay copies unchanged.
-In the terms of the thread (issue 7, comments 5 to 17): hybrid B + destination table v2 + lossless draft-0 position block, with the comment-only table when the position is in the native block. Relays update the path and append RXT without decompressing.
+In the terms of the thread (issue 7, comments 5 to 17): hybrid B + destination table v2 + lossless position block, with the comment-only table when the position is in the native block. Relays update the path and append RXT without decompressing.
 
-Agreed with F4MLV as the scope of the first experimental common format (comment 16, confirmed in 17): native source, destination and path; the versioned destination table; lossless draft-0 positions; standalone PPM for the remaining content; extended callsigns and SSIDs, content and the link between each measurement and its relay preserved exactly; receivers drop any frame whose format, model or table version they do not know (append-only tables).
+Agreed with F4MLV as the scope of the first experimental common format (comment 16, confirmed in 17): native source, destination and path; the versioned destination table; lossless positions; standalone PPM for the remaining content; extended callsigns and SSIDs, content and the link between each measurement and its relay preserved exactly; receivers drop any frame whose format, model or table version they do not know (append-only tables).
 **Not in the first format:** primed mode (and so the 1-byte station id), rounded or packed positions (`PACKPOS`, an optional tracker setting later), WSPR-style callsigns, the capability beacon and the power/backhaul questions, Mic-E as a native position (Mic-E travels as text).
 
 ## Frame
 
     3C FF 02 | header | source | destination | path... | [position block] | content field | [RXT block]
 
-`3C FF 02`, the header byte, the address elements, the path and the position block are those of draft 0 (this plan defines them exactly in Conformance); kinds 0 and 1 of draft 0 are not used. This plan adds: PPM-coded content (two header values), the destination table, a rule for when to fall back to raw text, and the place of the RXT block.
+`3C FF 02`, the header byte, the address elements, the path and the position block are defined exactly in Conformance. Only the kinds 2 and 3 below exist; a receiver drops any other kind. The frame has PPM-coded content (two header values), a destination table, a rule for when to fall back to raw text, and the RXT block at the end.
 
-### Header byte (draft 0 layout, additions in bold)
+### Header byte
 
-| Bits | Draft 0 | This plan |
-|---|---|---|
-| 7-4 | number of path elements, 0 to 15 | same |
-| 3 | an RXT block follows the path | **An RXT block ends the frame** (it follows the content field), which moves it from draft 0's place after the path |
-| 2 | the text is Huffman coded | kinds 2 and 3: reserved, must be 0 (the content coding is in `V`) |
-| 1-0 | information kind: 0 raw, 1 position (2 and 3 unused); this plan does not use 0 and 1, and a receiver drops them | **2 = information field as text, PPM coded. 3 = position block, then the comment PPM coded** |
+| Bits | Meaning |
+|---|---|
+| 7-4 | number of path elements, 0 to 15 |
+| 3 | an RXT block ends the frame (it follows the content field) |
+| 2 | reserved, must be 0 (the content coding is in `V`) |
+| 1-0 | information kind: **2 = information field as text, PPM coded. 3 = position block, then the comment PPM coded.** Kinds 0 and 1 are not used; a receiver drops them |
 
 F4MLV proposed using the two unused information-kind values to say which coder was used (comment 6), so this is his own placement. A receiver that does not know kind 2 or 3 MUST drop the frame and never show it as text.
 
@@ -70,7 +70,7 @@ The tables' own header says "model version 2", which they share with the whole-p
 ### Fallback to raw text
 
 The encoder uses PPM content only when it is shorter than raw content: `4 + n < 1 + L` bytes (PPM: `V`, `L`, CRC and payload; raw: `V` and the text). Otherwise it sends raw content (`cc = 3`) in the same kind, so the frame still uses the destination list and the RXT rules.
-**Decided 1 November 2026 (Walter): draft 0 is not used; only this format. A receiver of this plan drops a frame of kind 0 or 1** (the reference code in C and Python does, and the cross-check agrees on it). Frames of kind 0 or 1 are not part of this plan; a raw-text fallback stays in kinds 2 and 3 as raw content (`cc = 3`). On our packets 15% of information fields do not shrink with the info-native table and 6% of comments with the comment-only table (about a third on the harness's data).
+**Decided 1 November 2026: a receiver drops a frame of kind 0 or 1** (the reference code in C and Python does, and the cross-check agrees on it). A raw-text fallback stays in kinds 2 and 3 as raw content (`cc = 3`). On our packets 15% of information fields do not shrink with the info-native table and 6% of comments with the comment-only table (about a third on the harness's data).
 After a position block, an empty comment sends no text (kind 3, raw content with nothing after `V`). These rules are the harness's `PLAINTEXT=1`. Senders must follow the size rule, and a receiver drops PPM content the encoder would not have sent (Receiver, step 5), the same way it drops a payload that is not the canonical encoding; any receiver decodes every coding it holds.
 
 ### Destination (versioned table, two bits reserved)
@@ -79,7 +79,7 @@ The destination is coded in one byte, `ff iiiiii`:
 
 * `ff`, the top **two bits, are reserved**. A sender sets them to 0 and a receiver ignores them, so a later version can give them a meaning (for example "this station decodes hybrid B" or "this station appends RXT") without changing the table or the frame.
   Whatever they come to mean describes the originating station, not a relay in the path.
-* `iiiiii`, the low six bits, give 64 codes. **Codes 0 to 61 name the 62 most common destinations of that table version, in descending order of popularity** (code 0 is the most common), so the common ones are found first by a simple search. Code 62 is reserved (a receiver drops a frame that uses it); decided: it is kept reserved and not used as a 63rd destination. **Code 63 is the escape:** after it comes the draft-0 address element (5 bytes for an ordinary destination, so 6 in all; this is also the cost of a Mic-E destination, which draft 0 carries as a 5-byte element).
+* `iiiiii`, the low six bits, give 64 codes. **Codes 0 to 61 name the 62 most common destinations of that table version, in descending order of popularity** (code 0 is the most common), so the common ones are found first by a simple search. Code 62 is reserved (a receiver drops a frame that uses it); decided: it is kept reserved and not used as a 63rd destination. **Code 63 is the escape:** after it comes an address element (5 bytes for an ordinary destination, so 6 in all; this is also the cost of a Mic-E destination, whose characters are the position, carried as a 5-byte element).
 * A destination that has no direct code is not in the table: it escapes. There are no patterns and no second tier of 2-byte codes. In both measured captures registry patterns almost never fired (0 packets of 8,062 in Ariège and 2 of 14,305 in ours).
 * **Each table version fills the 62 destination codes, in order of popularity, with the destinations that are most common then,** and need not keep the codes of the version before; the version names the list. A destination used only once is never given a code.
 
@@ -95,12 +95,12 @@ Exact-entry coverage of the v2 list on the French capture (Ariège, 8,062 packet
 
     tuple 1 | tuple 2 | ... | tuple k | mask          the last byte of the frame is the mask
 
-* A tuple is 4 bytes as in draft 0: RSSI, SNR, frequency offset, time to hop, each the RXT character minus 33, so each byte is 0 to 89 (his encoder clamps every field to 90 values; SNR has 89 steps, 0 to 88).
+* A tuple is 4 bytes: RSSI, SNR, frequency offset, time to hop, each the RXT character minus 33, so each byte is 0 to 89 (his encoder clamps every field to 90 values; SNR has 89 steps, 0 to 88).
 * The mask has **bit 7 set** as a marker. Bit j (0 to 6) set means that path element j (0 is the first element after the destination) carries a measurement. Tuples are in ascending order of j. `k` is the number of mask bits 0 to 6 that are set.
-* The block is `4k + 1` bytes. Bits at or above the path element count are not allowed. **Each tuple byte must not exceed its field's maximum** (RSSI 89, SNR 88, frequency offset 89, time to hop 89, from his encoder's clamping; a receiver drops a frame with a tuple outside them; his draft-0 decoder does not check this): a free check on the tuples, which random damage fails about 98% of the time.
+* The block is `4k + 1` bytes. Bits at or above the path element count are not allowed. **Each tuple byte must not exceed its field's maximum** (RSSI 89, SNR 88, frequency offset 89, time to hop 89, from his encoder's clamping; a receiver drops a frame with a tuple outside them): a free check on the tuples, which random damage fails about 98% of the time.
 
 The tuples have no check of their own beyond the LoRa CRC, which already covers the whole frame at the level of VHF APRS (about 1 in 65,536); a block CRC would be recomputed by every relay and so add nothing the LoRa CRC does not give per hop.
-The marker makes the block safe against truncation: a tuple byte is never 0x80 or more, so after a cut inside the block the last byte can never be mistaken for a mask (tested below). It costs one path element against draft 0 (7 instead of 8).
+The marker makes the block safe against truncation: a tuple byte is never 0x80 or more, so after a cut inside the block the last byte can never be mistaken for a mask (tested below). It costs one path element: at most 7 elements can carry a tuple (mask bits 0 to 6), not 8.
 This placement (end of frame, mask byte last) is K6ATV's proposal in issue 7 (comment 5): a relay appends without moving the content, whatever the content is, and the content (PPM payload or text) is never touched by RXT, which is already compact binary and would not shrink. The same placement applies to both kinds, so a relay needs one rule.
 
 A relay builds its outgoing frame from the front: new header and path, then the position block and content (the content field) copied byte for byte, then the old tuples, its own tuple and the new mask. If there was no block it creates one (tuple, mask) and sets header bit 3.
@@ -139,7 +139,7 @@ Details and the other results are in [`docs/truncated-payloads-and-integrity.md`
 ## Receiver (normative)
 
 1. Drop the frame unless it starts `3C FF 02` and the information kind, the content coding `cc` (0 or 3) and the table-set version in `V` are known.
-2. Parse header, addresses and path, and the position block (kind 3), as draft 0.
+2. Parse header, addresses and path, and the position block (kind 3), with the layouts of Conformance.
 3. If header bit 3 is set: the last byte is the mask. Drop the frame unless bit 7 is set, `k >= 1`, every set bit is below the path element count, and at least `4k + 1` bytes remain after the position block and, for PPM kinds, after the content CRC. The RXT block is the last `4k + 1` bytes, and **the frame is dropped if a tuple byte exceeds its field maximum**; the payload (PPM content), or the raw text (`cc = 3`) is everything between the end of the position block or CRC and the block.
    If bit 3 is clear, there is no block and the payload or text is everything after.
 4. Decode `L` text bytes from the payload with the range decoder (the table chosen by the kind), rebuild the information field, and drop the frame unless its CRC-16 matches, computed over the input listed under Content field. Raw content (`cc = 3`) has no CRC and nothing more to check. (The CRC is what protects `L`: the re-encode check alone passes a frame whose `L` is one too large 70% of the time.)
@@ -153,19 +153,19 @@ Steps 4 and 5 may be done in one pass over the model ("PPM payload rules", Recei
 A relay accepts a frame by the Receiver rules, which for PPM kinds decode the content once to check it (one pass; 1.4 to 4.2 ms on the boards measured), and then forwards it with its own path update and its own RXT measurement **without re-encoding the content**: the outgoing frame is built from the bytes it received. A relay that skips the check forwards damage it cannot see. The content is never converted: a Mic-E packet is forwarded as it was received (see Mic-E below).
 
 1. **Rewrite the front.** Decode the header, addresses and path of the native part to the TNC2 path, apply the usual digipeater rule (for example `WIDE1-1` becomes the relay's callsign with the used mark; `WIDEn-N` loses one hop), and encode the header, addresses and path again. This is cheap and needs no PPM decoding. The destination is copied as received
-   (a Mic-E destination is its 6 latitude characters, so it is the escape followed by the 5-byte element). *Draft 0 leaves a native relay state undefined and works on the TNC2 path; this step follows that. His iGate relay today decodes the whole native frame to TNC2, moves the measurements to their callsigns, adds its own tuple and encodes the whole frame again; for the PPM kinds the content field is copied instead of decoded and re-encoded, which his code does not do yet.*
+   (a Mic-E destination is its 6 latitude characters, so it is the escape followed by the 5-byte element). *The relay works on the TNC2 path. His iGate relay today decodes the whole native frame to TNC2, moves the measurements to their callsigns, adds its own tuple and encodes the whole frame again; for the PPM kinds the content field is copied instead of decoded and re-encoded, which his code does not do yet.*
 2. **Copy the rest unchanged**, byte for byte: the position block and the content (a content field with its CRC-16 and payload, or raw text).
-3. **Find the index of the relay's own path element** after step 1, set that bit in the mask, and insert the relay's tuple in ascending order of index. Tuples already in the block keep their meaning only if their path elements keep their index; a relay that changes the number or order of elements before them must move the mask bits with them (draft 0 moves measurements by full callsign).
+3. **Find the index of the relay's own path element** after step 1, set that bit in the mask, and insert the relay's tuple in ascending order of index. Tuples already in the block keep their meaning only if their path elements keep their index; a relay that changes the number or order of elements before them must move the mask bits with them (his iGate moves measurements by full callsign).
 4. **Fill the tuple at transmit time.** RSSI, SNR and frequency offset are those measured when the frame was received. Time to hop runs from the end of reception to the end of the relay's own transmission, including queue and backoff, so it is computed just before transmission starts from the queue time plus the time on air, which the frame length fixes.
 5. **A relay that cannot finish the tuple in time sends none** (a frame without a block is valid) instead of sending a wrong one.
-6. **Drop duplicates** on the decoded APRS content (source, destination and information field), as draft 0 does; the path and RXT differ between copies and are ignored.
+6. **Drop duplicates** on the decoded APRS content (source, destination and information field), as his iGate does; the path and RXT differ between copies and are ignored.
 7. **An iGate** decodes the frame to TNC2 for APRS-IS, MQTT and TNC output, removing the RXT block, and uploads the same source, destination and information field a text frame would have given.
 
 ### Mic-E
 
 Mic-E is not decoded or converted by this plan. A Mic-E packet is carried as received: the destination as the escape plus the 5-byte element (6 bytes, since its characters are the position), and the information field as raw content (kind 2, `cc = 3`), or as a PPM content field (kind 2) only if that is shorter, which is unusual because the field is printable binary. Relays forward it exactly as above. Converting Mic-E to a native position
 would save only 1 to 3 bytes per Mic-E packet, almost all of it in the destination, and would change the bytes of the packet; it is not worth that and is not part of this plan.
-If the sender used the destination SSID as a path code, the relay applies the usual rule to it; whether draft 0 does so is not checked.
+If the sender used the destination SSID as a path code, the relay applies the usual rule to it.
 
 ## Conformance (draft)
 
@@ -174,14 +174,14 @@ and, for [`test/vectors_hb_relay_v1.txt`](../test/vectors_hb_relay_v1.txt) (`<re
 The frame bytes depend on these encoder choices, which are therefore part of the format:
 
 * **TNC2 packet:** `SOURCE>DESTINATION[,PATH...]:INFORMATION`, split at the first `>`, the first `:` after it, and the commas between them; at most 15 path elements; the frame must be at most 255 bytes and the information field at most 255 bytes, otherwise the packet is not encodable and a plain frame is sent. The encoder decodes what it built and uses the frame only if the packet comes back byte for byte.
-* **Address elements** (draft 0): `WIDEn` or `WIDEn-N` with `n` 1 to 7 and `N` 1 to `n`, optionally followed by `*`, is one byte `0 s nnn NNN` (`s` = the `*`, `N` = 0 when there is no `-N`). A callsign of 1 to 6 characters `A-Z0-9`, optionally `-SSID` (a decimal number 1 to 255 with no leading zero), optionally `*`, is `1 0 s xxxxx` (`xxxxx` the SSID, or 31 with the SSID in one extra byte after the callsign when it is above 30) followed by the 6 characters (padded with spaces) as four bytes, big endian, in base 40 over the alphabet space, `A` to `Z`, `0` to `9` (space is 0, `A` is 1, `0` is 27).
+* **Address elements:** `WIDEn` or `WIDEn-N` with `n` 1 to 7 and `N` 1 to `n`, optionally followed by `*`, is one byte `0 s nnn NNN` (`s` = the `*`, `N` = 0 when there is no `-N`). A callsign of 1 to 6 characters `A-Z0-9`, optionally `-SSID` (a decimal number 1 to 255 with no leading zero), optionally `*`, is `1 0 s xxxxx` (`xxxxx` the SSID, or 31 with the SSID in one extra byte after the callsign when it is above 30) followed by the 6 characters (padded with spaces) as four bytes, big endian, in base 40 over the alphabet space, `A` to `Z`, `0` to `9` (space is 0, `A` is 1, `0` is 27).
   Anything else (lower case, `-0`, `-05`, longer names) is a text element `1 1 lllll` and its 1 to 31 bytes.
   Tactical and other names that do not fit (longer than 6 characters, lower case, other characters) travel as text elements and are never rejected for their content.
   **A receiver drops a frame with an element that no encoder can produce (strict rule):** a `WIDE` byte with `n` = 0 or `N` above `n`; a callsign element whose four-byte value is 40^6 (4,096,000,000) or more or has a base-40 digit above 36 (the alphabet has 37 symbols), that is empty, or that has a space inside it; any element that runs past the end of the frame; a text element of length 0; a NUL byte (0x00) anywhere in the decoded text (an encoder is given a text string and cannot produce one). This covers the source, the destination escape and every path element, and it costs nothing because the receiver parses them anyway. The content of a text element is not checked, so the rule gives less protection where the path is text.
 * **Destination:** a byte `00 iiiiii` with the index when the destination text equals an entry of the destination list (exact match, no `*`); otherwise the byte `0x3F` (code 63) and the destination as an address element.
 * **Kind:** the encoder uses kind 3 when the information field starts with a position, otherwise kind 2. A position is: a data type indicator `!`, `=`, `/` or `@`; for `/` and `@` a timestamp of six digits and one of `z`, `h`, `/`; then an uncompressed position (`ddmm.hhN` or `S`, a table character, `dddmm.hhE` or `W`, a symbol character; 19 characters, digits only in the numbers) or a compressed one (a table character from `/ \ A-Z a-j`, four and four base-91 characters, a symbol character and three characters `c s T`; 13 characters).
   If the position block built from it does not rebuild the information field exactly, kind 2 is used.
-* **Position block** (draft 0): a flags byte (bits 1-0 the data type indicator 0 `!`, 1 `=`, 2 `/`, 3 `@`; bit 2 timestamp; bit 3 compressed; bit 4 course/speed present, uncompressed only; bit 5 altitude present; bit 6 compressed with `c s` both spaces, so that only `T` follows), then the timestamp as three bytes (the six digits as a number times 4, plus 0, 1 or 2 for `z`, `h`, `/`), then the position: uncompressed is six bytes holding (latitude in hundredths of a minute times 2, plus 1 for south) times 2^22 plus (longitude in hundredths of a minute times 2, plus 1 for west), then the table and symbol characters, then (bit 4) three bytes of course times 1024 plus speed when the 7 characters `ddd/ddd` follow the position;
+* **Position block:** a flags byte (bits 1-0 the data type indicator 0 `!`, 1 `=`, 2 `/`, 3 `@`; bit 2 timestamp; bit 3 compressed; bit 4 course/speed present, uncompressed only; bit 5 altitude present; bit 6 compressed with `c s` both spaces, so that only `T` follows), then the timestamp as three bytes (the six digits as a number times 4, plus 0, 1 or 2 for `z`, `h`, `/`), then the position: uncompressed is six bytes holding (latitude in hundredths of a minute times 2, plus 1 for south) times 2^22 plus (longitude in hundredths of a minute times 2, plus 1 for west), then the table and symbol characters, then (bit 4) three bytes of course times 1024 plus speed when the 7 characters `ddd/ddd` follow the position;
   compressed is seven bytes holding the latitude's four base-91 characters as a number times 2^27 plus the longitude's, then the table and symbol characters, then the one byte `T` (bit 6) or the three bytes `c s T`. Altitude (bit 5): the first `/A=` followed by six digits, or by `-` and five digits, within the first 255 bytes of the comment is removed from it and stored as one byte (its offset in the remaining comment) and three bytes (the altitude in feet, 24-bit two's complement). What remains of the comment is the text.
   **A receiver drops a position block that no encoder can produce (strict rule):** flags bit 7 set; bit 4 (course/speed) together with bit 3 (compressed); bit 6 without bit 3; a timestamp value above 999999 or with unit code 3; a latitude above 90 degrees or a longitude above 180 degrees (uncompressed, in hundredths of a minute: 540000 and 1080000); a compressed latitude or longitude of 91^4 or more; a course or a speed above 999; an altitude outside -99999 to 999999; an altitude offset beyond the comment.
 
@@ -194,9 +194,9 @@ Published figures for this combination, bytes saved against the plain frame incl
 
 | Data | Combination | Saved |
 |---|---|---|
-| K6ATV APRS-IS capture, 93,145 held-out packets | hybrid B + tocall table + lossless draft-0 position | 46.2% |
+| K6ATV APRS-IS capture, 93,145 held-out packets | hybrid B + tocall table + lossless position | 46.2% |
 | same | + packed position (optional, not in this plan) | 47.2% |
-| F4MLV Ariège, 8,062 packets (comment 15) | table v2 + lossless draft-0 position, matched tables | 39.3% |
+| F4MLV Ariège, 8,062 packets (comment 15) | table v2 + lossless position, matched tables | 39.3% |
 | F4MLV Arizona, 2,659 packets (comment 15) | same | 43.8% |
 
 These do not include `V` and the CRC-16: the harness costs the PPM text with the native frame's own length byte, so the content field here is **3 bytes longer** than the harness assumes. With an average plain frame of 72 to 110 bytes that is roughly 3 to 4 points off each figure
@@ -205,7 +205,7 @@ These do not include `V` and the CRC-16: the harness costs the PPM text with the
 ## Integrity: what is measured
 
 The payload rules were tested first on a whole-text test frame (withdrawn as a format; the results concern the payload and carry over): cut frames, 0 wrongly accepted at every size; with the CRC-16 and the re-encode check together 0 of about 2.85 million damaged frames accepted. Those runs used the whole-packet table of spec 01 on whole texts. The same checks were repeated with the hybrid B tables on real texts
-([`results-hybridB-payload.txt`](../tools/integrity/results-hybridB-payload.txt)): the info-native table on 14,305 information fields (12,166 smaller than raw) and the comment-only table on 11,367 comments after a position (10,704 smaller than raw; the position is stripped with regular expressions, so this is an approximation of the draft-0 comment). For both tables the ending is deterministic and independent of what follows (328,482 of 328,482 and 289,008 of 289,008 decodes right with 0 to 8 following bytes),
+([`results-hybridB-payload.txt`](../tools/integrity/results-hybridB-payload.txt)): the info-native table on 14,305 information fields (12,166 smaller than raw) and the comment-only table on 11,367 comments after a position (10,704 smaller than raw; the position is stripped with regular expressions, so this is an approximation of the comment). For both tables the ending is deterministic and independent of what follows (328,482 of 328,482 and 289,008 of 289,008 decodes right with 0 to 8 following bytes),
 the receiver accepts every intact frame with and without a 6-byte tail, **0 cut frames are wrongly accepted at any cut size (1 to 16 bytes)**, 0 damaged frames (1, 2, 3, 8 flipped bits, random payload) are accepted, and the one-pass receiver agrees with the two-pass one. The frame header of those tests is the withdrawn test frame's (6 bytes), not this plan's (4 bytes plus the native fields); the checks concern the payload.
 Larger damage runs with the shipping combination (CRC-16 and re-encode check), 10 damaged copies per text and damage type ([`results-hybridB-stress.txt`](../tools/integrity/results-hybridB-stress.txt)): **0 wrongly accepted of about 608,000 trials (info-native table) and about 533,000 (comment-only table)**.
 The re-encode check alone leaves 1 in 181 to 1 in 2,644 (info-native) and 1 in 104 to 1 in 204 (comment-only: short comments leave less for the check to catch), and the CRC-16 alone about 1 in 40,000 to 1 in 120,000, so the two are needed together; a 95% upper bound for 0 of 1.14 million is about 1 in 380,000.
@@ -314,16 +314,20 @@ His tracker (`moricef/LoRa_APRS_Tracker`, branch `devel`, `src/lora_utils.cpp` a
 
 ## Open
 
-* **The destination byte needs no disambiguation inside kinds 2 and 3.** Draft-0 decoders reject any information kind above 1, so a frame of kind 2 or 3 never reaches an address-element parser built for draft 0; this plan defines the destination field of those kinds as the code byte (escape plus a draft-0 element), and there is nothing to tell apart. Kinds 0 and 1 are not used (decided 1 November 2026), so a raw-text fallback frame stays in the new family, as raw content (`cc = 3` in `V`).
+* **The destination byte needs no disambiguation inside kinds 2 and 3.** This plan defines the destination field of those kinds as the code byte (escape plus an address element), and there is nothing to tell apart. Kinds 0 and 1 are not used (decided 1 November 2026), so a raw-text fallback frame stays in kinds 2 and 3, as raw content (`cc = 3` in `V`).
 * **Table version: decided.** `V = cc vvvvvv` is mandatory in every frame of kinds 2 and 3 (0 bytes on PPM frames, 1 byte on raw frames, about 0.1 byte per packet on average); `vvvvvv` names the PPM tables and the destination list together. Needs F4MLV's agreement.
 * **Header gap: closed in part.** The content CRC now covers the kind bits, `V`, source and destination. A flipped kind bit that turns kind 2 or 3 into 0 or 1 is not caught, since raw kinds carry no check; with channel noise it cannot pass the LoRa CRC, so it needs a relay or encoder fault.
 * **Distribute destination-list updates over the air.** The list is small (62 destinations are about 310 bytes, two frames, about 18 s at SF12), so a station that sees an unknown list version could ask its nearest neighbour, or an iGate could fetch and verify it and pass it on. The PPM tables (about 150 KB, 600 full frames) cannot go this way. Needs a version field, a signature from a key built into the firmware, rate-limited requests, and old versions kept. Not designed.
 * **Upgrade path.** Receivers first and senders last, plain text as the fallback, the two reserved destination bits as a capability flag, unknown types dropped and never shown as text, old formats decoded indefinitely. Not written up.
 * **The two reserved destination bits: decided to stay reserved.** All compressed LoRa will use this format until a later version, so a "decodes hybrid B" flag is not needed now; senders set the bits to 0, receivers ignore them, and a future version can give them a meaning.
-* **Kind values 2 and 3, or a new frame type.** F4MLV suggested the unused kinds himself; the issue also floated `01` text, `02` native, `03` capability, `80` to `FF` PPM. A draft-0 decoder that treats unknown kinds as errors will drop these frames, which must be checked in its code.
+* **Kind values 2 and 3, or a new frame type.** F4MLV suggested the unused kinds himself; the issue also floated `01` text, `02` native, `03` capability, `80` to `FF` PPM. Older firmware that treats unknown kinds as errors will drop these frames, which must be checked in its code.
 * **Frozen tables.** The experimental set (`V = 1`) is trained on one capture. The first format needs a frozen set trained on several networks, and a decision on who maintains it (append-only).
-* **RXT at the end.** K6ATV's choice: one rule for every frame (a relay appends without moving bytes, and RXT is never inside the content). It differs from draft 0, which puts the block after the path, so it needs F4MLV's agreement and a matching change in his firmware; frames from his current builds would not interoperate for RXT. Also **seven path elements instead of eight**, because of the marker bit.
+* **RXT at the end.** K6ATV's choice: one rule for every frame (a relay appends without moving bytes, and RXT is never inside the content). His current firmware puts the block after the path, so this needs F4MLV's agreement and a matching change in his firmware; frames from his current builds would not interoperate for RXT. Also **seven path elements instead of eight**, because of the marker bit.
 * **Jon N7UV's view** on anything that changes what the tuple carries (the plan keeps the four measurements unchanged), and **F6BVP's** on identification: hybrid B keeps the source callsign recoverable in every frame, as F4MLV prefers.
 * **`V` shares its byte with the content coding** (`cc`), so it costs one byte per frame of kinds 2 and 3.
-* **Mic-E** is forwarded unchanged (decided: not worth converting). Open: whether draft 0 applies the destination-SSID path rule to a Mic-E destination.
+* **Mic-E** is forwarded unchanged (decided: not worth converting). Open: whether the destination-SSID path rule applies to a Mic-E destination.
 * **The relay procedure** above is a draft: path rewriting in native elements (the index of the relay's element, moving mask bits when elements change), and time to hop at transmit time, need F4MLV's firmware to confirm.
+
+## History
+
+This format builds on the native frame that F4MLV (moricef) described in `docs/LORA_APRS_NATIVE_FRAME_DRAFT0.md` (`moricef/LoRa_APRS_iGate`, branch `rxt`, called draft 0 in issue 7 of moricef/LoRa_APRS_Tracker). That frame defined the address elements, the path and the position block, which this plan keeps (Conformance fixes every byte), and information kinds 0 and 1 (raw and position text), which this plan does not use. It differs from draft 0 in using kinds 2 and 3, a content field with a version byte and CRC-16, a destination table, and the RXT block at the end of the frame instead of after the path. A draft-0 decoder rejects any kind above 1, so it drops these frames. An earlier whole-text frame (`3C FF 81`) in this repository was withdrawn.
