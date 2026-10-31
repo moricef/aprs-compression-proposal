@@ -15,7 +15,7 @@
 2. **Appending a relay tail (RXT) breaks the current frame ending**, independently of truncation: with 6 bytes after the payload, only 83.8% of
    intact frames still decode to the right text.
 3. **Chosen: the new ending, a CRC-16 of the text, and a receiver that re-encodes.** Decode, re-encode, compare (check C) rejected every cut frame in the test once the encoder uses a deterministic ending (+0.25 bytes on average). Check C alone still lets 1 in 208 to 1 in 2,286 damaged
-   frames through; with a CRC-16 of the text (+2 bytes, the same CRC as the AX.25 frame check) **0 of about 2.85 million damaged frames were accepted**, which meets VHF APRS's 1 in 65,536. The cost is +2.25 bytes per full frame, identical encoders, and a frame mark that is not decided yet.
+   frames through; with a CRC-16 of the text (+2 bytes, the same CRC as the AX.25 frame check) **0 of about 2.85 million damaged frames were accepted**, which meets VHF APRS's 1 in 65,536. The cost is +2.25 bytes per full frame, identical encoders, and a frame mark that is provisional (same `3C FF 81` as model v1, so both ends must run the same build).
 4. **Receiver time was the worry, and was fixed in software**: on a LILYGO LoRa32 v2.1 (ESP32-PICO-D4, 240 MHz) the unmodified reference code takes 16.2 ms to decode and 32.2 ms to decode with check C. A faster `build_freq` with byte-identical output, the key tables copied to RAM (35 KB), and a receiver that re-encodes while it decodes bring
    a full receive with check C to **6.3 ms**, and check C no longer costs anything measurable ([`results-esp32-timing.txt`](../tools/integrity/results-esp32-timing.txt)).
 
@@ -138,7 +138,7 @@ What it costs, plainly:
   All 20 conformance vectors came out of the board byte-identical to the host's, and the receiver accepted them. The T-Deck's processor was not measured, and 6.3 ms was measured without WiFi running.
 * **Every encoder must produce identical bytes** for the same text and the same model, or its good frames are dropped by a receiver that applies C. The encoding rule (including the exact ending) therefore has to be
   written into the specification, and a second implementation has to match it.
-* **A format change.** Frames from the builds that use the current ending would be dropped by a receiver that applies C with the new ending, and the two CRC-16 bytes change the header. The layout needs its own frame mark or model version (undecided, spec/10 "Open").
+* **A format change.** Frames from the builds that use the current ending would be dropped by a receiver that applies C with the new ending, and the two CRC-16 bytes change the header. The layout keeps the mark `3C FF 81` for now, so receivers built for spec 01 misread it and both ends must run the same build; the mark must change before anyone else runs it (spec/10 "Open").
 
 ## Not tested
 

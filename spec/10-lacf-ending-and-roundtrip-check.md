@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **Draft for the LoRa APRS Compact Frame (LACF) byte plan. Not a standard. Implemented only in the test code in this repository (`tools/integrity/`) and in a timing sketch for an ESP32; not in any firmware. Frame mark not decided (see Open).** |
+| Status | **Draft for the LoRa APRS Compact Frame (LACF) byte plan. Not a standard. Implemented only in the test code in this repository (`tools/integrity/`) and in a timing sketch for an ESP32; not in any firmware. Frame mark kept at `3C FF 81` for now, see Open.** |
 | Depends on | 01 Compressed frames (the codec and model v1 are unchanged) |
 | Replaces | the ending ("Finishing") and the missing integrity check of 01 for frames that carry this layout |
 | Evidence | `docs/truncated-payloads-and-integrity.md` (why, and every number), `tools/integrity/lacf_core.h` (the rule as code), `test/vectors_lacf_v1.txt` |
@@ -18,7 +18,7 @@ adds a CRC-16 of the text (the same CRC as the AX.25 frame check, so VHF APRS's 
     offset  size  meaning
     0       1     0x3C
     1       1     0xFF
-    2       1     frame mark (open; the tests use 0x81, the mark of model v1)
+    2       1     frame mark: 0x81 for now (the mark of model v1; see Open)
     3       1     L = length in bytes of the original text, 1..255
     4       2     CRC-16 of the L text bytes, low byte first (CRC-16/X-25: polynomial 0x1021 reflected, init 0xFFFF, xorout 0xFFFF; check value of "123456789" is 0x906E)
     6       n     range-coded payload, n >= 0
@@ -73,8 +73,9 @@ where it shows `-`) and the receiver accepts each frame and returns the text. `m
 
 ## Open
 
-* **The frame mark.** Options: a new model version number with the same table (the existing "unknown version: drop" rule then protects old receivers), or a flag bit if one is freed. Not decided; the tests use 0x81, which old receivers would misread, so
-  this layout must not go on the air under that mark.
+* **The frame mark is provisional.** LACF frames use the same mark as model v1, `3C FF 81`, because for now only two people run this, on builds they flash themselves. Consequence: a receiver built for spec 01 cannot tell the two layouts apart and will decode a LACF frame
+  to wrong text, and a LACF receiver drops a spec 01 frame. Both ends must run the same build. **Before anyone else runs it, change the mark** (the plan was a new model version number with the same table, `3C FF 82`, so that old receivers drop the frame under the existing
+  "unknown version: drop, never show as text" rule; a flag bit is the alternative). In the code the mark is one constant per file.
 * Primed frames (spec 08) keep their own one-byte text check; the re-encode check was measured on them and is much weaker there (docs/truncated-payloads-and-integrity.md).
 * A second, independent implementation of the encoder and the receiver (the check needs byte-identical encoders).
 * The T-Deck's processor was not timed.
