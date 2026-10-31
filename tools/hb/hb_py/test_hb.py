@@ -18,6 +18,12 @@ def read_vectors(name):
 
 VEC = read_vectors('vectors_hb_v1.txt')
 RELAY = read_vectors('vectors_hb_relay_v1.txt')
+CHAIN = read_vectors('vectors_hb_relay_chain_v1.txt')
+REJECT = []
+with open(os.path.join(TEST, 'vectors_hb_reject_v1.txt'), 'rb') as _fh:
+    for _ln in _fh.read().split(b'\n'):
+        if _ln and not _ln.startswith(b'#'):
+            REJECT.append(bytes.fromhex(_ln.split()[0].decode()))
 
 
 def ppm_frames():
@@ -35,7 +41,7 @@ def accepted(r):
 class Vectors(unittest.TestCase):
     def test_counts(self):
         self.assertEqual(len(VEC), 500)
-        self.assertEqual(len(RELAY), 246)
+        self.assertEqual(len(RELAY), 296)
 
     def test_encode(self):
         bad = [i for i, (fr, pkt) in enumerate(VEC) if hb.encode(pkt) != fr]
@@ -47,7 +53,18 @@ class Vectors(unittest.TestCase):
 
     def test_relay(self):
         for i, (rx, tx, pkt) in enumerate(RELAY):
-            self.assertEqual(hb.relay(rx, 'N0RLY-1', bytes([50, 20, 45, 10])), tx, i)
+            self.assertEqual(hb.relay_auto(rx), tx, i)
+            self.assertEqual(hb.decode(tx), pkt, i)
+
+    def test_reject_vectors(self):
+        self.assertGreaterEqual(len(REJECT), 10)
+        for i, fr in enumerate(REJECT):
+            self.assertFalse(accepted(hb.decode(fr)), i)
+
+    def test_relay_chain(self):
+        self.assertGreater(len(CHAIN), 100)
+        for i, (rx, tx, pkt) in enumerate(CHAIN):
+            self.assertEqual(hb.relay_auto(rx), tx, i)
             self.assertEqual(hb.decode(tx), pkt, i)
 
     def test_packets_file_matches(self):
@@ -148,8 +165,26 @@ class Rxt(unittest.TestCase):
         out = hb.relay(fr, 'N0RLY-1', bytes([50, 20, 45, 10]))
         self.assertEqual(out[-5:], bytes([50, 20, 45, 10, 0x81]))
         self.assertEqual(hb.decode(out), b'N0CALL>APLRG1,N0RLY-1*,WIDE2-1:>Fixed station, solar powered, 433.775 MHz LoRa APRS iGate on a hill')
-        out2 = hb.relay(out, 'N0RLY-2', bytes([1, 2, 3, 4]))      # next unused element is WIDE2-1: not relayed
-        self.assertIsNone(out2)
+        out2 = hb.relay(out, 'N0RLY-2', bytes([1, 2, 3, 4]))      # the next unused element is WIDE2-1: relayed, second tuple
+        self.assertEqual(out2[-9:], bytes([50, 20, 45, 10, 1, 2, 3, 4, 0x83]))
+        self.assertIsNone(hb.relay(out2, 'N0RLY-3', bytes([5, 6, 7, 8])))   # nothing unused left
+
+
+class SpecExample(unittest.TestCase):
+    def test_worked_example_in_spec(self):
+        import re
+        with open(os.path.join(TEST, '..', 'spec', '11-native-ppm-frame-byte-plan.md'), encoding='utf-8') as fh:
+            t = fh.read()
+        t = t[t.index('## Worked example'):t.index('## Size')]
+        pkt = re.search(r'`(N0CALL-9>[^`]+)`', t).group(1).encode()
+        hops = [bytes.fromhex(h) for h in re.findall(r'`(3CFF02[0-9A-F]{60,})`', t)]
+        self.assertEqual(len(hops), 2)
+        f0 = hb.encode(pkt)
+        self.assertEqual(len(f0), 35)
+        f1 = hb.relay_auto(f0)
+        f2 = hb.relay_auto(f1)
+        self.assertEqual([f1, f2], hops)
+        self.assertEqual(hb.decode(f2), b'N0CALL-9>APLRG1,N0RLY-1*,N0RLY-2*,WIDE2-1:' + pkt.split(b':', 1)[1])
 
 
 class Edge(unittest.TestCase):

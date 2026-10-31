@@ -170,7 +170,8 @@ If the sender used the destination SSID as a path code, the relay applies the us
 ## Conformance (draft)
 
 An implementation conforms if, for every line of [`test/vectors_hb_v1.txt`](../test/vectors_hb_v1.txt) (`<frame hex> <TNC2 packet hex>`, 500 fabricated packets, table set 1 and destination list set 1), the encoder produces exactly that frame from the packet and the receiver accepts the frame and returns exactly that packet;
-and, for [`test/vectors_hb_relay_v1.txt`](../test/vectors_hb_relay_v1.txt) (`<received frame> <relayed frame> <relayed packet>`), the relay produces the relayed frame. The C reference is [`tools/hb/`](../tools/hb/) (`make hb-test`); the fabricated packets come from `tools/hb/gen_packets.py`.
+for [`test/vectors_hb_relay_v1.txt`](../test/vectors_hb_relay_v1.txt) and [`test/vectors_hb_relay_chain_v1.txt`](../test/vectors_hb_relay_chain_v1.txt) (`<received frame> <relayed frame> <relayed packet>`; first hop, and second and later hops of frames that already carry tuples), the relay produces the relayed frame and the receiver accepts it and returns the relayed packet;
+and every frame of [`test/vectors_hb_reject_v1.txt`](../test/vectors_hb_reject_v1.txt) (`<frame hex> <why>`: impossible RXT blocks) is dropped. A worked example follows this section. The C reference is [`tools/hb/`](../tools/hb/) (`make hb-test`); the fabricated packets come from `tools/hb/gen_packets.py`.
 The frame bytes depend on these encoder choices, which are therefore part of the format:
 
 * **TNC2 packet:** `SOURCE>DESTINATION[,PATH...]:INFORMATION`, split at the first `>`, the first `:` after it, and the commas between them; at most 15 path elements; the frame must be at most 255 bytes and the information field at most 255 bytes, otherwise the packet is not encodable and a plain frame is sent. The encoder decodes what it built and uses the frame only if the packet comes back byte for byte.
@@ -186,7 +187,49 @@ The frame bytes depend on these encoder choices, which are therefore part of the
   **A receiver drops a position block that no encoder can produce (strict rule):** flags bit 7 set; bit 4 (course/speed) together with bit 3 (compressed); bit 6 without bit 3; a timestamp value above 999999 or with unit code 3; a latitude above 90 degrees or a longitude above 180 degrees (uncompressed, in hundredths of a minute: 540000 and 1080000); a compressed latitude or longitude of 91^4 or more; a course or a speed above 999; an altitude outside -99999 to 999999; an altitude offset beyond the comment.
 
 * **Content:** the text is the information field (kind 2) or the comment that remains (kind 3), at most 255 bytes. PPM content is used when the payload (from the table: info-native for kind 2, comment-only for kind 3) satisfies `4 + n < 1 + L`; otherwise raw content, and an empty text is raw content with nothing after `V`.
-* **Relay vectors:** the relay callsign is `N0RLY-1` and its tuple is the bytes `50 20 45 10`. The relay takes the first path element that has no `*`: `WIDE1-1` becomes `N0RLY-1*`; `WIDE2-2` becomes `N0RLY-1*,WIDE2-1`; with any other first unused element, or no path, the packet is not relayed and has no vector. The header gets the new path count and the RXT bit; the position block and the content field are copied byte for byte; the block is the old tuples, the relay's tuple at the index of its element, and the mask.
+* **Relay vectors:** the relay is `N0RLY-(k+1)` and its tuple is the bytes `50+k 20+k 45+k 10+k` (decimal), where `k` is the number of tuples already in the received frame; so the first hop is `N0RLY-1` with `50 20 45 10`, the second `N0RLY-2` with `51 21 46 11`. The relay takes the first path element that has no `*`: `WIDE1-1` becomes `N0RLY-n*`; `WIDE2-1` becomes `N0RLY-n*`; `WIDE2-2` becomes `N0RLY-n*,WIDE2-1`; with any other first unused element, or no path, the packet is not relayed and has no vector. The header gets the new path count and the RXT bit; the position block and the content field are copied byte for byte; the block is the old tuples, the relay's tuple at the index of its element, and the mask.
+
+## Worked example
+
+One packet, as the origin sends it and after two relay hops. All bytes are hexadecimal; the three frames are in the vector files' format and were produced by the reference code.
+
+`N0CALL-9>APLRG1,WIDE1-1,WIDE2-2:!3722.40N/12158.93W>LoRa APRS iGate on the hill` (79 characters)
+
+**The origin's frame, 35 bytes** (kind 3: position block, then the comment, PPM coded):
+
+| Bytes | Field | Meaning |
+|---|---|---|
+| `3C FF 02` | prefix | native frame |
+| `23` | header | `0010 0 0 11`: 2 path elements, no RXT block, bit 2 clear, kind 3 |
+| `89 59 94 A6 2C` | source | callsign element: `1 0 0 01001` (SSID 9), then `N0CALL` in base 40 as `59 94 A6 2C` |
+| `00` | destination | code 0: `APLRG1`, the first entry of destination list set 1 |
+| `09` | path 0 | `WIDE1-1`: `0 0 001 001` |
+| `12` | path 1 | `WIDE2-2`: `0 0 010 010` |
+| `00` | position flags | `!` (data type 0), no timestamp, uncompressed, no course/speed, no altitude |
+| `01 B5 F8 16 55 EB` | position | latitude 37°22.40' N as hundredths of a minute times 2 plus 0 (N), 22 bits, then longitude 121°58.93' W times 2 plus 1 (W), 22 bits (`(224240 × 2) << 22 | (731893 × 2 + 1)`) |
+| `2F 3E` | symbol | table `/`, symbol `>` |
+| `01` | `V` | `cc = 00` PPM, table set 1 |
+| `1B` | `L` | 27 characters of comment |
+| `D5 5E` | CRC-16/X-25 | `0x5ED5`, low byte first, over `03 01` + `N0CALL-9` + `>` + `APLRG1` + `:` + the information field |
+| `93 AF 55 0A 8E 18 E2 07 49 5B` | payload | the 27 comment characters in 10 bytes (the comment-only table, because the position is in the native block) |
+
+The text is 79 bytes plus the 3-byte prefix; the frame is 35 bytes.
+
+**After the first relay (`N0RLY-1`, tuple 50 20 45 10), 44 bytes:** `3CFF022B895994A62C00A159A392E8120001B5F81655EB2F3E011BD55E93AF550A8E18E207495B32142D0A81`
+
+* header `23` becomes `2B` (RXT bit set);
+* path 0 `09` (`WIDE1-1`) becomes `A1 59 A3 92 E8`: callsign element, `1 0 1 00001`, the used mark `*` and SSID 1, then `N0RLY` in base 40 (the path is now `N0RLY-1*,WIDE2-2`; path 1, `12`, is unchanged);
+* the position block and the content field (`00 ... 5B`) are copied byte for byte;
+* the RXT block is added at the end: `32 14 2D 0A` is the tuple (RSSI 50, SNR 20, frequency offset 45, time to hop 10), then the mask `81` = marker bit 7 and bit 0: one tuple, for path element 0.
+
+**After the second relay (`N0RLY-2`, tuple 51 21 46 11), 53 bytes:** `3CFF023B895994A62C00A159A392E8A259A392E8110001B5F81655EB2F3E011BD55E93AF550A8E18E207495B32142D0A33152E0B83`
+
+* header `2B` becomes `3B` (3 path elements);
+* the first unused element is `WIDE2-2`: it becomes `A2 59 A3 92 E8` (`N0RLY-2*`) followed by `11` (`WIDE2-1`), so the path is `N0RLY-1*,N0RLY-2*,WIDE2-1`;
+* the position block and content are still the same bytes;
+* the RXT block keeps the first tuple, adds `33 15 2E 0B` (51 21 46 11) after it, and the mask becomes `83` = marker, bit 0 and bit 1: two tuples, for path elements 0 and 1.
+
+Each receiver verifies the content once (CRC and re-encode); a relay copies it without decoding the text again.
 
 ## Size
 

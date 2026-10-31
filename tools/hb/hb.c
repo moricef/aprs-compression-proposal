@@ -462,6 +462,7 @@ size_t hb_relay(const uint8_t *fr, size_t n, const char *relay_call, const uint8
         size_t l = strlen(path[k]);
         if (l && path[k][l - 1] == '*') continue;
         if (!strcmp(path[k], "WIDE1-1")) { snprintf(tmp, sizeof tmp, "%s*", relay_call); strcpy(path[k], tmp); relay_idx = k; }
+        else if (!strcmp(path[k], "WIDE2-1")) { snprintf(tmp, sizeof tmp, "%s*", relay_call); strcpy(path[k], tmp); relay_idx = k; }
         else if (!strcmp(path[k], "WIDE2-2") && np < 15) {
             int q; for (q = np; q > k + 1; q--) strcpy(path[q], path[q - 1]);
             snprintf(tmp, sizeof tmp, "%s*", relay_call); strcpy(path[k], tmp); strcpy(path[k + 1], "WIDE2-1"); np++; relay_idx = k;

@@ -678,7 +678,7 @@ def relay(frame, relay_call=RELAY_CALL, tuple_bytes=RELAY_TUPLE):
     f = d['frame']
     path = d['path']
     j = next((i for i, t in enumerate(path) if not t.endswith('*')), None)
-    if j is None or path[j] not in ('WIDE1-1', 'WIDE2-2'):
+    if j is None or path[j] not in ('WIDE1-1', 'WIDE2-1', 'WIDE2-2'):
         return None
     me = enc_elem(relay_call + '*')
     if me is None or len(tuple_bytes) != 4:
@@ -707,6 +707,15 @@ def relay(frame, relay_call=RELAY_CALL, tuple_bytes=RELAY_TUPLE):
     middle = f[d['path_end']:d['content_end']]
     return (b'\x3c\xff\x02' + bytes([header]) + front + b''.join(newpath) + middle
             + b''.join(t for _, t in tup) + (bytes([mask]) if tup else b''))
+
+
+def relay_auto(frame):
+    """The relay of the conformance vectors: callsign N0RLY-(k+1) and tuple 50+k 20+k 45+k 10+k, k = tuples already in the frame."""
+    try:
+        k = len(_parse(frame)['tuples'])
+    except Drop:
+        return None
+    return relay(frame, 'N0RLY-%d' % (k + 1), bytes([50 + k, 20 + k, 45 + k, 10 + k]))
 
 
 def _decode_ok(frame):
@@ -771,7 +780,7 @@ def main(argv):
             a, b, c = ln.split()
             a, b, c = (bytes.fromhex(x.decode()) for x in (a, b, c))
             n += 1
-            ok_r = relay(a, RELAY_CALL, RELAY_TUPLE) == b
+            ok_r = relay_auto(a) == b
             ok_d = decode(b) == c
             r += ok_r
             dd += ok_d

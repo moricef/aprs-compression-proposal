@@ -2,6 +2,8 @@
  *   hb_test gen  < packets.txt          TNC2 packets -> "<frame hex> <tnc2 hex>" vectors ("-" for a packet that cannot be encoded)
  *   hb_test check VECTORS               every vector must encode to its frame and decode to its packet
  *   hb_test recv                        lines "<frame hex>" -> the accepted TNC2 as hex, or "-" (cross-check against another implementation)
+ *   hb_test relaychain < packets.txt    the same for the second and later hops (frames that already carry tuples): "<received> <relayed> <relayed tnc2>"
+ *   hb_test relaycheck FILE             check a relay vector file against hb_relay
  *   hb_test relaygen  < packets.txt     for each packet with an unused WIDE1-1 or WIDE2-2: "<frame hex> <relayed frame hex> <relayed tnc2 hex>"
  *   hb_test props packets.txt           cuts, appended bytes, bit flips, RXT, relay: what is accepted that should not be
  *   hb_test time packets.txt            encode and decode time on this machine */
@@ -61,6 +63,41 @@ int main(int argc, char **argv)
     if (!strcmp(argv[1], "recv")) {
         char l[2000];
         while (fgets(l, sizeof l, stdin)) { uint8_t b[400]; size_t bl = unhex(l, b, sizeof b); int r = hb_decode(b, bl, tn, sizeof tn, NULL); if (r > 0) hexout((uint8_t *)tn, (size_t)r); else fputs("-", stdout); putchar('\n'); }
+        return 0;
+    }
+    if (!strcmp(argv[1], "relaychain") || !strcmp(argv[1], "relaycheck")) {
+        /* relay vectors: the relay is N0RLY-(k+1) with tuple 50+k 20+k 45+k 10+k, k = tuples already in the frame (spec 11 Conformance) */
+        int chain = !strcmp(argv[1], "relaychain");
+        if (!chain) {
+            FILE *f = fopen(argv[2], "r"); char l[3000]; int cnt = 0, bad = 0;
+            while (f && fgets(l, sizeof l, f)) {
+                uint8_t a[400], b[400], out[400], t4[4]; char c[40], *p1, *p2; size_t al, bl, r; hb_info_t in; int d;
+                if (l[0] == '#' || l[0] == '\n') continue;
+                p1 = strchr(l, ' '); p2 = p1 ? strchr(p1 + 1, ' ') : NULL; if (!p2) { bad++; continue; }
+                al = unhex(l, a, sizeof a); bl = unhex(p1 + 1, b, sizeof b); cnt++;
+                if (hb_decode(a, al, tn, sizeof tn, &in) <= 0) { bad++; continue; }
+                { int k = in.has_rxt ? in.rxt.n : 0; int q; snprintf(c, sizeof c, "N0RLY-%d", k + 1); for (q = 0; q < 4; q++) t4[q] = (uint8_t)(TUP[q] + k); }
+                r = hb_relay(a, al, c, t4, out, sizeof out);
+                d = r ? hb_decode(out, r, tn, sizeof tn, NULL) : -1;
+                if (r != bl || memcmp(out, b, bl) || d <= 0) { bad++; printf("relay vector %d: mismatch\n", cnt); }
+            }
+            if (f) fclose(f);
+            printf("%d relay vectors, %d failed\n", cnt, bad);
+            return bad != 0 || !f;
+        }
+        n = read_lines(NULL, lines, 20000);
+        for (i = 0; i < n; i++) {
+            size_t w = hb_encode(lines[i], strlen(lines[i]), NULL, fr, sizeof fr, NULL); int k;
+            if (!w) continue;
+            for (k = 0; k < 7; k++) {
+                uint8_t out[400], t4[4]; char c[40]; size_t r; int q, d;
+                snprintf(c, sizeof c, "N0RLY-%d", k + 1); for (q = 0; q < 4; q++) t4[q] = (uint8_t)(TUP[q] + k);
+                r = hb_relay(fr, w, c, t4, out, sizeof out); if (!r) break;
+                d = hb_decode(out, r, tn, sizeof tn, NULL);
+                if (k >= 1) { hexout(fr, w); putchar(' '); hexout(out, r); putchar(' '); if (d > 0) hexout((uint8_t *)tn, (size_t)d); else fputs("-", stdout); putchar('\n'); }
+                memcpy(fr, out, r); w = r;
+            }
+        }
         return 0;
     }
     if (!strcmp(argv[1], "relaygen")) {
