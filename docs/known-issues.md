@@ -46,13 +46,13 @@ The layout change is a different primed header under the same `3C FF C1` mark. T
 The decoder pads missing bytes with zeros, so a frame cut down to its length still decodes to some text. The LoRa CRC
 protects against this on the air, but the decoder did not itself reject such frames. For primed frames the text check
 now rejects them: of 263 primed frames cut by 1 to 3 bytes, none decoded to wrong text. Full frames (`3C FF 81`)
-have no check byte, and adding one would cost a byte on every full frame, so they still rely on the LoRa CRC. Open: a **round-trip check**, where
+have no check byte, and adding one would cost a byte on every full frame. Measured on 14,298 real frames: a cut full frame is accepted with a wrong tail 100% of the time (see [truncated payloads and integrity](truncated-payloads-and-integrity.md)). Chosen for the LACF byte plan: a **round-trip check**, where
 the receiver decodes the frame, compresses the text again and drops the frame if the result differs from the bytes it
-received. It adds nothing on the air and has not been tried. It would require every sender to produce exactly the same
+received. It adds almost nothing on the air (+0.3 bytes for a deterministic ending) and rejected every cut frame in the test, but has not been tried on a radio. It would require every sender to produce exactly the same
 bytes for the same text, or its good frames would be dropped. And it is not free on the receiver: on a LILYGO LoRa32
 (ESP32-PICO-D4, 240 MHz, codec alone, no WiFi) one decode takes 12 to 29 ms (0.3 ms per character), so a round trip
 takes about 25 to 50 ms per received full frame. That is small against seconds between frames at SF12 and not small at
-SF7. The LoRa CRC already covers full frames on the air, so this is currently not recommended.
+SF7. The LoRa CRC cannot cover a payload cut before sending, so the check is needed; the receiver time is its price.
 
 ### 3. Receivers must drop unknown `3C FF` frames (spec changed)
 
@@ -87,6 +87,6 @@ scratch copy with that one call removed the build was 1,608,377 B (81.8%), about
 ## Still open
 
 * Whether a two-byte text check is worth the extra byte.
-* The round-trip check for full frames (costs time and a rule, see above).
+* The round-trip check for full frames (costs time and a rule, see above; chosen for LACF, [measurements](truncated-payloads-and-integrity.md)).
 * Run the new layout between more devices and links, and run the ESP32 iGate firmware with it.
 * Whether removing the `btStop()` call is safe on a board (not tried).

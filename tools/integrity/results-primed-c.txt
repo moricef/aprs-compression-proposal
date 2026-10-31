@@ -1,0 +1,10 @@
+intact frames (true reference): 9078, accepted by C: 9078
+wrong-reference decodes: 100229; 125 came out as the right text anyway; 100104 came out WRONG
+of the 100104 wrong texts, with the reference check byte ignored, passed:
+  S station id only        31385
+  T text check only        397
+  C re-encode only         45805
+  S+T (today)              129
+  S+C                      13433
+  T+C                      186
+  S+T+C                    55

@@ -1,0 +1,28 @@
+14305 real packet texts.  Encoder chose: plain 7, full compressed 14298, primed 0.  Intact full frames decoded back exactly: 14298 of 14298.
+
+FULL compressed frames (3C FF 81), 14298 of them: bytes cut off the END (the LoRa CRC would still be valid)
+  cut off 1 byte                         n=14298   rejected  0.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text 100.00%   accepted wrongly (shorter+different): 100.000%
+  cut off 2 bytes                        n=14298   rejected  0.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text 100.00%   accepted wrongly (shorter+different): 100.000%
+  cut off 3 bytes                        n=14298   rejected  0.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text 100.00%   accepted wrongly (shorter+different): 100.000%
+  cut off 4 bytes                        n=14298   rejected  0.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text 100.00%   accepted wrongly (shorter+different): 100.000%
+  cut off 6 bytes                        n=14298   rejected  0.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text 100.00%   accepted wrongly (shorter+different): 100.000%
+  cut off 8 bytes                        n=14294   rejected  0.04%  same text  0.00%  shorter text (a prefix)  0.00%  different text 99.96%   accepted wrongly (shorter+different): 99.958%
+  cut off 12 bytes                       n=14217   rejected  0.33%  same text  0.00%  shorter text (a prefix)  0.00%  different text 99.67%   accepted wrongly (shorter+different): 99.669%
+  cut off 16 bytes                       n=13969   rejected  0.87%  same text  0.00%  shorter text (a prefix)  0.00%  different text 99.13%   accepted wrongly (shorter+different): 99.134%
+  cut at a random point                  n=14298   rejected  0.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text 100.00%   accepted wrongly (shorter+different): 100.000%
+
+FULL frames: bits flipped (a corrupted frame that got past the CRC)
+  1 random bit flipped                   n=14298   rejected  0.02%  same text  0.66%  shorter text (a prefix)  1.41%  different text 97.91%   accepted wrongly (shorter+different): 99.315%
+  2 random bits flipped                  n=14298   rejected  0.03%  same text  0.43%  shorter text (a prefix)  0.92%  different text 98.62%   accepted wrongly (shorter+different): 99.531%
+  3 random bits flipped                  n=14298   rejected  0.02%  same text  0.01%  shorter text (a prefix)  0.68%  different text 99.29%   accepted wrongly (shorter+different): 99.972%
+  8 random bits flipped                  n=14298   rejected  0.04%  same text  0.00%  shorter text (a prefix)  0.41%  different text 99.55%   accepted wrongly (shorter+different): 99.958%
+  payload replaced by random bytes       n=14298   rejected  0.48%  same text  0.00%  shorter text (a prefix)  0.00%  different text 99.52%   accepted wrongly (shorter+different): 99.524%
+
+PRIMED frames (3C FF C1, with the text check byte), 14305 of them (intact decoded exactly: 14305)
+  cut off 1 byte                         n=14305   rejected 99.66%  same text  0.00%  shorter text (a prefix)  0.00%  different text  0.34%   accepted wrongly (shorter+different): 0.336%
+  cut off 2 bytes                        n=14305   rejected 99.84%  same text  0.00%  shorter text (a prefix)  0.00%  different text  0.16%   accepted wrongly (shorter+different): 0.161%
+  cut off 3 bytes                        n=14305   rejected 99.99%  same text  0.00%  shorter text (a prefix)  0.00%  different text  0.01%   accepted wrongly (shorter+different): 0.007%
+  1 random bit flipped                   n=14305   rejected 97.08%  same text  2.77%  shorter text (a prefix)  0.03%  different text  0.11%   accepted wrongly (shorter+different): 0.147%
+  2 random bits flipped                  n=14305   rejected 97.83%  same text  2.08%  shorter text (a prefix)  0.01%  different text  0.09%   accepted wrongly (shorter+different): 0.098%
+  3 random bits flipped                  n=14305   rejected 99.69%  same text  0.20%  shorter text (a prefix)  0.01%  different text  0.10%   accepted wrongly (shorter+different): 0.112%
+  payload replaced by random bytes       n=14305   rejected 100.00%  same text  0.00%  shorter text (a prefix)  0.00%  different text  0.00%   accepted wrongly (shorter+different): 0.000%

@@ -1,0 +1,16 @@
+14298 real packet texts.  Average full-frame bytes:
+   current encoder (shortest ending, trailing zeros stripped) 40.8
+   always 4 closing bytes (what I tested before)            44.0  (+3.2)
+   fewest bytes that still decode correctly after ANY following bytes 41.0  (+0.3)
+Independence: intact frame with nothing after it decodes right: 14298 of 14298; with 1 to 8 random bytes after it: 85788 of 85788.
+
+Check C (decode, re-encode with the same ending, compare), no tail, frame cut by k bytes:
+   cut 0 : wrongly accepted 0 of 14298 (0.000%); accepted with correct text 14298; rejected 0.00%
+   cut 1 : wrongly accepted 0 of 14298 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 2 : wrongly accepted 0 of 14298 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 3 : wrongly accepted 0 of 14298 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 4 : wrongly accepted 0 of 14298 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 6 : wrongly accepted 0 of 14295 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 8 : wrongly accepted 0 of 14275 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 12: wrongly accepted 0 of 14131 (0.000%); accepted with correct text 0; rejected 100.00%
+   cut 16: wrongly accepted 0 of 13736 (0.000%); accepted with correct text 0; rejected 100.00%

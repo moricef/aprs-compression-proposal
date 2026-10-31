@@ -1,0 +1,19 @@
+intact full frames: 14298.  Bytes the decoder asks for beyond the end of an INTACT frame (the encoder's short ending relies on zero padding):
+   3 bytes beyond: 11744 frames (82.14%)
+   4 bytes beyond: 2545 frames (17.80%)
+   5 bytes beyond: 9 frames (0.06%)
+
+rule "reject if the decoder asks for more than 5 bytes beyond the end" (zero false rejections of intact frames by construction):
+   frame cut by  1 byte : rejected   7.4% of 14298
+   frame cut by  2 bytes: rejected  19.7% of 14298
+   frame cut by  3 bytes: rejected  27.6% of 14298
+   frame cut by  4 bytes: rejected  34.2% of 14298
+   frame cut by  6 bytes: rejected  47.0% of 14294
+   frame cut by  8 bytes: rejected  57.4% of 14272
+   frame cut by 12 bytes: rejected  78.6% of 14112
+   frame cut by 16 bytes: rejected  93.1% of 13692
+   (a stricter rule at 0 would also reject 100.00% of INTACT frames)
+   (a stricter rule at 1 would also reject 100.00% of INTACT frames)
+   (a stricter rule at 2 would also reject 100.00% of INTACT frames)
+   (a stricter rule at 3 would also reject 17.86% of INTACT frames)
+   (a stricter rule at 4 would also reject 0.06% of INTACT frames)

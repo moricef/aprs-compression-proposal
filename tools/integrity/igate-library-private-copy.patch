@@ -1,0 +1,77 @@
+--- a/lib/AprsCompress/src/AprsCompress.cpp   (the ESP32 iGate firmware, branch feature/order3-compression)
++++ b/lib/AprsCompress/src/AprsCompress.cpp   (private measurement copy: encodeCanon, encodeIndep, decodeCanon, g_overread)
+@@ -258,6 +258,74 @@
+         }
+         if (stationId(text, textLen) != frame[3]) return 0;         // decoded to the wrong station
+         if (textCheck(text, textLen) != frame[5]) return 0;         // wrong text: stale reference with the same check, or a cut frame
++        return textLen;
++    }
++}
++
++
++// ===== MEASUREMENT ONLY: a canonical-flush full frame, with an optional CRC-8 text check byte, for the truncation checks experiment =====
++namespace AprsCompress {
++    // 3C FF 81 <textLen> [<crc8 of text>] <range-coded bytes, exactly the bytes the decoder will consume>
++    size_t encodeCanon(const uint8_t* text, size_t textLen, uint8_t* frame, size_t cap, bool check) {
++        size_t hdr = check ? 5 : 4;
++        if (textLen == 0 || textLen > MAX_TEXT || cap < hdr + 1) return 0;
++        Encoder e; e.init(frame + hdr, cap - hdr);
++        uint16_t freq[256];
++        for (size_t i = 0; i < textLen; i++) {
++            uint32_t total = buildFreq(text, i, freq, nullptr, 0);
++            uint32_t cum = 0; for (int sy = 0; sy < text[i]; sy++) cum += freq[sy];
++            e.encode(cum, freq[text[i]], total);
++        }
++        for (int k = 0; k < 4; k++) e.shiftLow();                  // canonical flush: all four bytes of low, no trimming
++        if (e.overflow) return 0;
++        frame[0] = HEADER_0; frame[1] = HEADER_1; frame[2] = VERSION_FLAG | AprsCompressModel::VERSION; frame[3] = (uint8_t)textLen;
++        if (check) frame[4] = textCheck(text, textLen);
++        return hdr + e.n;
++    }
++    // payload = frame + hdr, `avail` bytes of it.  *needed = bytes the decoder asked for (beyond `avail` it read zeros).  Returns the text length or 0.
++    size_t decodeCanon(const uint8_t* frame, size_t frameLen, size_t hdrLen, size_t avail, uint8_t* text, size_t cap, bool check, size_t* needed) {
++        if (frameLen < hdrLen || frame[0] != HEADER_0 || frame[1] != HEADER_1 || frame[2] != (VERSION_FLAG | AprsCompressModel::VERSION)) return 0;
++        size_t textLen = frame[3]; if (textLen == 0 || textLen > cap) return 0;
++        Decoder d; d.init(frame + hdrLen, avail);
++        uint16_t freq[256];
++        for (size_t i = 0; i < textLen; i++) {
++            uint32_t total = buildFreq(text, i, freq, nullptr, 0);
++            uint32_t v = d.target(total);
++            uint32_t cum = 0; int sy = 0;
++            while (sy < 255 && cum + freq[sy] <= v) { cum += freq[sy]; sy++; }
++            d.consume(cum, freq[sy]);
++            text[i] = (uint8_t)sy;
++        }
++        *needed = d.pos;
++        if (check && frame[4] != textCheck(text, textLen)) return 0;
+         return textLen;
+     }
+ }
++
++// ===== MEASUREMENT ONLY: a full frame whose ending is the FEWEST bytes after which ANY following bytes still decode to the same text (no zero padding assumed, no trimming) =====
++namespace AprsCompress {
++    size_t encodeIndep(const uint8_t* text, size_t textLen, uint8_t* frame, size_t cap) {
++        if (textLen == 0 || textLen > MAX_TEXT || cap < 5) return 0;
++        Encoder e; e.init(frame + 4, cap - 4);
++        uint16_t freq[256];
++        for (size_t i = 0; i < textLen; i++) {
++            uint32_t total = buildFreq(text, i, freq, nullptr, 0);
++            uint32_t cum = 0; for (int sy = 0; sy < text[i]; sy++) cum += freq[sy];
++            e.encode(cum, freq[text[i]], total);
++        }
++        if (e.low >> 32) { e.carry(); e.low &= 0xFFFFFFFFull; }
++        uint64_t hi = e.low + e.range - 1;
++        for (int nb = 0; nb <= 4; nb++) {
++            uint64_t blk = nb == 4 ? 1ull : (1ull << (8 * (4 - nb)));          // every continuation of the nb emitted bytes lies in [v, v+blk)
++            uint64_t v = ((e.low + blk - 1) / blk) * blk;
++            if (v + blk - 1 <= hi) {
++                if (v >> 32) { e.carry(); v &= 0xFFFFFFFFull; }
++                for (int b = 0; b < nb; b++) e.putByte((uint8_t)(v >> (24 - 8 * b)));
++                break;
++            }
++        }
++        if (e.overflow) return 0;
++        frame[0] = HEADER_0; frame[1] = HEADER_1; frame[2] = VERSION_FLAG | AprsCompressModel::VERSION; frame[3] = (uint8_t)textLen;
++        return 4 + e.n;
++    }
++}
