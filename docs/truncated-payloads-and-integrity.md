@@ -130,6 +130,15 @@ It also found 23 unclear points ([`AMBIGUITIES.md`](../tools/integrity/lacf_py/A
 would have declined (drop it), frames shorter than 6 bytes and `L = 0` (drop), and what counts as the payload. One of them was a real disagreement between the two implementations (the C receiver dropped a not-smaller-than-plain frame, the Python one accepted it); the spec now says drop and the Python code follows. Vectors for the rare paths (carry during a
 shift, carry at the end, `v >= 2^32`, declined texts) were added in [`test/lacf_edge_packets.txt`](../test/lacf_edge_packets.txt).
 
+## Expected compression on the real packets
+
+On the same 14,305 real texts (script [`size_stats.py`](../tools/integrity/size_stats.py), output [`results-compression-real.txt`](../tools/integrity/results-compression-real.txt)): the mean plain frame is 86.6 bytes, the current compressed format (spec 01) 40.8 bytes (52.8% smaller), and **LACF 43.1 bytes (50.2% smaller)**; the CRC-16 and the new ending cost 2.25 bytes per packet.
+The median packet is 49% smaller (10th to 90th percentile 30% to 62%). Short packets gain less (frames of 40 to 60 bytes: 40%; over 100 bytes: 55%). 99.9% of packets are sent compressed; 12 are not smaller than plain. Airtime falls by about 40% at every spreading factor
+(SF7: 152 ms to 89 ms per packet; SF12: 3.6 s to 2.1 s).
+
+Treat 50% as an upper estimate: the corpus is a mix of an Arizona receiver log and an APRS-IS capture with long comments, and although it was captured (29 to 31 October) after the model was frozen (23 October), stations that beacon the same text repeatedly may also have been in the training packets.
+The repository's held-out-by-station figure for the current format is about 48%, which would put LACF near 45% to 46%. Primed frames are not included (priming is not defined for LACF).
+
 ## What was chosen, and what it costs
 
 **Chosen for the byte plan: check C plus a CRC-16 of the text**, with a deterministic encoder whose ending is the fewest closing bytes after which any following bytes still decode to the same text. On the air it costs about 2.25 bytes per full frame (2 for the CRC-16, 0.25 for the ending) and

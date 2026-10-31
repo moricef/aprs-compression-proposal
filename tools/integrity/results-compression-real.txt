@@ -1,0 +1,12 @@
+packets 14305: mean plain frame 86.6 B, current format (spec 01) 40.8 B, LACF 43.1 B
+saving vs plain: current 52.8%, LACF 50.2%   (LACF costs 2.25 B more than the current format per packet)
+sent compressed: current 14298, LACF 14293; sent plain instead: 7 / 12
+per-packet saving percentiles (all packets): p10 30%, median 49%, p90 62%
+  plain frame   0- 40 B:   282 packets, mean 37.7 -> 29.2 B (22% smaller)
+  plain frame  40- 60 B:  3616 packets, mean 48.2 -> 29.1 B (40% smaller)
+  plain frame  60- 80 B:  2890 packets, mean 69.4 -> 36.1 B (48% smaller)
+  plain frame  80-100 B:  2764 packets, mean 89.6 -> 46.3 B (48% smaller)
+  plain frame 100-300 B:  4753 packets, mean 127.3 -> 56.8 B (55% smaller)
+airtime SF7 BW125 CR4/5: plain 152 ms, current format 86 ms, LACF 89 ms per packet (LACF 42% less than plain)
+airtime SF9 BW125 CR4/5: plain 490 ms, current format 282 ms, LACF 292 ms per packet (LACF 40% less than plain)
+airtime SF12 BW125 CR4/5: plain 3565 ms, current format 2066 ms, LACF 2141 ms per packet (LACF 40% less than plain)
