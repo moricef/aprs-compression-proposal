@@ -56,13 +56,21 @@ The tables' own header says "model version 2", which they share with the whole-p
 The encoder uses a PPM kind only when the content field (`V`, `L`, CRC and payload: `4 + n` bytes) is shorter than the raw text it replaces. Otherwise it sends kind 0 or 1 exactly as draft 0 (raw or Huffman text). About a third of information-only fields do not shrink.
 After a position block, an empty comment sends no text (kind 1 with nothing after the position). These rules are the harness's `PLAINTEXT=1` and are a size rule only; any receiver decodes all four kinds.
 
-### Destination (table v2)
+### Destination (versioned table, two bits reserved)
 
-The destination is coded from the versioned list `tools/hybrid/tables/tocall_table_v2.txt` (sha256 `e700581b...f59aff`, 113 lines: 85 exact destinations and 28 patterns): an exact entry costs 1 byte, a registry pattern with one wildcard (`APL...` and `APGRW?`) 2 bytes, anything else an escape byte followed by the draft-0 address element (5 bytes
-for an ordinary destination, so 6 in all; this is also the cost of a Mic-E destination, which draft 0 carries as a 5-byte element). v1 and v2 share their codes: v2 only adds entries, and the list is append-only.
-Exact-entry coverage on the French capture (Ariège, 8,062 packets) is 85.1% with v1 and 97.3% with v2; on the Arizona sample (2,659 packets) 99.8% and 100%. The rest escape (Mic-E 2.5% in Ariège).
+The destination is coded in one byte, `ff iiiiii`:
 
-**The byte coding of this field is not defined yet** (see Open): the harness only counts its cost.
+* `ff`, the top **two bits, are reserved**. A sender sets them to 0 and a receiver ignores them, so a later version can give them a meaning (for example "this station decodes hybrid B" or "this station appends RXT") without changing the table or the frame.
+  Whatever they come to mean describes the originating station, not a relay in the path.
+* `iiiiii`, the low six bits, give 64 codes. **Codes 0 to 61 name the 62 most common destinations of that table version, in descending order of popularity** (code 0 is the most common), so the common ones are found first by a simple search. Code 62 is reserved (a receiver drops a frame that uses it). **Code 63 is the escape:** after it comes the draft-0 address element (5 bytes for an ordinary destination, so 6 in all; this is also the cost of a Mic-E destination, which draft 0 carries as a 5-byte element).
+* A destination that has no direct code is not in the table: it escapes. There are no patterns and no second tier of 2-byte codes. In both measured captures registry patterns almost never fired (0 packets of 8,062 in Ariège and 2 of 14,305 in ours).
+* **Each table version fills the 62 destination codes, in order of popularity, with the destinations that are most common then,** and need not keep the codes of the version before; the version names the list. A destination used only once is never given a code.
+
+Measured on our 14,305 real packets (73 distinct destinations): the 62 most common as direct codes cover 99.9% of packets (the first five, `APLRG1`, `APLRT1`, `APLWS2`, `APLG01`, `APLRFD`, cover 88.8%), a mean of 1.0038 bytes per packet, against 1.015 for the v2 list of the harness (85 exact entries, 28 patterns). That ranking is made on the same data it is tested on, so it is optimistic; a real list is ranked on training stations and checked on held-out ones.
+The harness's v2 list ([`tools/hybrid/tables/tocall_table_v2.txt`](../tools/hybrid/tables/tocall_table_v2.txt), sha256 `e700581b...f59aff`, 85 exact destinations and 28 patterns) is the starting data, not the final list: its entries seen once or twice in the captures (`APU25N`, `BEACON`) would not earn a direct code, and the few `APL...` destinations seen here that it lacks (`APSTKI` 20 packets, `APLM2D` 6, `APLGMT` 5, `APLHT2` 4) would compete for the 62 codes.
+Exact-entry coverage of the v2 list on the French capture (Ariège, 8,062 packets) is 85.1% with v1 and 97.3% with v2; on the Arizona sample (2,659 packets) 99.8% and 100%; Mic-E is 2.5% in Ariège and always escapes.
+
+**Which table version is in use has no field yet** (see Open): the direct codes mean different destinations in different versions.
 
 ### RXT block (header bit 3 set, PPM kinds)
 
@@ -168,8 +176,10 @@ The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text
 
 ## Open
 
-* **Byte coding of the destination table.** Every first byte of a draft-0 address element is taken (`0 s nnn NNN`, `1 0 s xxxxx`, `1 1 lllll`), so a one-byte table index needs a mechanism that only F4MLV's encoder can settle: unused first-byte values (many `0 s nnn NNN` values are not valid `WIDEn-N`), or a header flag (header bit 2 is free in PPM kinds, but kinds 0 and 1 also want the table).
-  The harness assumes 1 byte; the real cost depends on this.
+* **Mechanism for the destination byte.** Every first byte of a draft-0 address element is taken (`0 s nnn NNN`, `1 0 s xxxxx`, `1 1 lllll`), so a code byte `ff iiiiii` needs a way to be told apart from an address element: unused first-byte values (many `0 s nnn NNN` values are not valid `WIDEn-N`) or a header flag.
+  Header bit 2 is free in PPM kinds, but kinds 0 and 1 would also want the table. Only F4MLV's encoder can settle this; the harness assumes 1 byte.
+* **Which table version.** The direct codes change from version to version, so a receiver must know the version. The natural place is the same field as the PPM table set (`V`), which kinds 0 and 1 do not carry; either they carry it, or they do not use the table.
+* **What the two reserved bits mean.** Not decided; candidates are "decodes hybrid B", "appends RXT", a device class. A capability bit here would replace part of the capability announcement of spec 02.
 * **Kind values 2 and 3, or a new frame type.** F4MLV suggested the unused kinds himself; the issue also floated `01` text, `02` native, `03` capability, `80` to `FF` PPM. A draft-0 decoder that treats unknown kinds as errors will drop these frames, which must be checked in its code.
 * **Frozen tables.** The experimental set (`V = 1`) is trained on one capture. The first format needs a frozen set trained on several networks, and a decision on who maintains it (append-only).
 * **Where the RXT block goes for kinds 0 and 1** (draft 0 puts it after the path) and **seven path elements instead of eight.**
