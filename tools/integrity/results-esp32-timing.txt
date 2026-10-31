@@ -25,3 +25,19 @@ reference build_freq (reference/aprs_ppm.c)               12.8 ms        25.4 ms
 fast build_freq (fast_freq.h)                              5.0 ms        10.0 ms                               5.0 ms
 fast + 35 KB key tables copied to RAM                      4.7 ms         9.5 ms                               4.7 ms
 Copying the key tables is worth only 0.3 ms here (against 1.5 ms on the LoRa32): the S3 thrashes its cache much less. Free heap with the 35 KB copy: 339,040 bytes.
+
+Hybrid B tables (spec 11), 31 October 2026. The same fabricated packets, cut into what hybrid B hands to PPM: the information field (info-native table, kind 2) and
+the comment after a position (comment-only table, kind 3, position stripped by length). Only the texts that PPM can shrink are timed (28 information fields and 18 comments of
+the 48 packets; the rest go out raw, see spec 11 "Fallback to raw text"). Fast build_freq (fast_freq.h); "keys in RAM" copies the key tables of the hybrid table to RAM.
+Mean per frame, one pass = decode and re-encode together (the receiver of spec 10/11). Conformance vectors are for the v1 table and were skipped.
+
+board / table                                  build            plain decode   receive with check C, two passes   one pass
+LoRa32 (ESP32-PICO-D4)  info-native            fast               4.1 ms          8.5 ms                            4.2 ms
+LoRa32                  info-native            keys in RAM        3.5 ms          7.1 ms                            3.5 ms
+LoRa32                  comment-only           fast               1.9 ms          4.1 ms                            2.0 ms
+LoRa32                  comment-only           keys in RAM        1.7 ms          3.6 ms                            1.8 ms
+T-Deck (ESP32-S3)       info-native            fast               2.8 ms          5.6 ms                            2.8 ms
+T-Deck                  info-native            keys in RAM        2.7 ms          5.5 ms                            2.7 ms
+T-Deck                  comment-only           fast               1.4 ms          2.9 ms                            1.4 ms
+T-Deck                  comment-only           keys in RAM        1.4 ms          2.8 ms                            1.4 ms
+Check C costs nothing measurable in the one-pass receiver. Texts are shorter than the whole packets of the first runs (6.3 ms LoRa32, 5.0 ms T-Deck), and the time follows the length.

@@ -106,7 +106,11 @@ These do not include `V` and the CRC-16: the harness costs the PPM text with the
 
 ## Integrity: what is measured
 
-Spec 10's results apply to the PPM payload: cut frames, 0 wrongly accepted at every size; with the CRC-16 and the re-encode check together 0 of about 2.85 million damaged frames accepted. Those runs used the whole-packet table of spec 01 on whole texts; the hybrid B tables have not yet been run through them.
+Spec 10's results apply to the PPM payload: cut frames, 0 wrongly accepted at every size; with the CRC-16 and the re-encode check together 0 of about 2.85 million damaged frames accepted. Those runs used the whole-packet table of spec 01 on whole texts. The same checks were repeated with the hybrid B tables on real texts
+([`results-hybridB-payload.txt`](../tools/integrity/results-hybridB-payload.txt)): the info-native table on 14,305 information fields (12,166 smaller than raw) and the comment-only table on 11,367 comments after a position (10,704 smaller than raw; the position is stripped with regular expressions, so this is an approximation of the draft-0 comment). For both tables the ending is deterministic and independent of what follows (328,482 of 328,482 and 289,008 of 289,008 decodes right with 0 to 8 following bytes),
+the receiver accepts every intact frame with and without a 6-byte tail, **0 cut frames are wrongly accepted at any cut size (1 to 16 bytes)**, 0 damaged frames (1, 2, 3, 8 flipped bits, random payload) are accepted, and the one-pass receiver agrees with the two-pass one. The frame header of those tests is spec 10's (6 bytes), not this plan's (4 bytes plus the native fields); the checks concern the payload.
+Larger damage runs with the shipping combination (CRC-16 and re-encode check), 10 damaged copies per text and damage type ([`results-hybridB-stress.txt`](../tools/integrity/results-hybridB-stress.txt)): **0 wrongly accepted of about 608,000 trials (info-native table) and about 533,000 (comment-only table)**.
+The re-encode check alone leaves 1 in 181 to 1 in 2,644 (info-native) and 1 in 104 to 1 in 204 (comment-only: short comments leave less for the check to catch), and the CRC-16 alone about 1 in 40,000 to 1 in 120,000, so the two are needed together; a 95% upper bound for 0 of 1.14 million is about 1 in 380,000.
 
 The RXT block is new. [`tools/integrity/rxt_tail_test.py`](../tools/integrity/rxt_tail_test.py) cuts 1 to 16 bytes off the end of 600 real packets carrying 0 to 3 tuples, and flips 1 and 3 bits, receiving with the rules above
 (results: [`results-rxt-tail-marked.txt`](../tools/integrity/results-rxt-tail-marked.txt)):
@@ -115,10 +119,20 @@ The RXT block is new. [`tools/integrity/rxt_tail_test.py`](../tools/integrity/rx
 * **Without the marker** (a plain mask in the last byte, [`results-rxt-tail-plain.txt`](../tools/integrity/results-rxt-tail-plain.txt)) 73 of the same 21,564 cut frames were accepted with a wrong mask (cuts of 4 or 8 bytes inside the block, 17 to 34 of 600 for the cut sizes concerned), because a left-over tuple byte can look like a valid mask. That is why the marker is in the plan.
 * **Bit flips inside the tuples are not detected.** Nothing but the LoRa CRC covers the RXT bytes (a single flipped bit landed in a tuple and was accepted in 10% of frames with one tuple and 25% with three). This is the protection every field has today; extending the CRC-16 over the block would cost 2 bytes on relayed frames and every relay would recompute it. Not in this plan.
 
+## Receiver time (ESP32, measured)
+
+One-pass receiver (decode, CRC-16, re-encode compare) with the hybrid B tables, fast `build_freq`, mean per frame over the texts PPM can shrink ([`results-esp32-timing.txt`](../tools/integrity/results-esp32-timing.txt)):
+
+| Board | Information field (kind 2) | Comment after a position (kind 3) |
+|---|---|---|
+| LILYGO LoRa32 v2.1 (ESP32-PICO-D4) | 4.2 ms (3.5 ms with the key tables copied to RAM) | 2.0 ms (1.8 ms) |
+| LILYGO T-Deck (ESP32-S3) | 2.8 ms (2.7 ms) | 1.4 ms (1.4 ms) |
+
+The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text is longer. The re-encode check adds nothing measurable in the one-pass receiver; a two-pass receiver roughly doubles the time. These are codec-only test sketches on 48 fabricated packets (28 information fields and 18 comments shrink), without WiFi, not the iGate or tracker firmware.
+
 ## Not yet measured
 
 * The size of a native PPM frame with a real native encoder, `V` and the CRC included.
-* Timing of the hybrid B tables on the ESP32 and T-Deck. Spec 10's 5 to 6 ms figures were for whole packets with the whole-packet table; hybrid B codes shorter text.
 * The relay path end to end (path rewrite, RXT append, no PPM decode), including locating the end of the position block without decoding it.
 * A native encoder or decoder with this plan, and a complete RF chain with RXT (F4MLV's stated next step).
 

@@ -1,0 +1,49 @@
+Spec 11 payload checks with the hybrid B tables (tools/hybrid/tables), host, real texts. Kind 2: info-native table on 14,305 information fields; kind 3: comment-only table on 11,367 non-empty comments after a position (position stripped approximately with regular expressions, the packet texts are not in this repository).
+
+### info-native table
+14305 texts (from file); LACF frames made: 12166; deterministic (same bytes on a second encode): 12166
+average frame bytes: current ending 37.64, LACF ending 39.88 (+2.24)
+any continuation decodes to the same text (0 to 8 bytes: random, 0x00, 0xFF): 328482 of 328482
+minimal (with the last byte dropped, 0x00 or 0xFF after it fails): 12166 of 12166
+receiver accepts intact frame with the right text and payload length: no tail 12166 of 12166, 6 byte tail 12166 of 12166
+
+damage (LoRa CRC still valid) no tail: wrong accepted            6 byte tail: wrong accepted       
+cut off  1 bytes                   0 of 12166  (0.000%)          n/a (only the tail is cut)
+cut off  2 bytes                   0 of 12165  (0.000%)          n/a (only the tail is cut)
+cut off  3 bytes                   0 of 12165  (0.000%)          n/a (only the tail is cut)
+cut off  4 bytes                   0 of 12165  (0.000%)          n/a (only the tail is cut)
+cut off  6 bytes                   0 of 12156  (0.000%)          n/a (only the tail is cut)
+cut off  8 bytes                   0 of 12143  (0.000%)               0 of 12165  (0.000%)
+cut off 12 bytes                   0 of 11889  (0.000%)               0 of 12156  (0.000%)
+cut off 16 bytes                   0 of 10550  (0.000%)               0 of 12095  (0.000%)
+1 random bit flipped              0 of 12166  (0.000%)
+2 random bits flipped             0 of 12102  (0.000%)
+3 random bits flipped             0 of 12166  (0.000%)
+8 random bits flipped             0 of 12166  (0.000%)
+payload replaced by random        0 of 12166  (0.000%)
+
+one pass receiver against the two pass one: 0 disagreements
+
+### comment-only table
+11367 texts (from file); LACF frames made: 10704; deterministic (same bytes on a second encode): 10704
+average frame bytes: current ending 22.59, LACF ending 24.81 (+2.22)
+any continuation decodes to the same text (0 to 8 bytes: random, 0x00, 0xFF): 289008 of 289008
+minimal (with the last byte dropped, 0x00 or 0xFF after it fails): 10704 of 10704
+receiver accepts intact frame with the right text and payload length: no tail 10704 of 10704, 6 byte tail 10704 of 10704
+
+damage (LoRa CRC still valid) no tail: wrong accepted            6 byte tail: wrong accepted       
+cut off  1 bytes                   0 of 10222  (0.000%)          n/a (only the tail is cut)
+cut off  2 bytes                   0 of 10025  (0.000%)          n/a (only the tail is cut)
+cut off  3 bytes                   0 of 9733   (0.000%)          n/a (only the tail is cut)
+cut off  4 bytes                   0 of 9557   (0.000%)          n/a (only the tail is cut)
+cut off  6 bytes                   0 of 9095   (0.000%)          n/a (only the tail is cut)
+cut off  8 bytes                   0 of 8222   (0.000%)               0 of 10025  (0.000%)
+cut off 12 bytes                   0 of 6368   (0.000%)               0 of 9095   (0.000%)
+cut off 16 bytes                   0 of 4830   (0.000%)               0 of 7214   (0.000%)
+1 random bit flipped              0 of 10704  (0.000%)
+2 random bits flipped             0 of 10513  (0.000%)
+3 random bits flipped             0 of 10704  (0.000%)
+8 random bits flipped             0 of 10696  (0.000%)
+payload replaced by random        0 of 10700  (0.000%)
+
+one pass receiver against the two pass one: 0 disagreements

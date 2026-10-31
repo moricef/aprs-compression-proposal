@@ -1,0 +1,16 @@
+### info table, 10 trials per damage type
+14305 texts x 10 trials per damage type. Wrong text accepted (the LoRa CRC has already passed):
+damage                        trials   decoded re-encode check (C) alone         CRC-16 alone  C + CRC-16 (shipping)
+1 random bit flipped          121660    120305            672 (1 in 181  )            0 (1 in 0     )          0
+2 random bits flipped         121144    121105            161 (1 in 752  )            1 (1 in 121105)          0
+3 random bits flipped         121660    121636            116 (1 in 1048 )            1 (1 in 121636)          0
+8 random bits flipped         121660    121660             50 (1 in 2433 )            2 (1 in 60830 )          0
+payload replaced by random    121660    121660             46 (1 in 2644 )            3 (1 in 40553 )          0
+### comment table, 10 trials per damage type
+11367 texts x 10 trials per damage type. Wrong text accepted (the LoRa CRC has already passed):
+damage                        trials   decoded re-encode check (C) alone         CRC-16 alone  C + CRC-16 (shipping)
+1 random bit flipped          107040    104222           1028 (1 in 104  )            1 (1 in 104222)          0
+2 random bits flipped         105366    105059            609 (1 in 173  )            1 (1 in 105059)          0
+3 random bits flipped         107040    106767            530 (1 in 201  )            0 (1 in 0     )          0
+8 random bits flipped         106961    106952            524 (1 in 204  )            1 (1 in 106952)          0
+payload replaced by random    107023    107004            523 (1 in 204  )            1 (1 in 107004)          0

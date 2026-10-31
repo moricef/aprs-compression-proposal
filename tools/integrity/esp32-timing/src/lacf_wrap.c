@@ -7,7 +7,13 @@
 uint32_t ffp[5];
 #endif
 #include "../../../../reference/aprs_ppm.c"
+#if defined(HB_INFO)
+#include "../../../../tools/hybrid/tables/model_hybridB_info_native.c"
+#elif defined(HB_COMMENT)
+#include "../../../../tools/hybrid/tables/model_hybridB_comment.c"
+#else
 #include "../../../../model/aprs_ppm_model_v1.c"
+#endif
 #include "../../lacf_core.h"
 #if defined(MODEL_RAM) || defined(MODEL_RAM_KEYS)
 #include <stdlib.h>

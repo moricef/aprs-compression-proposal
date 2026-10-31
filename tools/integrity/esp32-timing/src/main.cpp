@@ -2,6 +2,25 @@
 #include <Arduino.h>
 #include "esp_timer.h"
 #include "texts.h"
+// Hybrid B builds (spec 11): time the PPM-coded part only, so the texts are the information field (HB_INFO, info-native table) or the comment after a
+// position block (HB_COMMENT, comment-only table), cut out of the same fabricated packets. The conformance vectors are for the v1 table and are skipped.
+#if defined(HB_INFO) || defined(HB_COMMENT)
+static const char* g_tx[64]; static int g_ntx;
+static void build_texts() {
+    for (size_t i = 0; i < sizeof TEXTS / sizeof *TEXTS && g_ntx < 64; i++) {
+        const char* s = strchr(TEXTS[i], ':'); if (!s) continue; s++;
+#ifdef HB_COMMENT
+        if (s[0] == '!' || s[0] == '=') { size_t skip = (s[1] >= '0' && s[1] <= '9') ? 20 : 14; if (strlen(s) <= skip) continue; s += skip; } else continue;
+#endif
+        if (*s) g_tx[g_ntx++] = s;
+    }
+}
+#define TX(i) g_tx[i]
+#define NTX (size_t)g_ntx
+#else
+#define TX(i) TEXTS[i]
+#define NTX (sizeof TEXTS / sizeof *TEXTS)
+#endif
 #include <stdarg.h>
 static String g_out;                       // everything printed, repeated from loop() so a late-opened serial port still sees the result
 static void P(const char *fmt, ...) { char b[400]; va_list a; va_start(a, fmt); vsnprintf(b, sizeof b, fmt, a); va_end(a); Serial.print(b); g_out += b; }
@@ -37,21 +56,31 @@ static void hexval(const char *h, uint8_t *out, size_t *n) { *n = 0; for (size_t
 
 void setup() {
     Serial.begin(115200); delay(1500);
-    P("\nLACF timing (%s): %s, %u MHz, %d texts, %d reps each\n", TIMING_BUILD, ESP.getChipModel(), (unsigned)getCpuFrequencyMhz(), (int)(sizeof TEXTS / sizeof *TEXTS), REPS);
+#if defined(HB_INFO) || defined(HB_COMMENT)
+    build_texts();
+#endif
+    P("\nLACF timing (%s): %s, %u MHz, %d texts, %d reps each\n", TIMING_BUILD, ESP.getChipModel(), (unsigned)getCpuFrequencyMhz(), (int)NTX, REPS);
     { size_t b = x_model_to_ram(); if (b) P("model copied to RAM: %u bytes, free heap now %u\n", (unsigned)b, (unsigned)ESP.getFreeHeap()); }
     int ok = 0;
-    for (int i = 0; i < N_VECTORS; i++) {                                    // correctness first: the frame the board makes must equal the published vector
+#if defined(HB_INFO) || defined(HB_COMMENT)
+    P("model: hybrid B table, %d texts, vectors skipped\n", g_ntx);
+    for (int i = 0; i < 0; i++) {
+#else
+    for (int i = 0; i < N_VECTORS; i++) {
+#endif                                    // correctness first: the frame the board makes must equal the published vector
         uint8_t want[300]; size_t wl, tl = strlen(TEXTS[i]);
         hexval(VECTOR_HEX[i], want, &wl);
         size_t fl = x_encode_lacf((const uint8_t *)TEXTS[i], tl, frame, sizeof frame);
         size_t pay, r = fl ? x_receive(frame, fl, back, &pay, 0) : 0;
         if (fl == wl && !memcmp(frame, want, wl) && (!fl || (r == tl && !memcmp(back, TEXTS[i], tl)))) ok++;
     }
+    #if !(defined(HB_INFO) || defined(HB_COMMENT))
     P("vectors: %d of %d identical to the host's, and accepted by the receiver\n", ok, N_VECTORS);
+#endif
     P("len,frame,encode_current_us,encode_lacf_us,decode_us,receive_two_pass_us,receive_one_pass_us,crc16_us\n");
     double s_dec = 0, s_c = 0, s_enc = 0, s_one = 0; int cnt = 0;
-    for (size_t i = 0; i < sizeof TEXTS / sizeof *TEXTS; i++) {
-        const uint8_t *t = (const uint8_t *)TEXTS[i]; size_t tl = strlen(TEXTS[i]), fl, pay;
+    for (size_t i = 0; i < NTX; i++) {
+        const uint8_t *t = (const uint8_t *)TX(i); size_t tl = strlen(TX(i)), fl, pay;
         fl = x_encode_lacf(t, tl, frame, sizeof frame);
         if (!fl) continue;                                                   // not smaller than the plain frame: never sent compressed
         int64_t t0 = esp_timer_get_time();
