@@ -14,13 +14,12 @@ Status: draft, measured 1 November 2026 with the reference code in `tools/hb` on
 | Case | Mean plain | Mean hybrid | Bytes saved | Airtime saved SF7 | SF9 | SF12 |
 |---|---|---|---|---|---|---|
 | As the origin sends it, no RXT (14,305 packets) | 86.6 B | 48.7 B | 43.8% | 36.3% | 35.2% | 35.0% |
-| After one relay hop, with RXT (4,368 packets that a relay would forward) | 84.8 B | 52.8 B | 37.8% | 31.2% | 30.3% | 30.2% |
 
 Mean airtime at SF7: 152 ms plain against 97 ms hybrid at the origin; 150 ms against 103 ms after a hop. At SF12: 3,565 ms against 2,317 ms.
 
 **The airtime saving is smaller than the byte saving** because every LoRa frame pays a fixed preamble and header.
 
-**Relayed traffic lowers it.** A relayed frame carries the RXT block (5 bytes for the first hop, 4 more for each further one) and a relay callsign in place of the one-byte `WIDE1-1`. The saving falls about linearly with the share of once-relayed traffic:
+**Relayed traffic lowers it.** A relayed frame carries the RXT block (5 bytes for the first hop, 4 more for each further one) and a relay callsign in place of the one-byte `WIDE1-1`. With the RXT bytes counted against the hybrid frame (row 2 of the three-way table below), the saving falls about linearly with the share of once-relayed traffic:
 
 | Relayed share | SF7 | SF12 |
 |---|---|---|
@@ -30,7 +29,17 @@ Mean airtime at SF7: 152 ms plain against 97 ms hybrid at the origin; 150 ms aga
 | 75% | 32.5% | 31.4% |
 | 100% | 31.2% | 30.2% |
 
-These mixes combine the origin result for all packets with the relay result for the relayable subset, so they are approximate. **The hybrid frame carries more data than the plain packet.** The relayed rows include the RXT block (what each hop heard: signal, noise and frequency offset), which a plain LoRa APRS packet does not carry. Compared with a plain packet that carried the same information in the text form of RXT (7 bytes for the first hop), the relayed saving is **42.5% in bytes and 35.6% in airtime at SF7 (34.3% at SF12)**, against 37.8% and 31.2% above, where the plain packet has no RXT. The first pair is the like-for-like figure; the second is the conservative one. Anything else added to the frame later (a new field, a longer RXT) lowers the saving by its own size, and the figures should be recomputed then.
+These mixes combine the origin result for all packets with the relay result for the relayable subset, so they are approximate.
+
+**The hybrid frame carries more data than the plain packet.** After a relay hop it has an RXT block (what each hop heard: signal, noise, frequency offset), 5 bytes for the first hop, which a plain LoRa APRS packet does not carry. So the relayed saving depends on what you count. The same 4,368 relayed packets, three ways:
+
+| What is compared | Plain | Hybrid | Bytes saved | Airtime saved SF7 | SF12 |
+|---|---|---|---|---|---|
+| 1. Compression alone: RXT left out on both sides | 84.8 B | 47.8 B | 43.7% | 36.4% | 34.9% |
+| 2. The hybrid frame includes its RXT block, the plain packet has none | 84.8 B | 52.8 B | 37.8% | 31.2% | 30.2% |
+| 3. Like for like: both carry the same RXT data (text form for plain, 7 B) | 91.8 B | 52.8 B | 42.5% | 35.6% | 34.3% |
+
+Row 1 is how well the text is compressed. Row 2 is what a network sees if it adds RXT and nothing else changes: it pays for the extra data and gets no credit for it, so it is the lowest. Row 3 is the fair comparison for a network that wants the RXT data either way. Anything added to the frame later lowers the saving by its own size, and the figures should be recomputed then.
 
 **Your mileage may vary.** The result depends on the relay share, the path lengths and the mix of packet types (Mic-E and telemetry compress less than positions with comments). Another network measured 39.3% (Ariège, in bytes) and 43.8% (Arizona, in bytes) on its own packets with an earlier harness; the gap to the figure above is not explained, and the numbers should be read as "about a third less airtime, a little less where traffic is mostly relayed". The earlier 46.2% figure came from a harness with a different baseline and is not comparable.
 
