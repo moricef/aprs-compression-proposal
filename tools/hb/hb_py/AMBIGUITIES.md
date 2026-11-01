@@ -1,4 +1,4 @@
-# Ambiguities found while writing hb.py from spec 11
+# Ambiguities found while writing hb.py from spec 11 (LACF, the LoRa APRS Compact Frame)
 
 Result: 500/500 encode, 500/500 decode, 246/246 relay (and 246/246 decode of the relayed frames) on the first run after one bug of mine (a decoder byte-index slip, not a spec issue) and one spec reading (item 1). Nothing was special-cased. "Confirmed" means the vectors would have failed under another reading; "untested" means the vectors never exercise the point, so my reading is only a guess.
 
@@ -75,9 +75,9 @@ Every item above was answered by a spec sentence, a rule in the code, a vector, 
 | 1 | The tuple is decimal; the spec says so and gives `N0RLY-(k+1)` with `50+k 20+k 45+k 10+k`. |
 | 2 | The 255 bytes count the whole frame; a relay whose result would exceed 255 does not relay (edge vectors: one packet that relays at 251 bytes, one that does not). |
 | 3 | Decided: the encoder sends the hybrid frame whenever the packet is encodable and does not compare it with the plain frame. |
-| 4, 5, 6, 8 | The one-byte WIDE form wins when it matches exactly; look-alikes follow the callsign and text rules; SSID 31 uses the extra byte; a trailing star of a text element is one of its bytes. Edge vectors for each. |
+| 4, 5, 6, 8 | The one-byte WIDE form wins when it matches exactly. A WIDE look-alike that breaks the APRS rule (`WIDE2-3`, `WIDE1-0`, `WIDE8-1`) was first coded as a callsign or text element; since 1 November it is **not carried: the packet is dropped and not repeated on RF** (spec 11, Non-compliant WIDE paths). SSID 31 uses the extra byte; a trailing star of a text element is one of its bytes. Edge vectors for each. |
 | 7 | The first character is the most significant base-40 digit (spec). |
-| 9 | The not-encodable cases are listed in the spec (empty element, text element over 31, more than 15 path elements, frame or information field over 255, missing `>` or `:`); 8 of the 548 vectors are `-`. |
+| 9 | The not-encodable cases are listed in the spec (empty element, text element over 31, more than 15 path elements, frame or information field over 255, missing `>` or `:`, a non-compliant WIDE path); 16 of the 553 vectors are `-`. |
 | 10 | Strict rule: the receiver drops every element no encoder can produce, also an SSID extra byte below 31 and a callsign digit above 36 (spec, reject vectors). |
 | 11 | The encoder must use the destination code when the destination is listed; a receiver also accepts the escape form (spec). |
 | 12, 22 | Kinds 0 and 1 are not used and are dropped (decided; reject vectors). |

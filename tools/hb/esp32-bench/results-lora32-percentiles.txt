@@ -1,4 +1,4 @@
-Percentile benchmark of the spec 11 reference frame (tools/hb) on a LILYGO LoRa32 v2.1 (ESP32-PICO-D4, 240 MHz), 1 November 2026.
+Percentile benchmark of LACF, the spec 11 reference frame (tools/hb) on a LILYGO LoRa32 v2.1 (ESP32-PICO-D4, 240 MHz), 1 November 2026.
 Build: -O2, -DHB_FAST, tables in flash, 24 KB task. 400 fabricated packets with the length distribution of real traffic (make_packets.py), 3 repetitions each; stress cases separate.
 
 spec 11 relay pipeline benchmark: ESP32-PICO-D4, 240 MHz, free heap 255792

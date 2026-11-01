@@ -460,6 +460,8 @@ def _parse(frame):
     path_start = p
     for _ in range(npath):
         t, p = dec_elem(f, p)
+        if not wide_ok(t):
+            raise Drop('wide_not_compliant')
         path.append(t)
     path_end = p
     d = dict(frame=f, header=h, kind=kind, src=src, path=path, path_start=path_start,
@@ -601,6 +603,26 @@ def split_tnc2(pkt):
     return s[:gt].decode('latin-1'), elems[0], elems[1:], s[co + 1:]
 
 
+_WIDE_SHAPE = re.compile(r'^WIDE(\d+)(?:-(\d+))?\*?$')
+
+
+def wide_ok(t):
+    """A path element shaped like a WIDE alias must follow the APRS rule (n 1 to 7, N 1 to n). One that does not is not carried and not repeated on RF."""
+    m = _WIDE_SHAPE.match(t)
+    if not m:
+        return True
+    n, N = m.group(1), m.group(2)
+    if len(n) != 1 or not 1 <= int(n) <= 7:
+        return False
+    return N is None or (len(N) == 1 and 1 <= int(N) <= int(n))
+
+
+def path_ok(tnc2):
+    """False if the packet's path holds a non-compliant WIDEn-N; the caller must then drop the packet, not send it in any other form."""
+    sp = split_tnc2(bytes(tnc2))
+    return sp is None or all(wide_ok(t) for t in sp[2])
+
+
 def encode(tnc2, version=1):
     try:
         fr = _encode(bytes(tnc2), version)
@@ -625,6 +647,8 @@ def _encode(pkt, version):
         return None
     pe = []
     for t in path:
+        if not wide_ok(t):
+            return None
         e = enc_elem(t)
         if e is None:
             return None

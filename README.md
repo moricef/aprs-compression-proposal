@@ -1,7 +1,7 @@
 # APRS-PPM: LoRa APRS packets in half the bytes
 
-> **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out with F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), so a relay can rewrite the path and add an RXT measurement without decompressing anything.
-> The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a **draft**: not agreed, not implemented in any firmware, not tested on the air. **The whole-packet figures below (about half the bytes) describe the earlier standalone format, which is not the plan.** The older frames (`3C FF 81`, `3C FF C1`) described here still work as documented, and remain the only ones in firmware.
+> **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out with F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), named **LACF**, the LoRa APRS Compact Frame, so a relay can rewrite the path and add an RXT measurement without decompressing anything.
+> The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a **draft**: not agreed with F4MLV, implemented in test branches of the T-Deck tracker and Dire Wolf, and tried on the air on 1 November 2026. **The whole-packet figures below (about half the bytes) describe the earlier standalone format, which is not the plan.** The older frames (`3C FF 81`, `3C FF C1`) described here still work as documented, and remain the only ones in released firmware.
 
 > **Breaking change, 26 October 2026: upgrade if you built an earlier version.** After an independent tester showed that a
 > primed frame (`3C FF C1`) could decode to the wrong text when a receiver held a stale reference, the primed header gained
@@ -134,7 +134,7 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 * [Known issues and findings from testing](docs/known-issues.md): what other testers found, and what was fixed
 * [Spec 11, the byte plan for the first common format (draft)](spec/11-native-ppm-frame-byte-plan.md): hybrid B, native frame with PPM content, RXT at the end; work in progress
 * [Truncated payloads and integrity checks (work in progress)](docs/truncated-payloads-and-integrity.md): what a cut-short frame decodes to, the checks measured
-* [Hybrid frame: airtime saved and processor time](docs/hybrid-savings-and-timing.md): measured on 14,305 real packets and on an ESP32, with the relayed-traffic effect
+* [LACF: airtime saved and processor time](docs/hybrid-savings-and-timing.md): measured on 14,305 real packets and on an ESP32, with the relayed-traffic effect
 * [Questions and answers](docs/faq.md): does it still work on normal LoRa APRS, what reaches APRS-IS, what a stock iGate does
 * [How it works, in plain language](docs/how-it-works.md) and [why not 438 or an off-the-shelf compressor](docs/alternatives-considered.md)
 * [The over-the-air test log](docs/over-the-air-test.md), with a section updated as the long run continues

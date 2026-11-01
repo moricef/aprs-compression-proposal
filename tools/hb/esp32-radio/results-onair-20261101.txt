@@ -1,4 +1,4 @@
-First on-air test of the spec 11 hybrid frame, 1 November 2026.
+First on-air test of LACF (LoRa APRS Compact Frame, the spec 11 hybrid frame), 1 November 2026.
 Sender: LILYGO LoRa32 v2.1 (SX1278) running tools/hb/esp32-radio, K6ATV-14, 433.775 MHz, SF12, BW 125, CR 4/5, 10 dBm, one frame every 45 s.
 Receiver: T-Deck Plus 433 (SX1262) running the tracker branch `hybrid` (lib/HybridFrame), K6ATV-4, a few metres away; the lines below are from its serial log.
 Result: 5 of 5 hybrid frames decoded by the T-Deck and expanded to the full TNC2 text; frame 3 carried an RXT tuple (50 20 45 10) that arrived as the RXT v2 trailer {(S5N+}.

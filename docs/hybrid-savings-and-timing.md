@@ -1,4 +1,6 @@
-# Hybrid frame (spec 11): airtime saved and processor time
+# LACF (LoRa APRS Compact Frame, spec 11): airtime saved and processor time
+
+LACF is the hybrid frame of spec 11: the native frame with a PPM-coded content field.
 
 Status: draft, measured 1 November 2026 with the reference code in `tools/hb` on the `lacf` branch. All numbers come from one network's packets and will differ elsewhere.
 

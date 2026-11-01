@@ -546,3 +546,8 @@ N0CALL>APLRG1:peM3B!%Yzu+9(+2DeY(W2hbAcIJm8VWahOax}Bm[0+<011+vcKjuCMX4d6k1anGd^K
 N0CALL>APLRG1:`abc]/>mice
 N0CALL>APLRG1,WIDE1-1:{#9Zc(r8G(i3cB^}Zz@qpe=W!U#]OGGn&cku!$0kk&Oj38ddUM(!0Olw)5O!OFwMLFDSX(B%pj%H{u;!e5fuzJI8tliw](<u{F1k{fiS;Il9JVaLl~beo@!%sM<]NSsRBpowkGcwrB+QmlD^;o(80%~#Mx18trNa[XD?ZP~Jg=b7Wdbj!lt(1Kb[RI$URQd5T36%~9pO(Lz[lMi}Ie]Zh@KKJBkxc4z~!iyy3k
 N0CALL>APLRG1,WIDE1-1:vU=~4p0$P5dGhlCy0E0t8oD2Vv%j]c[P%o&&V=kVp(k;(O7_ruRT?he@Vjw@k7bAaVs?Q+5o^$MJ1T9v]j]rh{dMz8#hUf1fgIu4jVkDK#bO4#8!mGRQ8X}uYi92x2c1=ZPY[HuPM^)IqYgcn;P;7Yo;[D4xbA6&L]CI&S?Nxw%0zqKubtBL0MX97pClFH_}vP23^28^YNeC}sITPY%dm}!=P4d;6p_4gRvrgq(+0eo4(ziW
+N0CALL>APLRG1,WIDE1-2:>x
+N0CALL>APLRG1,WIDE1-2*:>x
+N0CALL>APLRG1,WIDE01-1:>x
+N0CALL>APLRG1,WIDE10-1:>x
+N0CALL>APLRG1,WIDER:>x

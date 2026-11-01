@@ -41,8 +41,8 @@ def accepted(r):
 
 class Vectors(unittest.TestCase):
     def test_counts(self):
-        self.assertEqual(len(VEC_ALL), 548)
-        self.assertEqual(len(VEC), 540)
+        self.assertEqual(len(VEC_ALL), 553)
+        self.assertEqual(len(VEC), 537)
         self.assertEqual(len(RELAY), 298)
 
     def test_encode(self):
@@ -194,12 +194,23 @@ class SpecExample(unittest.TestCase):
 
 
 class Edge(unittest.TestCase):
+    def test_non_compliant_wide_paths_are_dropped(self):
+        # n must be 1 to 7 and N 1 to n (spec 11, "Non-compliant WIDE paths"): such a packet is not encoded, so it cannot be repeated on RF
+        for t in (b'WIDE1-2', b'WIDE2-3', b'WIDE1-2*', b'WIDE8-1', b'WIDE1-0', b'WIDE01-1', b'WIDE10-1', b'WIDE0-1'):
+            pkt = b'N0CALL>APLRG1,' + t + b':>x'
+            self.assertIsNone(hb.encode(pkt), pkt)
+            self.assertFalse(hb.path_ok(pkt), pkt)
+        for t in (b'WIDE1-1', b'WIDE2', b'WIDE3-3*', b'WIDE7-7', b'WIDER', b'WIDE'):
+            pkt = b'N0CALL>APLRG1,' + t + b':>x'
+            self.assertIsNotNone(hb.encode(pkt), pkt)
+            self.assertTrue(hb.path_ok(pkt), pkt)
+
     def test_not_encodable(self):
         self.assertIsNone(hb.encode(b'nocolon'))
         self.assertIsNone(hb.encode(b'A>B:' + b'x' * 256))
 
     def test_roundtrips(self):
-        for p in (b'N0CALL>APRS:', b'N0CALL>APRS::ALL      :hi', b'N0CALL-0>APRS,WIDE2-3:x',
+        for p in (b'N0CALL>APRS:', b'N0CALL>APRS::ALL      :hi', b'N0CALL-0>APRS,WIDE2-2:x',
                   b'LONGNAME-255>APRS,TCPIP*:!4903.50N/07201.75W-'):
             fr = hb.encode(p)
             self.assertIsNotNone(fr, p)

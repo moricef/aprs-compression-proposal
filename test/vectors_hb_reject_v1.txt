@@ -23,6 +23,9 @@
 3cff0223895994a62c0009124001b5f81655eb2f3e011bd55e93af550a8e18e207495b position flags: compressed-cs bit without compressed
 3cff0223895994a62c0001120001b5f81655eb2f3e011bd55e93af550a8e18e207495b path element WIDE with n = 0
 3cff0223895994a62c000a120001b5f81655eb2f3e011bd55e93af550a8e18e207495b path element WIDE with N above n
+3cff0223895994a62c00828dc51ba0120001b5f81655eb2f3e011bd55e93af550a8e18e207495b path element WIDE1-2 (N above n) written as a callsign element: not compliant, dropped
+3cff0223895994a62c00a38dc51bc8120001b5f81655eb2f3e011bd55e93af550a8e18e207495b path element WIDE2-3* (N above n) written as a callsign element: not compliant, dropped
+3cff0223895994a62c00c757494445312d30120001b5f81655eb2f3e011bd55e93af550a8e18e207495b path element WIDE1-0 written as a text element: not compliant, dropped
 3cff0223ffffffff2c0009120001b5f81655eb2f3e011bd55e93af550a8e18e207495b source element value above 40^6 (no callsign)
 3cff02239f5994a62c050009120001b5f81655eb2f3e011bd55e93af550a8e18e207495b SSID extra byte below 31
 3cff022389000000000009120001b5f81655eb2f3e011bd55e93af550a8e18e207495b callsign element of six spaces (empty)
