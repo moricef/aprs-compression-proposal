@@ -14,3 +14,4 @@ tools/integrity/esp32-timing/.pio/
 __pycache__/
 tools/hb/esp32-bench/.pio/
 __pycache__/
+tools/hb/esp32-radio/.pio/

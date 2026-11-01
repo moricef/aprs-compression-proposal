@@ -1,0 +1,33 @@
+First on-air test of the spec 11 hybrid frame, 1 November 2026.
+Sender: LILYGO LoRa32 v2.1 (SX1278) running tools/hb/esp32-radio, K6ATV-14, 433.775 MHz, SF12, BW 125, CR 4/5, 10 dBm, one frame every 45 s.
+Receiver: T-Deck Plus 433 (SX1262) running the tracker branch `hybrid` (lib/HybridFrame), K6ATV-4, a few metres away; the lines below are from its serial log.
+Result: 5 of 5 hybrid frames decoded by the T-Deck and expanded to the full TNC2 text; frame 3 carried an RXT tuple (50 20 45 10) that arrived as the RXT v2 trailer {(S5N+}.
+
+== Sent (LoRa32 serial) ==
+TX 1: K6ATV-14>APLRT1,N0RLY-1*,WIDE2-1:!3722.40N/12158.93W>hybrid test 1 LoRa APRS iGate on the hill
+    52 B hybrid (plain text frame would be 97 B), kind 3, cc 0: 3cff02238e482e0a7001a159a392e8110001b5f81655eb2f3e0129017fcb6cd28acb46356aa713d9b7deda6953adbd2c77354297
+    transmit state 0
+TX 2: K6ATV-14>APLRT1,WIDE1-1:>hybrid test 2, LoRa APRS iGate on the hill
+    37 B hybrid (plain text frame would be 70 B), kind 2, cc 0: 3cff02128e482e0a700109012b266b83b6dfd492a44aa33084c6b9f0860373982e3f1a00a0
+    transmit state 0
+TX 3: K6ATV-14>APLRT1,N0RLY-1*,WIDE2-1:!3722.40N/12158.93W>hybrid test 3 LoRa APRS iGate on the hill
+    58 B hybrid (plain text frame would be 97 B), kind 3, cc 0, with RXT: 3cff022b8e482e0a7001a159a392e8110001b5f81655eb2f3e01297285cb6cd28acb46356aa713e2d049a2050f773cd160fc2b7ed632142d0a81
+    transmit state 0
+TX 4: K6ATV-14>APLRT1,N0RLY-1*,WIDE2-1:!3722.40N/12158.93W>hybrid test 4 LoRa APRS iGate on the hill
+    52 B hybrid (plain text frame would be 97 B), kind 3, cc 0: 3cff02238e482e0a7001a159a392e8110001b5f81655eb2f3e0129c77acb6cd28acb46356aa713e2d119a6842e8674e4f1eb919a
+    transmit state 0
+TX 5: K6ATV-14>APLRT1,WIDE1-1:>hybrid test 5, LoRa APRS iGate on the hill
+    39 B hybrid (plain text frame would be 70 B), kind 2, cc 0: 3cff02128e482e0a700109012bff8983b6dfd492a44aa33084c76c8b129a0257e052f3c5abeebb
+    transmit state 0
+
+== Received (T-Deck serial, tracker log) ==
+payloadToText(): [LoRa] Hybrid frame 52 bytes, 97 expanded
+receivePacket(): [LoRa] Rx ---> K6ATV-14>APLRT1,N0RLY-1*,WIDE2-1:!3722.40N/12158.93W>hybrid test 1 LoRa APRS iGate on the hill
+payloadToText(): [LoRa] Hybrid frame 37 bytes, 70 expanded
+receivePacket(): [LoRa] Rx ---> K6ATV-14>APLRT1,WIDE1-1:>hybrid test 2, LoRa APRS iGate on the hill
+payloadToText(): [LoRa] Hybrid frame 58 bytes, 97 expanded
+receivePacket(): [LoRa] Rx ---> K6ATV-14>APLRT1,N0RLY-1*,WIDE2-1:!3722.40N/12158.93W>hybrid test 3 LoRa APRS iGate on the hill{(S5N+}
+payloadToText(): [LoRa] Hybrid frame 52 bytes, 97 expanded
+receivePacket(): [LoRa] Rx ---> K6ATV-14>APLRT1,N0RLY-1*,WIDE2-1:!3722.40N/12158.93W>hybrid test 4 LoRa APRS iGate on the hill
+payloadToText(): [LoRa] Hybrid frame 39 bytes, 70 expanded
+receivePacket(): [LoRa] Rx ---> K6ATV-14>APLRT1,WIDE1-1:>hybrid test 5, LoRa APRS iGate on the hill
