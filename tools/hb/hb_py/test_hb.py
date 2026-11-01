@@ -16,7 +16,8 @@ def read_vectors(name):
     return rows
 
 
-VEC = read_vectors('vectors_hb_v1.txt')
+VEC_ALL = read_vectors('vectors_hb_v1.txt')           # includes the packets that are not encodable (frame '-')
+VEC = [r for r in VEC_ALL if r[0] is not None]
 RELAY = read_vectors('vectors_hb_relay_v1.txt')
 CHAIN = read_vectors('vectors_hb_relay_chain_v1.txt')
 REJECT = []
@@ -40,11 +41,12 @@ def accepted(r):
 
 class Vectors(unittest.TestCase):
     def test_counts(self):
-        self.assertEqual(len(VEC), 500)
-        self.assertEqual(len(RELAY), 296)
+        self.assertEqual(len(VEC_ALL), 548)
+        self.assertEqual(len(VEC), 540)
+        self.assertEqual(len(RELAY), 298)
 
     def test_encode(self):
-        bad = [i for i, (fr, pkt) in enumerate(VEC) if hb.encode(pkt) != fr]
+        bad = [i for i, (fr, pkt) in enumerate(VEC_ALL) if hb.encode(pkt) != fr]
         self.assertEqual(bad, [])
 
     def test_decode(self):
@@ -55,6 +57,10 @@ class Vectors(unittest.TestCase):
         for i, (rx, tx, pkt) in enumerate(RELAY):
             self.assertEqual(hb.relay_auto(rx), tx, i)
             self.assertEqual(hb.decode(tx), pkt, i)
+
+    def test_relay_refuses_invalid_frames(self):
+        for fr in REJECT:
+            self.assertIsNone(hb.relay_auto(fr))
 
     def test_reject_vectors(self):
         self.assertGreaterEqual(len(REJECT), 10)
@@ -71,7 +77,7 @@ class Vectors(unittest.TestCase):
         with open(os.path.join(TEST, 'hb_packets.txt'), 'rb') as fh:
             pk = fh.read().split(b'\n')
         pk = [p for p in pk if p]
-        self.assertEqual(pk, [p for _, p in VEC])
+        self.assertEqual(pk, [p for _, p in VEC_ALL])
 
     def test_crc(self):
         self.assertEqual(hb.crc16_x25(b'123456789'), 0x906E)

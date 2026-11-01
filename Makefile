@@ -65,6 +65,7 @@ hb-test: build/hb_test
 
 hb-vectors: build/hb_test
 	python3 tools/hb/gen_packets.py 500 > test/hb_packets.txt
+	grep -v '^#' test/hb_edge_packets.txt >> test/hb_packets.txt
 	build/hb_test gen < test/hb_packets.txt > test/vectors_hb_v1.txt
 	python3 tools/hb/gen_reject.py > test/vectors_hb_reject_v1.txt
 	( echo "# Spec 11 relay vectors, first hop: <received frame hex> <relayed frame hex> <relayed TNC2 hex>. Relay N0RLY-1, tuple bytes 50 20 45 10, rules in spec 11 Conformance."; build/hb_test relaygen < test/hb_packets.txt ) > test/vectors_hb_relay_v1.txt

@@ -125,7 +125,7 @@ static int dec_element(const uint8_t *b, size_t size, size_t *i, char *e, size_t
         l = strlen(s); while (l && s[l - 1] == ' ') s[--l] = 0;
         if (!l || strchr(s, ' ')) return 0;                         /* strict: empty, or a space inside */
         ssid = t & 0x1F;
-        if (ssid == 31) { if (j >= size) return 0; ssid = b[j++]; }
+        if (ssid == 31) { if (j >= size) return 0; ssid = b[j++]; if (ssid < 31) return 0; }             /* strict: the extra byte is for SSIDs above 30 */
         if (cap < 16) return 0;
         strcpy(e, s);
         if (ssid) snprintf(e + strlen(e), cap - strlen(e), "-%d", ssid);
@@ -215,7 +215,7 @@ static int pos_decode(const uint8_t *b, size_t size, size_t *i, char *prefix, si
     uint8_t flags; char t[24]; uint64_t v; size_t j;
     if (*i >= size || cap < 80) return 0;
     flags = b[(*i)++]; alt->present = 0;
-    if ((flags & 0x80) || ((flags & 0x10) && (flags & 0x08)) || ((flags & 0x40) && !(flags & 0x08))) return 0;   /* strict: reserved bit, impossible flag combinations */
+    if ((flags & 0x80) || ((flags & 0x10) && (flags & 0x08)) || ((flags & 0x40) && !(flags & 0x08)) || ((flags & 0x04) && (flags & 3) < 2)) return 0;   /* the timestamp belongs to / and @ only */   /* strict: reserved bit, impossible flag combinations */
     prefix[0] = DTIS[flags & 3]; prefix[1] = 0;
     if (flags & 0x04) {
         uint32_t tv;
@@ -320,9 +320,21 @@ size_t hb_encode(const char *tnc2, size_t len, const hb_rxt_t *rxt, uint8_t *out
 {
     tnc_t t; uint8_t front[300], posblk[32], content[300], pay[300]; char comment[300]; char back[600]; hb_info_t bi;
     size_t w = 0, fw, pw = 0, cw, n, clen = 0, L, k, wr; int kind = 2, cc = 1; const uint8_t *textp; uint8_t V = (uint8_t)VERSION, hdr;
-    if (len > 255 || !tnc_parse(tnc2, len, &t) || t.ilen > 255) return 0;
+    if (len > 600 || !tnc_parse(tnc2, len, &t) || t.ilen > 255) return 0;     /* the limits are on the frame (255) and the information field (255), not on the plain text */
     /* kind: position block if the information field has one and round-trips */
     pw = pos_encode(t.info, t.ilen, posblk, comment, &clen);
+    if (pw) {                                                           /* the block must give back the information field exactly, or kind 2 carries it */
+        char pfx[96], rb[600]; alt_t a; size_t j = 0, off;
+        if (!pos_decode(posblk, pw, &j, pfx, sizeof pfx, &a) || j != pw) pw = 0;
+        else {
+            off = a.present ? a.offset : 0;
+            if (off > clen) pw = 0;
+            else { size_t m = strlen(pfx); memcpy(rb, pfx, m); memcpy(rb + m, comment, off); m += off;
+                   if (a.present) { size_t al = strlen(a.text); memcpy(rb + m, a.text, al); m += al; }
+                   memcpy(rb + m, comment + off, clen - off); m += clen - off;
+                   if (m != t.ilen || memcmp(rb, t.info, m)) pw = 0; }
+        }
+    }
     if (pw) kind = 3;
     if (kind == 3) { textp = (const uint8_t *)comment; L = clen; } else { textp = (const uint8_t *)t.info; L = t.ilen; }
     /* content: PPM when 4 + n < 1 + L, else raw */
@@ -454,7 +466,7 @@ int hb_decode(const uint8_t *fr, size_t n, char *tnc2, size_t cap, hb_info_t *in
 size_t hb_relay(const uint8_t *fr, size_t n, const char *relay_call, const uint8_t tuple[4], uint8_t *out, size_t cap)
 {
     char tn[700]; hb_info_t in; tnc_t t; int len = hb_decode(fr, n, tn, sizeof tn, &in);
-    size_t i = 4, cs, end = n, w = 0, wr; int k, relay_idx = -1; uint8_t hdr = fr[3]; char tmp[40]; hb_rxt_t rx;
+    size_t i = 4, cs, end = n, w = 0, wr; int k, relay_idx = -1, own; uint8_t hdr = fr[3]; char tmp[40]; hb_rxt_t rx;
     uint8_t front[300]; char path[16][40]; int np;
     if (len <= 0 || !tnc_parse(tn, (size_t)len, &t)) return 0;
     np = t.np; for (k = 0; k < np; k++) strcpy(path[k], t.path[k]);
@@ -469,7 +481,8 @@ size_t hb_relay(const uint8_t *fr, size_t n, const char *relay_call, const uint8
         } else return 0;
         break;
     }
-    if (relay_idx < 0 || relay_idx > 6) return 0;
+    if (relay_idx < 0) return 0;
+    own = relay_idx <= 6;                                                   /* mask bits 0 to 6 only: an eighth element or later relays without its own tuple */
     /* locate the parts to copy: re-walk the received front */
     { char e[40]; size_t j = 4; int q;
       if (!dec_element(fr, n, &j, e, sizeof e)) return 0;
@@ -482,7 +495,7 @@ size_t hb_relay(const uint8_t *fr, size_t n, const char *relay_call, const uint8
     if (rx.n >= HB_MAX_TUPLES) return 0;
     /* new front */
     front[0] = 0x3C; front[1] = 0xFF; front[2] = 0x02;
-    front[3] = (uint8_t)((np << 4) | 0x08 | (hdr & 0x07));
+    front[3] = (uint8_t)((np << 4) | ((rx.n + own) ? 0x08 : 0) | (hdr & 0x07));
     { size_t fw = 4; char sp[40]; const char *gt;
       gt = strchr(tn, '>'); memcpy(sp, tn, (size_t)(gt - tn)); sp[gt - tn] = 0;
       if (!enc_element(sp, front + fw, sizeof front - fw, &wr)) return 0; fw += wr;
@@ -498,9 +511,10 @@ size_t hb_relay(const uint8_t *fr, size_t n, const char *relay_call, const uint8
         pb = j; pos_decode(fr, n, &j, pfx, sizeof pfx, &a); cs = j; (void)pb; }
       { size_t from = (hdr & 3) == 3 ? pb : cs; memcpy(out + w, fr + from, end - from); w += end - from; } }
     /* tuples: the old ones, then the relay's (its element index is the largest) */
-    { int q; rx.idx[rx.n] = (uint8_t)relay_idx; for (q = 0; q < 4; q++) rx.t[rx.n][q] = tuple[q]; rx.n++;
-      if (rx.n > 1 && rx.idx[rx.n - 2] >= rx.idx[rx.n - 1]) return 0;
-      w += rxt_bytes(&rx, out + w); }
+    { int q; if (own) { rx.idx[rx.n] = (uint8_t)relay_idx; for (q = 0; q < 4; q++) rx.t[rx.n][q] = tuple[q]; rx.n++;
+        if (rx.n > 1 && rx.idx[rx.n - 2] >= rx.idx[rx.n - 1]) return 0; }
+      if (rx.n) w += rxt_bytes(&rx, out + w); }
     (void)i;
+    if (w > 255) return 0;                                                  /* a LoRa frame holds 255 bytes */
     return w;
 }

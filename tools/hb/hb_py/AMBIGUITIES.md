@@ -65,3 +65,32 @@ Result: 500/500 encode, 500/500 decode, 246/246 relay (and 246/246 decode of the
 38. **CLI input.** `gen` reads packet lines as raw bytes split on `\n` only (packets contain control bytes 0x1c..0x1f); a trailing `\r` is stripped and `#`-lines skipped. `recv` takes a frame hex per line, ignores text after the first space.
 39. **Hard to follow:** the spec jumps between "the content field" (V ... payload), "payload" and "text"; the sentence in Receiver 3 about where the RXT block starts ("at least 4k+1 bytes remain ... after the CRC") is easy to misread as the block starting at the CRC. A single worked example frame (hex, annotated) in the spec would have saved the most time: I derived the frame layout by decoding the first vector by eye.
 40. **The Size / Integrity / Open sections** state a measured result "Two independent implementations (C and Python) agree"; this implementation is a third, written from the text, and agrees on all 500 + 246 vectors; it does not test the damage statistics claimed there.
+
+## Resolved in the spec and the code (1 November 2026)
+
+Every item above was answered by a spec sentence, a rule in the code, a vector, or a decision. "Vector" means a line in `test/`: the edge packets are in `hb_edge_packets.txt` (part of `vectors_hb_v1.txt`), the rejection vectors in `vectors_hb_reject_v1.txt`, the relay vectors in `vectors_hb_relay_v1.txt` and `vectors_hb_relay_chain_v1.txt`.
+
+| Items | Answer |
+|---|---|
+| 1 | The tuple is decimal; the spec says so and gives `N0RLY-(k+1)` with `50+k 20+k 45+k 10+k`. |
+| 2 | The 255 bytes count the whole frame; a relay whose result would exceed 255 does not relay (edge vectors: one packet that relays at 251 bytes, one that does not). |
+| 3 | Decided: the encoder sends the hybrid frame whenever the packet is encodable and does not compare it with the plain frame. |
+| 4, 5, 6, 8 | The one-byte WIDE form wins when it matches exactly; look-alikes follow the callsign and text rules; SSID 31 uses the extra byte; a trailing star of a text element is one of its bytes. Edge vectors for each. |
+| 7 | The first character is the most significant base-40 digit (spec). |
+| 9 | The not-encodable cases are listed in the spec (empty element, text element over 31, more than 15 path elements, frame or information field over 255, missing `>` or `:`); 8 of the 548 vectors are `-`. |
+| 10 | Strict rule: the receiver drops every element no encoder can produce, also an SSID extra byte below 31 and a callsign digit above 36 (spec, reject vectors). |
+| 11 | The encoder must use the destination code when the destination is listed; a receiver also accepts the escape form (spec). |
+| 12, 22 | Kinds 0 and 1 are not used and are dropped (decided; reject vectors). |
+| 13, 14, 15, 16 | The spec states the altitude search, when a position falls back to kind 2 (`/A=-00000`, `4999.99N`: found by the edge packets and fixed in C), the base-91 range and the `c s` rule. |
+| 17, 18, 19, 21 | Strict rule for the position block (spec, reject vectors), including a timestamp flag on `!` and `=`. |
+| 20 | An empty text is raw content with nothing after `V`, for both kinds (spec). |
+| 23 | The order is fixed by the rejection vectors, one per field above its maximum. |
+| 24, 26 | Receiver steps 1 to 3 rewritten: version is read after parsing; the RXT block lies after `V` (raw) or after `V`, `L` and the CRC (PPM). |
+| 25 | Reason names are not part of the format (spec). |
+| 27 | The decoder may read zeros past the payload; acceptance never depends on it (spec). |
+| 28, 29 | Confirmed; header bit 2 set is in the reject vectors. |
+| 30 | RXT on raw content is covered: about two thirds of the relay vectors (197 of 298, 129 of 199) are raw frames. |
+| 31, 32, 33, 34 | The relay vectors use three cases; a deployed relay may use its full rule (spec). Tuples belong to used elements, so no mask bit moves. An eighth element or later relays without its own tuple (C changed to match). A relay refuses invalid frames (Python test). Vectors for frames that already carry tuples: `vectors_hb_relay_chain_v1.txt`. |
+| 35, 36, 37, 38 | Confirmed, nothing to change. |
+| 39 | Terms defined (content field, text, payload, body) and the worked example added. |
+| 40 | Spec sentence updated: the C reference and this implementation agree on all vectors and 122,689 intact and damaged frames. |

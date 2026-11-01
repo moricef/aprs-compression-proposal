@@ -263,6 +263,8 @@ def dec_elem(buf, pos):
                 raise Drop('truncated')
             ssid = buf[npos]
             npos += 1
+            if ssid < 31:
+                raise Drop('bad_callsign')
         return call + ('-%d' % ssid if ssid else '') + ('*' if h & 0x20 else ''), npos
     ln = h & 31
     if ln == 0 or pos + 1 + ln > len(buf):
@@ -359,7 +361,7 @@ def parse_pos(buf, p):
         if flags & 4:
             v = int.from_bytes(buf[p:p + 3], 'big')
             p += 3
-            if v & 3 == 3 or v >> 2 > 999999 or len(buf) < p:
+            if v & 3 == 3 or v >> 2 > 999999 or len(buf) < p or flags & 3 < 2:
                 raise Drop('bad_timestamp')
             out += b'%06d' % (v >> 2) + b'zh/'[v & 3:(v & 3) + 1]
         if comp:
@@ -705,8 +707,9 @@ def relay(frame, relay_call=RELAY_CALL, tuple_bytes=RELAY_TUPLE):
         mask |= 1 << b
     front = f[4:d['path_start']]
     middle = f[d['path_end']:d['content_end']]
-    return (b'\x3c\xff\x02' + bytes([header]) + front + b''.join(newpath) + middle
-            + b''.join(t for _, t in tup) + (bytes([mask]) if tup else b''))
+    out = (b'\x3c\xff\x02' + bytes([header]) + front + b''.join(newpath) + middle
+           + b''.join(t for _, t in tup) + (bytes([mask]) if tup else b''))
+    return out if len(out) <= 255 else None
 
 
 def relay_auto(frame):
