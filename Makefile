@@ -60,6 +60,9 @@ hb-test: build/hb_test
 	build/hb_test relaycheck test/vectors_hb_relay_v1.txt
 	build/hb_test relaycheck test/vectors_hb_relay_chain_v1.txt
 	build/hb_test relaycheck test/vectors_hb_relay_edge_v1.txt
+	build/hb_test relaytocheck test/vectors_hb_relay_v1.txt
+	build/hb_test relaytocheck test/vectors_hb_relay_chain_v1.txt
+	build/hb_test relaytocheck test/vectors_hb_relay_edge_v1.txt
 	@n=$$(grep -v '^#' test/vectors_hb_reject_v1.txt | awk '{print $$1}' | build/hb_test recv | grep -vc '^-$$'); echo "RXT rejection vectors: $$n accepted (must be 0)"; test "$$n" = 0
 	python3 tools/hb/gen_packets.py 3000 > build/hb_packets.txt
 	build/hb_test props build/hb_packets.txt

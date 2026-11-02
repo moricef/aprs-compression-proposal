@@ -32,6 +32,15 @@ add(with_tuples(two, [bytes([60, 30, 50, 20])], [1]), 'a tuple on the second, un
 add(with_tuples(two, [bytes([60, 30, 50, 20])], [0]), "a tuple on the relay's own (first unused) element: not relayed")
 three = H.encode(b'N0CALL-9>APLRG1,K6LY-3*,WIDE1-1,WIDE2-2:' + INFO)
 add(with_tuples(three, [bytes([60, 30, 50, 20]), bytes([61, 31, 51, 21])], [0, 2]), 'a used element with a tuple and a later unused one with a tuple: not relayed')
+# 5. a long packet: with the relay's own tuple the frame would be longer than 255 bytes, so it is relayed without it; one that is too long even then is not relayed
+def packet_of_length(n, path=b'WIDE1-1'):
+    for m in range(40, 260):
+        f = H.encode(b'N0CALL-9>APLRG1,' + path + b':>' + bytes((33 + (i * 7) % 90) for i in range(m)))
+        if f is not None and len(f) == n:
+            return f
+    raise SystemExit('no packet of %d bytes' % n)
+add(packet_of_length(249), 'long packet: the relay\'s own tuple would make it longer than 255 bytes, relayed without it')
+add(packet_of_length(253), 'long packet: too long even without the relay\'s own tuple: not relayed')
 for recv, r, why in out:
     if r is not None:
         assert isinstance(H.decode(r), bytes), why

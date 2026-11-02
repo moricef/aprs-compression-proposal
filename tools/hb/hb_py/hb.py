@@ -723,21 +723,26 @@ def relay(frame, relay_call=RELAY_CALL, tuple_bytes=RELAY_TUPLE):
     old = [(b, t) for b, t in old if b != j or expand]  # WIDE1-1 case: relay tuple replaces one at j
     if any(b > 6 for b, _ in old):
         return None
+    front = f[4:d['path_start']]
+    middle = f[d['path_end']:d['content_end']]
+
+    def build(tup):
+        if not tup:
+            header = (d['header'] & 0x07) | (len(newpath) << 4)
+        else:
+            header = (d['header'] & 0x07) | 8 | (len(newpath) << 4)
+        mask = 0x80
+        for b, _ in tup:
+            mask |= 1 << b
+        return (b'\x3c\xff\x02' + bytes([header]) + front + b''.join(newpath) + middle
+                + b''.join(t for _, t in tup) + (bytes([mask]) if tup else b''))
     tup = old[:]
     if j <= 6:
         tup = [(b, t) for b, t in old if b != j] + [(j, bytes(tuple_bytes))]
         tup.sort(key=lambda x: x[0])
-    if not tup:
-        header = (d['header'] & 0x07) | (len(newpath) << 4)
-    else:
-        header = (d['header'] & 0x07) | 8 | (len(newpath) << 4)
-    mask = 0x80
-    for b, _ in tup:
-        mask |= 1 << b
-    front = f[4:d['path_start']]
-    middle = f[d['path_end']:d['content_end']]
-    out = (b'\x3c\xff\x02' + bytes([header]) + front + b''.join(newpath) + middle
-           + b''.join(t for _, t in tup) + (bytes([mask]) if tup else b''))
+    out = build(tup)
+    if len(out) > 255 and j <= 6:                                  # too long with the relay's own tuple: forwarded without it, the earlier tuples stay
+        out = build(old)
     return out if len(out) <= 255 else None
 
 

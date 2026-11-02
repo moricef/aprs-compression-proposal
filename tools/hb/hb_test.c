@@ -4,6 +4,7 @@
  *   hb_test recv                        lines "<frame hex>" -> the accepted TNC2 as hex, or "-" (cross-check against another implementation)
  *   hb_test relaychain < packets.txt    the same for the second and later hops (frames that already carry tuples): "<received> <relayed> <relayed tnc2>"
  *   hb_test relaycheck FILE             check a relay vector file against hb_relay
+ *   hb_test relaytocheck FILE           the same file through hb_relay_to, with the relayed path taken from the file
  *   hb_test relaygen  < packets.txt     for each packet with an unused WIDE1-1 or WIDE2-2: "<frame hex> <relayed frame hex> <relayed tnc2 hex>"
  *   hb_test props packets.txt           cuts, appended bytes, bit flips, RXT, relay: what is accepted that should not be
  *   hb_test time packets.txt            encode and decode time on this machine */
@@ -64,6 +65,41 @@ int main(int argc, char **argv)
         char l[2000];
         while (fgets(l, sizeof l, stdin)) { uint8_t b[400]; size_t bl = unhex(l, b, sizeof b); int r = hb_decode(b, bl, tn, sizeof tn, NULL); if (r > 0) hexout((uint8_t *)tn, (size_t)r); else fputs("-", stdout); putchar('\n'); }
         return 0;
+    }
+    if (!strcmp(argv[1], "relaytocheck")) {
+        /* the same vectors through hb_relay_to: the new path is the one the vector lists (column 3, the relayed packet). For a vector that must not be relayed (column 2 is '-') the
+         * path is made here by the same rule as hb_relay's (first unused WIDE1-1, WIDE2-1 or WIDE2-2); if that does not apply the vector is not run. */
+        FILE *f = fopen(argv[2], "r"); char l[3000]; int cnt = 0, bad = 0, skipped = 0;
+        while (f && fgets(l, sizeof l, f)) {
+            uint8_t a[400], b[400], out[400], t4[4]; char c[40], nt[800], *p1, *p2; size_t al, bl, r, nl; hb_info_t in; int d, k;
+            if (l[0] == '#' || l[0] == '\n') continue;
+            p1 = strchr(l, ' '); p2 = p1 ? strchr(p1 + 1, ' ') : NULL; if (!p2) { bad++; continue; }
+            al = unhex(l, a, sizeof a); bl = unhex(p1 + 1, b, sizeof b); cnt++;
+            if (hb_decode(a, al, tn, sizeof tn, &in) <= 0) { bad++; continue; }
+            k = in.has_rxt ? in.rxt.n : 0; snprintf(c, sizeof c, "N0RLY-%d", k + 1); { int q; for (q = 0; q < 4; q++) t4[q] = (uint8_t)(TUP[q] + k); }
+            if (p1[1] == '-') {
+                char *comma = strchr(tn, ','), *colon = strchr(tn, ':'), *u; size_t head;
+                if (!comma || !colon) { skipped++; continue; }
+                u = comma + 1; while (u < colon) { char *e = strchr(u, ','); if (!e || e > colon) e = colon; if (e[-1] != '*') break; u = e + 1; }
+                if (u >= colon) { skipped++; continue; }
+                head = (size_t)(u - tn);
+                if (!strncmp(u, "WIDE1-1", 7) && (u[7] == ',' || u[7] == ':')) nl = (size_t)snprintf(nt, sizeof nt, "%.*s%s*%s", (int)head, tn, c, u + 7);
+                else if (!strncmp(u, "WIDE2-1", 7) && (u[7] == ',' || u[7] == ':')) nl = (size_t)snprintf(nt, sizeof nt, "%.*s%s*%s", (int)head, tn, c, u + 7);
+                else if (!strncmp(u, "WIDE2-2", 7) && (u[7] == ',' || u[7] == ':')) nl = (size_t)snprintf(nt, sizeof nt, "%.*s%s*,WIDE2-1%s", (int)head, tn, c, u + 7);
+                else { skipped++; continue; }
+                r = hb_relay_to(a, al, nt, nl, c, t4, out, sizeof out);
+                if (r) { bad++; printf("relay-to vector %d: relayed a frame that must not be relayed\n", cnt); }
+                continue;
+            }
+            { char *p3 = strchr(p2 + 1, ' '); size_t tl; uint8_t tb[800]; (void)p3;
+              tl = unhex(p2 + 1, tb, sizeof tb); if (tl == 0 || tl >= sizeof nt) { bad++; continue; } memcpy(nt, tb, tl); nt[tl] = 0; nl = tl; }
+            r = hb_relay_to(a, al, nt, nl, c, t4, out, sizeof out);
+            d = r ? hb_decode(out, r, tn, sizeof tn, NULL) : -1;
+            if (r != bl || memcmp(out, b, bl) || d <= 0) { bad++; printf("relay-to vector %d: mismatch\n", cnt); }
+        }
+        if (f) fclose(f);
+        printf("%d relay-to vectors, %d failed (%d not run)\n", cnt, bad, skipped);
+        return bad != 0 || !f;
     }
     if (!strcmp(argv[1], "relaychain") || !strcmp(argv[1], "relaycheck")) {
         /* relay vectors: the relay is N0RLY-(k+1) with tuple 50+k 20+k 45+k 10+k, k = tuples already in the frame (spec 11 Conformance) */
