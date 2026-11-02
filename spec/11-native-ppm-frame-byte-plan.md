@@ -1,13 +1,13 @@
 # LACF, the LoRa APRS Compact Frame: native frame with a PPM-coded content field (spec 11, byte plan)
 
-> **DRAFT, WORK IN PROGRESS.** Not a standard, and not yet seen or agreed by F4MLV (moricef). It is implemented in the C reference, an independent Python implementation, the T-Deck tracker and Dire Wolf (test branches), and was tried on the air on 1 November 2026 between a LoRa32, a T-Deck and a hill Pi; no released firmware has it. Details will change; do not build deployed software from this text. Where it is weak or undecided is listed under "Open" and "Not yet measured".
+> **DRAFT, WORK IN PROGRESS.** Not a standard; in early development and still being reviewed for change. It is implemented in the C reference, an independent Python implementation, the iGate, the T-Deck tracker and Dire Wolf (test branches), and was tried on the air on 1 November 2026 between a LoRa32, a T-Deck and a hill Pi; no released firmware has it. Details will change; do not build deployed software from this text. Where it is weak or undecided is listed under "Open" and "Not yet measured".
 >
 > *Last changed 1 November 2026.*
 
 | | |
 |---|---|
 | Name | **LACF**, the **LoRa APRS Compact Frame**: the native frame `3C FF 02` with a PPM-coded content field (called hybrid B in `tools/hybrid/`) |
-| Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV, not yet seen or agreed by F4MLV. Implemented in the C reference (`tools/hb`), an independent Python implementation, the T-Deck tracker (branch `hybrid`) and Dire Wolf (branch `feature/lora-hybrid`); F4MLV's firmware does not implement it. The payload's integrity rules, the RXT tail and the receiver are tested (below).** |
+| Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV and being reviewed. Implemented in the C reference (`tools/hb`), an independent Python implementation, the iGate (branch `feature/lacf`), the T-Deck tracker (branch `hybrid`) and Dire Wolf (branch `feature/lora-hybrid`); F4MLV's firmware does not implement it. The payload's integrity rules, the RXT tail and the receiver are tested (below).** |
 | Builds on | moricef's native frame (see History at the end); hybrid B of `tools/hybrid/` and its tables (`tools/hybrid/tables/`); the PPM payload rules below (ending, CRC-16, re-encode check) |
 | Replaces | nothing that was ever on the air. An earlier version of this repository used the name LACF for a standalone whole-text frame (spec 10, `3C FF 81`); that was never the plan and has been withdrawn, and the name now means this frame. PPM of the whole packet is **not** the plan: a relay would have to decompress, edit the path and recompress |
 
@@ -324,13 +324,21 @@ The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text
 
 ## Not yet measured
 
-* **The extended CRC input.** The test code computes the CRC over the text only; the input of this section (kind bits, `V`, source and destination text, information field) and the packing of `V` as `cc vvvvvv` are not implemented in any test yet.
-* **Kind 3 end to end.** No executable test covers a kind-3 frame (the CRC over the rebuilt position plus comment, the comment-only table) or the destination and path parse; the test code uses a 6-byte test frame with no `V` byte.
-* **The RXT block with raw content (`cc = 3`).** The tail tests used PPM payloads. Raw text has no check of its own (the LoRa CRC only), so a cut that removes the whole block and part of the text is caught only if the new last byte fails the mask test; ASCII text almost always does, binary text may not. Not measured with real raw-text frames.
+Status of 1 November 2026. The format is in early development and is still being tested and reviewed for change; several items that this section used to list as open are now done, and the open list is shorter. What is open is listed last.
 
-* The size of a native PPM frame with a real native encoder, `V` and the CRC included.
-* The relay path end to end (path rewrite, RXT append, no PPM decode), including locating the end of the position block without decoding it.
-* A native encoder or decoder with this plan, and a complete RF chain with RXT (F4MLV's stated next step).
+**Done since this section was first written**
+
+* **The extended CRC input and kind 3 end to end.** The C reference (`tools/hb/hb.c`) and the independent Python implementation (`tools/hb/hb_py/hb.py`) compute the CRC over the kind bits, `V`, source, destination and information field, pack `V` as `cc vvvvvv`, rebuild the position block and the comment-only table, and parse the destination and path. They agree on all of [`test/vectors_hb_v1.txt`](../test/vectors_hb_v1.txt) (554 packets, kinds 2 and 3), the relay vectors and the rejection vectors, and on 142,282 intact and damaged frames.
+* **The RXT block with raw content (`cc = 3`).** About two thirds of the relay vectors are raw-content frames (197 of 298 first-hop and 129 of 199 later-hop), and the cut tests include them. The weakness stays: raw text has no check of its own (the LoRa CRC only), so a cut that removes the whole block and part of the text is caught only if the new last byte fails the mask test; ASCII text almost always does, binary text may not. Not measured on real raw-text traffic: none of the 14,305 real packets falls back to raw content.
+* **The size of a native PPM frame with an encoder, `V` and the CRC included.** Measured on 14,305 real packets with the reference encoder: 86.6 bytes plain against 48.7 bytes, 43.8% smaller, and about 35% less airtime ([`docs/hybrid-savings-and-timing.md`](../docs/hybrid-savings-and-timing.md)). On the air, beacons were 29 against 50 bytes (iGate), 58 against 89 (T-Deck) and 39 against 57 (Dire Wolf) ([`docs/lacf-test-results-2026-11-01.md`](../docs/lacf-test-results-2026-11-01.md)).
+* **An encoder and decoder with this plan.** They exist in test branches of the iGate (`feature/lacf`), the T-Deck tracker (`hybrid`) and Dire Wolf (`feature/lora-hybrid`), and have been run on the air between a LoRa32, a T-Deck and a hill Raspberry Pi; the tests continue.
+* **The relay path in the reference code.** Path rewrite, RXT append and no PPM decode of the content, including locating the end of the position block without decoding it, are implemented in the C and Python references and covered by 298 + 199 + 6 relay vectors (the last six are edge cases such as tuples on unused elements).
+
+**Still open**
+
+* **A relay in any firmware, and a relay on the air.** The relay exists only in the reference code and its vectors. The iGate, the tracker and Dire Wolf decode LACF frames and count or drop an RXT block they receive, but none of them adds an RXT measurement when it digipeats, and no relay chain has been run over RF.
+* **A complete RF chain with RXT through a real relay** (F4MLV's stated next step). One frame with an RXT block, made by a test sketch, has been decoded by a T-Deck. F4MLV's own firmware does not implement this plan.
+* **More conditions.** Other boards and spreading factors, a busy or weak channel, long runs, and a T-Deck or iGate that digipeats LACF frames. The tests so far are short runs on one LoRa32, one T-Deck and one Dire Wolf station.
 
 ## Extending the format later
 

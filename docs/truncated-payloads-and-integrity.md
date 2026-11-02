@@ -1,12 +1,14 @@
 # Truncated payloads and integrity checks
 
-> **WORK IN PROGRESS.** A measurement record, not a specification. The numbers are from one set of real packets and from test code; the format they support is the draft in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which is not agreed and not implemented.
+> **WORK IN PROGRESS.** A measurement record, not a specification. The numbers are from one set of real packets and from test code; the format they support is the draft in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which is in early development and still being reviewed for change.
 
 > **Note on framing (31 October 2026).** These measurements were taken on a standalone whole-text test frame (`3C FF 81`, a 6-byte header). That frame was a test vehicle and is **not** the proposal: PPM of the whole packet is not the plan. The proposed format is hybrid B in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which carries the payload rules defined and tested here (deterministic ending, CRC-16, re-encode check). The payload results below stand; passages about the frame mark and header describe the test frame.
+>
+> **Names.** "LACF" now means only the format of [spec 11](../spec/11-native-ppm-frame-byte-plan.md). File and script names in this document that contain `lacf` (`lacf_ending`, `lacf_core.h`, `lacf_py`, `make lacf-ending`) predate that, and the frame they measure is the whole-text test frame, not spec 11.
 
 | | |
 |---|---|
-| Status | **Measured** on 14,298 real full frames (31 October 2026). A check is chosen for the byte plan (decode, re-encode, compare); it is **not yet written into a spec** and not tried on the air |
+| Status | **Measured** on 14,298 real full frames (31 October 2026). A check is chosen for the byte plan (decode, re-encode, compare); its rules are in [spec 11](../spec/11-native-ppm-frame-byte-plan.md), which is in early development and still being reviewed for change, and they are used in the LACF test firmware, where testing continues |
 | Question from | F4MLV, issue #7 on moricef/LoRa_APRS_Tracker: a payload cut short before transmission is sent with a valid LoRa CRC, so we must verify that the decoder rejects it before deciding that no further check is needed |
 | Depends on | [01 Compressed frames](../spec/01-compressed-frames.md), [08 Priming](../spec/08-priming-from-previous-packet.md) |
 | Branch | `lacf` (LoRa APRS Compact Frame, LACF): the work on the byte plan for a native compact frame with this integrity rule |
@@ -136,12 +138,12 @@ shift, carry at the end, `v >= 2^32`, declined texts) were added in [`test/lacf_
 
 ## Expected compression on the real packets
 
-On the same 14,305 real texts (script [`size_stats.py`](../tools/integrity/size_stats.py), output [`results-compression-real.txt`](../tools/integrity/results-compression-real.txt)): the mean plain frame is 86.6 bytes, the current compressed format (spec 01) 40.8 bytes (52.8% smaller), and **LACF 43.1 bytes (50.2% smaller)**; the CRC-16 and the new ending cost 2.25 bytes per packet.
+On the same 14,305 real texts (script [`size_stats.py`](../tools/integrity/size_stats.py), output [`results-compression-real.txt`](../tools/integrity/results-compression-real.txt)): the mean plain frame is 86.6 bytes, the earlier whole-text format (spec 01) 40.8 bytes (52.8% smaller), and **the whole-text test frame with the CRC-16 and the new ending 43.1 bytes (50.2% smaller)**; the CRC-16 and the new ending cost 2.25 bytes per packet. This is not the size of LACF (spec 11): measured on the same 14,305 packets, LACF is 48.7 bytes, 43.8% smaller than plain ([docs/hybrid-savings-and-timing.md](hybrid-savings-and-timing.md)).
 The median packet is 49% smaller (10th to 90th percentile 30% to 62%). Short packets gain less (frames of 40 to 60 bytes: 40%; over 100 bytes: 55%). 99.9% of packets are sent compressed; 12 are not smaller than plain. Airtime falls by about 40% at every spreading factor
 (SF7: 152 ms to 89 ms per packet; SF12: 3.6 s to 2.1 s).
 
 Treat 50% as an upper estimate: the corpus is a mix of an Arizona receiver log and an APRS-IS capture with long comments, and although it was captured (29 to 31 October) after the model was frozen (23 October), stations that beacon the same text repeatedly may also have been in the training packets.
-The repository's held-out-by-station figure for the current format is about 48%, which would put LACF near 45% to 46%. Primed frames are not included (priming is not defined for LACF).
+The repository's held-out-by-station figure for the earlier whole-text format is about 48%, which would put the whole-text test frame near 45% to 46%. Primed frames are not included (priming is not defined for the test frame or for LACF).
 
 ## What was chosen, and what it costs
 
@@ -170,7 +172,7 @@ What it costs, plainly:
 
 * Cuts at the start of a frame, or inside a byte.
 * The new ending is implemented in [`lacf_core.h`](../tools/integrity/lacf_core.h) on this repository's reference codec, written from [spec 11](../spec/11-native-ppm-frame-byte-plan.md), and in a private copy of the ESP32 iGate library ([`igate-library-private-copy.patch`](../tools/integrity/igate-library-private-copy.patch)).
-  It is not in any firmware.
+  It was first tried in that private copy; the same rules are now in the LACF test firmware (the iGate, tracker and Dire Wolf test branches of spec 11), which is still being tested.
 * The T-Deck tracker firmware's own decoder (the tests ran on the codec library and the reference codec, not on the device).
 
 ## Open

@@ -36,9 +36,21 @@ It is an idea that is showing promise and needs more testing. It has worked on t
 
 ## How do I try it?
 
-Use spare units, not a live station, and start with the safe-testing page. Receive is always on and transmit is opt-in, so the first step is to listen.
+Use spare units, not a live station. For the current format (LACF, spec 11, in early development and still being reviewed for change) there is test firmware for the
+LILYGO LoRa32 V2.1 iGate and the LILYGO T-Deck Plus 433 tracker that you flash from a browser: <https://tiles.aivu.com/lacf>. The page explains the settings and warnings.
+Receive is always on and transmit is opt-in, so the first step is to listen. For the earlier whole-text format, start with its safe-testing page (below).
 
 ## Where is the code?
+
+**The current format (LACF, spec 11):**
+
+* [Test firmware with a browser flasher](https://tiles.aivu.com/lacf) for the LoRa32 iGate and the T-Deck Plus
+* [ESP32 iGate firmware](https://github.com/radiohound/LoRa_APRS_iGate-1/tree/feature/lacf) (`feature/lacf`)
+* [T-Deck tracker firmware](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/hybrid) (`hybrid`)
+* [Direwolf, LoRa HAT channel](https://github.com/radiohound/direwolf/tree/feature/lora-hybrid) (`feature/lora-hybrid`; install notes in `scripts/hill-hybrid/README.txt`)
+* The C and Python reference code and the test vectors are in this repository ([`tools/hb`](../tools/hb), [`test/`](../test), `make hb-test`)
+
+**The earlier whole-text format (superseded by LACF):**
 
 * [ESP32 iGate firmware](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression) (`feature/order3-compression`)
 * [Direwolf, LoRa HAT channel](https://github.com/radiohound/direwolf/tree/feature/lora-compression) (`feature/lora-compression`)

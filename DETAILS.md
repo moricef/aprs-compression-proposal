@@ -10,10 +10,11 @@ decode, and a binding for VHF/AX.25. It extends APRS; it does not replace it, an
 keep working. Phase 2, the harder "smarts" work (smarter digipeating, path learning, reach-aware
 repeating, a measured pilot), is in the companion repo `aprs-smarts` (not yet public).
 
-**This is a draft by one person. It is not a standard.** The compressed-frame format has had a first
-short-range over-the-air test (24 October 2026: an ESP32 and a Raspberry Pi running Direwolf, both
-directions, every packet decoded exactly; see [docs/over-the-air-test.md](docs/over-the-air-test.md)), and
-nothing more than that yet. Licensed under the [MIT License](LICENSE).
+**This is a draft by one person. It is not a standard.** The compressed-frame format is in early
+development and is being tested over the air: it started on 24 October 2026 with an ESP32 and a Raspberry Pi running Direwolf
+(both directions, every packet decoded exactly; see [docs/over-the-air-test.md](docs/over-the-air-test.md)), and the tests continue, now
+with the current format (LACF, spec 11) on an iGate, a T-Deck tracker and a Direwolf station
+([results so far](docs/lacf-test-results-2026-11-01.md)). Expect it to change. Licensed under the [MIT License](LICENSE).
 
 ## Try it
 
@@ -115,7 +116,7 @@ position packets fit; it has no comment field; and its position field is the ord
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
 | [08 Priming with a station's last full packet](spec/08-priming-from-previous-packet.md) | Wire format + C reference codec + 103 test vectors + firmware; about 65% saved on real LoRa pairs (real codec bytes), 62-70% in simulation. Host-tested only |
 | [09 Structured header for position packets](spec/09-structured-header-layout.md) | Idea: a compact fixed layout for callsign, path and position plus an order-3 comment; about 4-7 B smaller than order-3 alone on LoRa position packets (arithmetic) |
-| [11 Native PPM frame: byte plan](spec/11-native-ppm-frame-byte-plan.md) | **DRAFT, work in progress.** Byte plan for the agreed first common format: moricef's native frame (`3C FF 02`) with a PPM-coded content field, the PPM payload integrity rules (deterministic ending, CRC-16, re-encode check), and the RXT block at the end of the frame with the mask byte last (tested against truncation); not yet agreed with F4MLV or implemented |
+| [11 Native PPM frame: byte plan](spec/11-native-ppm-frame-byte-plan.md) | **DRAFT, in early development and still being reviewed for change.** Byte plan for a first common format: moricef's native frame (`3C FF 02`) with a PPM-coded content field, the PPM payload integrity rules (deterministic ending, CRC-16, re-encode check), and the RXT block at the end of the frame with the mask byte last (tested against truncation). Test implementations exist (the C and Python reference, and test branches of the iGate, tracker and Dire Wolf) and have run on the air in short tests; expect the format to change |
 | [Direwolf notes](docs/direwolf-notes.md) | Where the Direwolf implementation is (LoRa HAT channel, built) and planning notes for the VHF part |
 | [Other methods considered, APRS 438, and why APRS-PPM was chosen](docs/alternatives-considered.md) | Comparison table and the reasoning |
 | [How the compression works and how it was trained](docs/how-it-works.md) | Plain-language explanation, comparison with other methods, training method and caveats |
