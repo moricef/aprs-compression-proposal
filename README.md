@@ -72,6 +72,8 @@ LACF   █████████████████████          
 
 ### The earlier whole-text format (superseded by LACF; the results below are for it)
 
+**Removed from the test firmware on 2 November 2026:** the iGate and the T-Deck tracker no longer read or send these frames, because no station sends them; they are dropped like any other unknown `3C FF` type. LACF is the only compressed format there. See [the test results](docs/lacf-test-results-2026-11-01.md), section 7. The description and the results below are kept as history.
+
 Two kinds of compressed frame:
 
 * **Full frame** (`3C FF 81`): the whole packet, compressed. Anyone with the table can read it. About **40 to 50% smaller**: 41% on stations the table had never seen, 47% over the full-day radio test below.

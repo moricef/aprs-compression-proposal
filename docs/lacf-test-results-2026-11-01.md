@@ -1,4 +1,4 @@
-# LACF test results, 31 October to 1 November 2026
+# LACF test results, 31 October to 2 November 2026
 
 Measurements from running LACF (spec 11, kinds 2 and 3) on real boards, written down so they are not lost in terminal output. Every number comes from a log or a
 build report; the source is named next to it. Where a figure is from memory of an earlier check and was not repeated, it is listed under "Not re-verified".
@@ -38,6 +38,7 @@ PlatformIO's own report at the end of each build. The app slot is 1,966,080 byte
 * The `btStop()` removal alone frees about 128 KB of flash (6.5 points of the slot) and 3.8 KB of RAM on the LoRa32. The LACF iGate is about 330 KB larger than `main` with
   that removal: the compression models, the LACF frame code, the MQTT event feed and the other additions of the branch. About 160 KB of the slot is left.
 * Frame-code speed and stack use (LoRa32 and T-Deck) are in `hybrid-savings-and-timing.md`, not repeated here.
+* These are the 1 November builds. The earlier whole-text compressed format was removed from both firmwares on 2 November 2026; the sizes of those builds, against the originals, are in section 7.
 
 ## 3. iGate main loop with and without the fixes
 
@@ -101,3 +102,57 @@ These were observed earlier in this work and noted from the collector's reports.
 * Broken (CRC-failed) frames arriving at the collector after the forwarder stopped sending their raw bytes.
 * Frame-code timing and stack use for the T-Deck with a WiFi client connection and APRS-IS traffic.
 * Battery or power draw of any LACF build.
+
+## 7. 2 November 2026: the earlier whole-text format removed
+
+No station sends the earlier whole-text frames (`3C FF 81`, `3C FF C1`) any more, so the iGate and the T-Deck tracker no longer read or send them: the codec and its packet stores were deleted (iGate commits `6c9ac2d` and `68e1770`, tracker `01d9cb2`). Settings files are unchanged: `compressTx` and `compressFullEvery` are still read and written, and do nothing. A frame of that kind now falls into the "unknown `3C FF` type" branch and is dropped. The builds below were flashed to the boards on 2 November (program only, settings kept) and are the files on the firmware page.
+
+### Sizes against the originals
+
+PlatformIO's own report. Flash is the program in its slot, RAM is the fixed RAM; RAM does not include memory taken while running (the LACF frame code takes a 16 KB task stack from the heap at its first use). The originals were built the same way: Ricardo's iGate `main` (1591d9f, fresh clone build of 1 November) and Fabrice's tracker `devel` (83dfb4a, unmodified, built 2 November).
+
+| Board | Build | Flash | RAM |
+|---|---|---|---|
+| LoRa32 V2.1 (slot 1,966,080 B, RAM 327,680 B) | original | 1,602,737 B (81.5%) | 56,376 B (17.2%) |
+| | this build (`68e1770`) | 1,664,817 B (84.7%) | 53,860 B (16.4%) |
+| | this build against the original | 62,080 B more (+3.9%) | 2,516 B less (-4.5%) |
+| | room left | 301,263 B (15.3%) | 273,820 B (83.6%) |
+| T-Deck Plus (slot 3,145,728 B, RAM 327,680 B) | original | 2,151,949 B (68.4%) | 213,216 B (65.1%) |
+| | this build (`01d9cb2`) | 2,321,553 B (73.8%) | 214,136 B (65.3%) |
+| | this build against the original | 169,604 B more (+7.9%) | 920 B more (+0.4%) |
+| | room left | 824,175 B (26.2%) | 113,544 B (34.7%) |
+
+Against the 1 November builds of section 2: the LoRa32 build is 132,808 B smaller in flash (91.4% to 84.7%) and uses 14,728 B less RAM; the T-Deck build is 131,720 B smaller and uses 14,712 B less RAM. The ESP32-C3 iGate build (`ESP32C3_SuperMini_DIY_LoRa_SX1278`) is 1,654,510 B (84.2%) and 46,468 B of RAM, from 1,782,746 B (90.7%) and 61,252 B. So the iGate needs less RAM than the original, but not less flash; the tracker needs more of both than the build it is based on.
+
+### On the LoRa32, with WiFi, APRS-IS and MQTT connected
+
+Source: three serial captures of 1.5 to 8 minutes, 2 November. Opening the serial port resets the board, so each capture begins with a boot and a beacon.
+
+| Measure | Result |
+|---|---|
+| Longest main-loop pass, first minute after boot | 2,695, 2,585 and 2,564 ms (1,372, 1,213 and 1,369 passes) |
+| Longest main-loop pass, five steady minutes | 48, 109, 108, 118 and 133 ms; 1,676 to 1,717 passes a minute |
+| Own beacon | `LACF frame: 29 B instead of 50 B`, once at each boot (three captures); the hill Dire Wolf heard four of its beacons as `hybrid`, 29 B, between 14:12 and 14:29 UTC |
+| Frames received and gated to APRS-IS, no failures logged | 3 standard LoRa APRS frames (K6ATV-4 at 14:29:48, K6ATV-22 at 14:31:56, K6ATV-9 via K6ATV-22 at 14:32:39 UTC) and the test below |
+
+### Receive test, 8 frames (2 November, 06:43 to 06:46 PST)
+
+K6ATV-4 (T-Deck) sent four standard LoRa APRS frames and then four LACF frames; the LoRa32 was listening on its serial log. All eight were decoded to the packet text and uploaded to APRS-IS; none was logged as dropped.
+
+| Frame | Time (PST) | RSSI / SNR |
+|---|---|---|
+| standard LoRa APRS | 06:43:56, 06:44:09, 06:44:21, 06:44:31 | -81 to -98 dBm / 10.0 to 13.75 dB |
+| LACF 58 B on air, 89 B expanded | 06:45:16 | -76 dBm / 14.25 dB |
+| LACF 25 B on air, 40 B expanded | 06:45:30, 06:45:43, 06:45:52 | -88 to -91 dBm / 11.75 to 15.0 dB |
+
+The serial log prints a format line only for an LACF frame; a frame with no such line is a standard LoRa APRS frame (the collector calls that class `plain`). That this is true was confirmed for the first such frame of the day (14:29:48 UTC, 40 B), which the collector stored as class `plain`; the four test frames were not looked up in the collector.
+
+### Host tests
+
+`test/lacf` 304 checks, `test/configstore` 123, `test/mqttdefaults` 10 cases, `test/events` passes; 0 failures. The iGate builds for the LoRa32 and the ESP32-C3.
+
+### Not measured
+
+* An earlier-format frame arriving on the air: nobody sends one, so the drop path is covered by the host tests only.
+* The T-Deck's Web-Conf access point: it joined once after this build. The same joins failed on the 1 November build, and an unmodified upstream build joined too; memory is the likely cause but is not proved, and repeat joins have not been done.
+* The browser Update button on these builds (tested on the 1 November files).
