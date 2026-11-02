@@ -156,3 +156,28 @@ The serial log prints a format line only for an LACF frame; a frame with no such
 * An earlier-format frame arriving on the air: nobody sends one, so the drop path is covered by the host tests only.
 * The T-Deck's Web-Conf access point: it joined once after this build. The same joins failed on the 1 November build, and an unmodified upstream build joined too; memory is the likely cause but is not proved, and repeat joins have not been done.
 * The browser Update button on these builds (tested on the 1 November files).
+
+## 8. 2 November 2026: the relay with RXT on the air
+
+The relay build (iGate `27dbbfb`, tracker `d9c4f5b`) was flashed to the LoRa32 and the T-Deck (program only, settings kept) and run on the air at 433.775 MHz, SF12, a few metres apart. Times are PST. Source: serial logs of both boards. The iGate's digipeater was set to WIDE2 + WIDE1, the T-Deck's repeater to the WIDE1-1 fill-in alias, Tx frame format LACF on both.
+
+| Time | Origin | Relay | Relay heard it at | Relayed frame | Time to hop |
+|---|---|---|---|---|---|
+| 08:23:55 | T-Deck beacon, 58 B, `WIDE1-1` | LoRa32 | RSSI -71 dBm, SNR 8.5 dB | **67 B** (+9) | 3,467 ms |
+| 08:24:24 | T-Deck beacon, 25 B | LoRa32 | RSSI -81, SNR 12.75 | **34 B** (+9) | 2,157 ms |
+| 08:29:03 | T-Deck beacon, 58 B | LoRa32 | RSSI -81, SNR 12.75 | **67 B** (+9) | 3,338 ms |
+| 08:30:00 | LoRa32 beacon, 29 B | T-Deck | not logged by the T-Deck (the LoRa32 heard the relay at RSSI -81 dBm, SNR 10.75) | **38 B** (+9) | 2,588 ms |
+
+* **+9 bytes** is the path (`WIDE1-1`, one byte, becomes `K6ATV-14*` or `K6ATV-4*`, five bytes: +4) and the first tuple (4 bytes and the mask byte: +5), as the spec says. A relayed standard text frame grows by 2 bytes; this one is 67 B against 91 B as text.
+* **Each board decoded the other's relay.** The LoRa32 logged `LACF frame: 38 B on air, 51 B expanded (1 RXT tuple)`; the T-Deck logged `Hybrid frame 67 bytes, 91 expanded` and showed the tuple as the text trailer `{LRk!@}`.
+* **The values carried through.** For the 08:29:03 relay the trailer decodes to RSSI -81 dBm, SNR 13.0 dB, frequency offset -2,500 Hz and a time to hop of about 3,233 ms; the LoRa32 had logged RSSI -81 dBm, SNR 12.75 dB (0.5 dB steps), a frequency error of -3,324 Hz and a time to hop of 3,338 ms (the scale is exponential: index 31 reads 3,233 ms). The frequency offset sits at the end of its scale: ordinary crystal offsets on these boards (-3.2 to -3.4 kHz) are past it (see [`rxt-frequency-offset-scale.md`](rxt-frequency-offset-scale.md)).
+* **No loop:** the LoRa32 did not relay its own beacon after the T-Deck's relay of it, and the T-Deck's relay of the LoRa32's frame was not repeated.
+* **Host tests of the same code:** the iGate wrapper test (604 checks) and the tracker's googletest suite (11 cases) include a sample of the spec relay vectors; the reference passes all 298 + 199 + 8 in C and in Python.
+
+### Not measured
+
+* **The hill:** that the Dire Wolf station received the relayed frames, and what it logged for them (the collector query for this has not been run).
+* **A frame through two relays.** One hop was run in each direction.
+* **A packet near the 255-byte limit on the air:** the rule that leaves the tuple out is tested on the host only.
+* **Busy channel, other spreading factors, other boards.**
+

@@ -351,7 +351,7 @@ The earlier whole-packet figures (6.3 ms and 5.0 ms) are higher because the text
 
 ## Not yet measured
 
-Status of 1 November 2026. The format is in early development and is still being tested and reviewed for change; several items that this section used to list as open are now done, and the open list is shorter. What is open is listed last.
+Status of 2 November 2026. The format is in early development and is still being tested and reviewed for change; several items that this section used to list as open are now done, and the open list is shorter. What is open is listed last.
 
 **Done since this section was first written**
 
@@ -361,11 +361,13 @@ Status of 1 November 2026. The format is in early development and is still being
 * **An encoder and decoder with this plan.** They exist in test branches of the iGate (`feature/lacf`), the T-Deck tracker (`hybrid`) and Dire Wolf (`feature/lora-hybrid`), and have been run on the air between a LoRa32, a T-Deck and a hill Raspberry Pi; the tests continue.
 * **The relay path in the reference code.** Path rewrite, RXT append and no PPM decode of the content, including locating the end of the position block without decoding it, are implemented in the C and Python references and covered by 298 + 199 + 8 relay vectors (the last eight are edge cases such as tuples on unused elements and packets near the 255-byte limit). `hb_relay_to` is the same relay with the new path chosen by the caller, for a digipeater with its own rules (the iGate and the tracker use it); it passes the same vectors, with the relayed path taken from the vector.
 
+* **A relay in the iGate and the tracker, run on the air (2 November 2026).** Both digipeat an LACF frame as the Relay section says: the frame is built from the received bytes with the reference `hb_relay_to`, the earlier tuples are kept, and the relay's own tuple is added, with its time to hop filled in just before it transmits (queue, channel access and time on air included). The LoRa32 relayed T-Deck beacons of 58 and 25 bytes as 67 and 34 bytes; the T-Deck relayed a LoRa32 beacon of 29 bytes as 38 bytes: +9 bytes each, 4 for the longer path and 5 for the first tuple. Each board decoded the other's relay, and the values in the tuple matched what the relay had measured, within the resolution of each field (RSSI -81 dBm and -81 dBm, SNR 12.75 dB and 13.0 dB, time to hop 3,338 ms and 3,233 ms; the frequency offset, -3,324 Hz, read as the end of the scale, -2,500 Hz). Details in [`docs/lacf-test-results-2026-11-01.md`](../docs/lacf-test-results-2026-11-01.md), section 8. A frame that would be longer than 255 bytes with the relay's tuple goes out without it (host tests only so far).
+
 **Still open**
 
-* **A relay in any firmware, and a relay on the air.** The relay exists only in the reference code and its vectors. The iGate, the tracker and Dire Wolf decode LACF frames and count or drop an RXT block they receive, but none of them adds an RXT measurement when it digipeats, and no relay chain has been run over RF.
-* **A complete RF chain with RXT through a real relay** (F4MLV's stated next step). One frame with an RXT block, made by a test sketch, has been decoded by a T-Deck. F4MLV's own firmware does not implement this plan.
-* **More conditions.** Other boards and spreading factors, a busy or weak channel, long runs, and a T-Deck or iGate that digipeats LACF frames. The tests so far are short runs on one LoRa32, one T-Deck and one Dire Wolf station.
+* **A relay in Dire Wolf.** It counts the tuples of a frame it receives; the AX.25 frame cannot carry them, so it does not pass them on and does not relay LACF.
+* **A chain of two relays over RF.** One relay hop has been run on the air in each direction (iGate to T-Deck and T-Deck to LoRa32), not one frame through two relays, and the hill's reception of the relayed frames has not been checked in the collector. F4MLV's own firmware does not implement this plan.
+* **More conditions.** Other boards and spreading factors, a busy or weak channel, long runs. The tests so far are short runs on one LoRa32, one T-Deck and one Dire Wolf station.
 
 ## Extending the format later
 
