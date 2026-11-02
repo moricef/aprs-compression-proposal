@@ -172,6 +172,22 @@ A relay accepts a frame by the Receiver rules, which for PPM kinds decode the co
 6. **Drop duplicates** on the decoded APRS content (source, destination and information field), as his iGate does; the path and RXT differ between copies and are ignored.
 7. **An iGate** decodes the frame to TNC2 for APRS-IS, MQTT and TNC output, removing the RXT block, and uploads the same source, destination and information field a text frame would have given.
 
+**The 255-byte limit.** A LoRa frame holds at most 255 bytes, and receivers have no room for more, so a relay never sends a longer frame and adds no padding or margin to be sure of it: the length is checked exactly. The relayed frame is the received one plus the growth of the path (a used element is a callsign, longer than the `WIDEn-N` byte it replaces) plus the relay's tuple (4 bytes, and 1 more for the mask when the frame had no RXT block). The relay decides in this order:
+
+1. the frame with the path change and its own tuple is at most 255 bytes: it is sent with the tuple;
+2. otherwise, the frame with the path change alone is at most 255 bytes: it is sent without the relay's own tuple (the earlier tuples stay, and the header bit and mask follow what remains);
+3. otherwise it is not relayed.
+
+For a frame with no RXT block, relayed at `WIDE1-1` (the path grows by 4 bytes, the first tuple adds 5), as the reference relay in C and in Python gives it:
+
+| Received | Relayed | Relay's own tuple |
+|---|---|---|
+| 246 bytes or fewer | 255 bytes or fewer (received + 9) | added |
+| 247 to 251 bytes | 251 to 255 bytes (received + 4) | left out |
+| 252 bytes or more | none | not relayed |
+
+The two edge vectors at the end of [`test/vectors_hb_relay_edge_v1.txt`](../test/vectors_hb_relay_edge_v1.txt) are the middle and last rows (a 249-byte frame relayed as 253 bytes without a tuple, and a 253-byte frame that is not relayed). The numbers move with the path: `WIDE2-2` grows it by one element more, and a frame that already carries tuples adds 4 bytes for the relay's tuple, not 5, so the limits are found by the three rules above and not by the table.
+
 ### Mic-E
 
 Mic-E is not decoded or converted by this plan. A Mic-E packet is carried as received: the destination as the escape plus the 5-byte element (6 bytes, since its characters are the position), and the information field as raw content (kind 2, `cc = 3`), or as a PPM content field (kind 2) only if that is shorter, which is unusual because the field is printable binary. Relays forward it exactly as above. Converting Mic-E to a native position
