@@ -1,4 +1,4 @@
-# APRS-PPM: LoRa APRS packets about 40% smaller, even with relay signal data added
+# APRS-PPM: LoRa APRS packets about 40% smaller
 
 > **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out together with Fabrice Morel, F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), named **LACF**, the LoRa APRS Compact Frame, so a relay can rewrite the path and add an RXT measurement without decompressing anything.
 > The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a **draft** in early development and still being reviewed for change, implemented in test branches of the iGate, the T-Deck tracker and Dire Wolf, and tried on the air on 1 November 2026. **The whole-packet figures below (about half the bytes) describe the earlier standalone format, which is not the plan.** The older frames (`3C FF 81`, `3C FF C1`) described here still work as documented, and remain the only ones in released firmware.
@@ -13,7 +13,7 @@
 > bigger, so primed savings are about 2 points lower than quoted before this change.
 > Details and the test results: [known issues](docs/known-issues.md).
 
-**The same APRS packet, sent in about 40% fewer bytes (38 to 44% on one network's packets, even with the relay's signal data added; the earlier whole-text format saved 40 to 50%), and turned back into the identical text at the other end.**
+**The same APRS packet, sent in about 40% fewer bytes (35 to 44% depending on the network, and 38% on one network after a relay hop with the relay's signal data added; the earlier whole-text format saved 40 to 50%), and turned back into the identical text at the other end.**
 It extends APRS and does not replace it: stations that don't know about it carry on exactly as before.
 
 > An idea that is showing promise and needs more testing. The earlier whole-text format was tried on three kinds of hardware over two links, and
