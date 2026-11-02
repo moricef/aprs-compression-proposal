@@ -205,7 +205,6 @@ Questions, results and problems are welcome as issues here.
 * **Walter Dunckel, K6ATV:** the APRS-PPM compression and the PPM-coded content field of LACF.
 * **Jon, N7UV:** RXT, the per-hop reception measurements, and its early adoption on the Arizona network.
 * **Ricardo Guzman, CA2RXU:** the LoRa APRS iGate and Tracker firmware that the iGate test build is based on.
-* **John Langner, WB2OSZ:** Dire Wolf, which the hill test station runs.
 
 Credit says who did the work. It does not mean the people named have reviewed or endorsed this proposal, which is in early development.
 
