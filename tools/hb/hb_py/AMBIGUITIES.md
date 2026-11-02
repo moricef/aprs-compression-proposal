@@ -93,4 +93,17 @@ Every item above was answered by a spec sentence, a rule in the code, a vector, 
 | 31, 32, 33, 34 | The relay vectors use three cases; a deployed relay may use its full rule (spec). Tuples belong to used elements, so no mask bit moves. An eighth element or later relays without its own tuple (C changed to match). A relay refuses invalid frames (Python test). Vectors for frames that already carry tuples: `vectors_hb_relay_chain_v1.txt`. |
 | 35, 36, 37, 38 | Confirmed, nothing to change. |
 | 39 | Terms defined (content field, text, payload, body) and the worked example added. |
-| 40 | Spec sentence updated: the C reference and this implementation agree on all vectors and 122,689 intact and damaged frames. |
+| 40 | Spec sentence updated: the C reference and this implementation agree on all vectors and 142,282 intact and damaged frames (this was 122,689 before the vector sets grew). |
+
+## Found in a review of C against Python, 1 November 2026
+
+The earlier cross-check (every vector, cuts, flips and relayed frames) could not see these four, because none of its inputs touched them. Each is now in a vector file and in the spec.
+
+| # | Case | Before | Now |
+|---|---|---|---|
+| 41 | A source holding `:` (`A:B>APLRG1:text`), and a text element holding `:`, `,` or `>` | C encoded the source as a text element and the frame round-tripped; Python refused it. The decoded packet re-splits at the wrong colon downstream. Spec silent. | Not encodable (both). A receiver drops a text element holding `:`, `,` or `>` (both). Spec strict rule and encoder rule say so. Edge packet `A:B>APLRG1:...` and 6 reject vectors. |
+| 42 | A NUL byte in PPM text | Spec: dropped. Python dropped it (the CRC over the whole text does not match). C took the CRC over `strlen` of the text, so a frame whose CRC was computed up to the NUL was accepted and delivered a silently shortened packet. | C drops it (explicit check), and the spec says the CRC covers the whole text. Two reject vectors (CRC over the whole text, and over the text up to the NUL). |
+| 43 | Relay: source and destination bytes | Spec: destination copied as received. C re-encoded both (clearing the reserved `ff` bits, and turning a listed destination sent in escape form into its code); Python copied the bytes. | C copies the bytes. The spec says source and destination are copied as received, byte for byte. Relay edge vectors 1 and 2. |
+| 44 | Relay: tuples on the relay's own or a later (unused) element, and seven tuples already present | Spec silent on the first. C refused; Python moved or replaced the tuple and relayed. For the second, spec step 5 says an eighth element relays without its own tuple; C refused whenever seven tuples were present. | Both refuse a frame with a tuple at or after the first unused element (spec step 3). C relays seven tuples at the eighth element. Relay edge vectors 3 to 6. |
+
+Also fixed: `hb_relay` read `fr[3]` before it knew the frame was long enough. The C reference, the Python implementation, the vectors (554 encode, 298 + 199 + 6 relay, 38 reject) and the spec now agree; 142,282 intact and damaged frames compare with 0 disagreements.

@@ -30,3 +30,10 @@
 3cff02239f5994a62c050009120001b5f81655eb2f3e011bd55e93af550a8e18e207495b SSID extra byte below 31
 3cff022389000000000009120001b5f81655eb2f3e011bd55e93af550a8e18e207495b callsign element of six spaces (empty)
 3cff0202805994a62c00c13e7800 NUL byte in raw text
+3cff0202c3413a4200c16869 source text element holds ':' (the decoded packet would split at the wrong colon)
+3cff0202805994a62c3fc3412c42c16869 destination text element holds ','
+3cff0212805994a62c00c3413e42c16869 path text element holds '>'
+3cff0202805994a62c3fc3410042c16869 destination text element holds a NUL byte
+3cff0202c3413a4200012e3b3fd4ae34bca027406c22b9d79deb2d4bc7f44e6169028395f8e353c6bd091f05c4d9836d11a86326ebf2ca PPM frame whose source text element holds ':' (what an encoder that accepts such a source would send)
+3cff0202805994a62c00013101018646e0bc1ee9ad1d4a50e4b46ee93af3ebbf80aca4c10a5f48a0b1e6a28e1be8242f0aa92ff0e38001a771e94c PPM text holds a NUL byte (CRC over the whole text)
+3cff0202805994a62c000131e3398646e0bc1ee9ad1d4a50e4b46ee93af3ebbf80aca4c10a5f48a0b1e6a28e1be8242f0aa92ff0e38001a771e94c PPM text holds a NUL byte, with the CRC taken over the text up to the NUL only

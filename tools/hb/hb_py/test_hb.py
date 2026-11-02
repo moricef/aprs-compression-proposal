@@ -20,6 +20,7 @@ VEC_ALL = read_vectors('vectors_hb_v1.txt')           # includes the packets tha
 VEC = [r for r in VEC_ALL if r[0] is not None]
 RELAY = read_vectors('vectors_hb_relay_v1.txt')
 CHAIN = read_vectors('vectors_hb_relay_chain_v1.txt')
+EDGE = read_vectors('vectors_hb_relay_edge_v1.txt')    # relay edge cases; a relayed frame of '-' means the relay must not relay it
 REJECT = []
 with open(os.path.join(TEST, 'vectors_hb_reject_v1.txt'), 'rb') as _fh:
     for _ln in _fh.read().split(b'\n'):
@@ -41,7 +42,7 @@ def accepted(r):
 
 class Vectors(unittest.TestCase):
     def test_counts(self):
-        self.assertEqual(len(VEC_ALL), 553)
+        self.assertEqual(len(VEC_ALL), 554)
         self.assertEqual(len(VEC), 537)
         self.assertEqual(len(RELAY), 298)
 
@@ -66,6 +67,21 @@ class Vectors(unittest.TestCase):
         self.assertGreaterEqual(len(REJECT), 10)
         for i, fr in enumerate(REJECT):
             self.assertFalse(accepted(hb.decode(fr)), i)
+
+    def test_relay_edge_cases(self):
+        self.assertGreaterEqual(len(EDGE), 6)
+        for i, (rx, tx, pkt) in enumerate(EDGE):
+            self.assertEqual(hb.relay_auto(rx), tx, i)
+            if tx is not None:
+                self.assertEqual(hb.decode(tx), pkt, i)
+
+    def test_relay_copies_source_and_destination_bytes(self):
+        rx, tx, _ = EDGE[0]                                       # ff bits set on the destination byte
+        d = hb._parse(rx)
+        self.assertEqual(tx[4:d['path_start']], rx[4:d['path_start']])
+
+    def test_colon_in_source_is_not_encodable(self):
+        self.assertIsNone(hb.encode(b'A:B>APLRG1:hello world this is a test'))
 
     def test_relay_chain(self):
         self.assertGreater(len(CHAIN), 100)

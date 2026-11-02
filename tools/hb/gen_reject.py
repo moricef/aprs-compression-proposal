@@ -46,4 +46,28 @@ add(w[:4] + bytes([0x9F, 0x59, 0x94, 0xA6, 0x2C, 0x05]) + w[9:], 'SSID extra byt
 add(w[:4] + bytes([0x89, 0x00, 0x00, 0x00, 0x00]) + w[9:], 'callsign element of six spaces (empty)')
 r = H.encode(b'N0CALL>APLRG1:>x')                     # raw content (kind 2, cc = 3)
 add(r + b'\x00', 'NUL byte in raw text')
+# an element that would split the TNC2 packet in the wrong place (':' ',' '>'), and a NUL in an element or in PPM text
+src6 = H.enc_elem('N0CALL')
+def te(b): return bytes([0xC0 | len(b)]) + b                          # a text element
+def rawf(npath, src, dest, path=b'', info=b'hi'): return b'\x3c\xff\x02' + bytes([(npath << 4) | 2]) + src + dest + path + bytes([0xC1]) + info    # kind 2, raw content
+add(rawf(0, te(b'A:B'), b'\x00'), "source text element holds ':' (the decoded packet would split at the wrong colon)")
+add(rawf(0, src6, b'\x3f' + te(b'A,B')), "destination text element holds ','")
+add(rawf(1, src6, b'\x00', te(b'A>B')), "path text element holds '>'")
+add(rawf(0, src6, b'\x3f' + te(b'A\x00B')), 'destination text element holds a NUL byte')
+orig = H.split_tnc2
+H.split_tnc2 = lambda pkt: ('A:B', 'APLRG1', [], pkt[pkt.index(b':', pkt.index(b'>')) + 1:])     # let the encoder accept the source it refuses
+colon_frame = H._encode(b'A:B>APLRG1:hello world this is a test of the english text', 1)
+H.split_tnc2 = orig
+assert colon_frame is not None
+add(colon_frame, "PPM frame whose source text element holds ':' (what an encoder that accepts such a source would send)")
+infom, comm = H.get_models(1)
+txt = b'AB\x00' + b'hello world this is a test of the english text'
+pay = H.ppm_encode(infom, txt)
+assert 4 + len(pay) < 1 + len(txt)
+hdr, dst = 2, H.get_destlist(1)[0]
+def ppm_frame(crc_text):
+    crc = H.crc16_x25(H.crc_input(hdr, 1, 'N0CALL', dst, crc_text))
+    return b'\x3c\xff\x02' + bytes([hdr]) + src6 + b'\x00' + bytes([1, len(txt), crc & 255, crc >> 8]) + pay
+add(ppm_frame(txt), 'PPM text holds a NUL byte (CRC over the whole text)')
+add(ppm_frame(b'AB'), 'PPM text holds a NUL byte, with the CRC taken over the text up to the NUL only')
 sys.stdout.write('# Spec 11 rejection vectors: <frame hex> <why it must be dropped>. Every receiver must drop each line.\n' + '\n'.join(out) + '\n')

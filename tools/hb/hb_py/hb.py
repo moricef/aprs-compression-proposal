@@ -269,7 +269,10 @@ def dec_elem(buf, pos):
     ln = h & 31
     if ln == 0 or pos + 1 + ln > len(buf):
         raise Drop('truncated' if ln else 'bad_text_element')
-    return buf[pos + 1:pos + 1 + ln].decode('latin-1'), pos + 1 + ln
+    raw = buf[pos + 1:pos + 1 + ln]
+    if b'\x00' in raw or any(c in raw for c in b':,>'):          # strict: a NUL, or a character that would split the TNC2 packet in the wrong place
+        raise Drop('bad_text_element')
+    return raw.decode('latin-1'), pos + 1 + ln
 
 
 # ---------------------------------------------------------------- position block
@@ -705,6 +708,8 @@ def relay(frame, relay_call=RELAY_CALL, tuple_bytes=RELAY_TUPLE):
     path = d['path']
     j = next((i for i, t in enumerate(path) if not t.endswith('*')), None)
     if j is None or path[j] not in ('WIDE1-1', 'WIDE2-1', 'WIDE2-2'):
+        return None
+    if any(b >= j for b, _ in d['tuples']):                      # a tuple on the relay's own element or a later one: tuples belong to used elements, so no conforming relay made this frame
         return None
     me = enc_elem(relay_call + '*')
     if me is None or len(tuple_bytes) != 4:

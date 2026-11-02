@@ -26,7 +26,7 @@ for f in sample:
     for bit in range(len(f) * 8):
         b = bytearray(f); b[bit // 8] ^= 1 << (bit % 8); cases.append(("flip", bytes(b)))
 if len(sys.argv) > 3:                                       # relayed frames carry RXT blocks: damage those too
-    rel = [bytes.fromhex(l.split()[1]) for l in open(sys.argv[3]) if l.strip() and not l.startswith("#")]
+    rel = [bytes.fromhex(l.split()[1]) for l in open(sys.argv[3]) if l.strip() and not l.startswith("#") and l.split()[1] != "-"]   # '-' = a frame the relay must not relay
     for f in rel: cases.append(("relayed", f))
     for f in random.sample(rel, min(nd, len(rel))):
         for k in range(1, len(f)): cases.append(("rxtcut", f[:-k]))

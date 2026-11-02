@@ -78,6 +78,7 @@ int main(int argc, char **argv)
                 if (hb_decode(a, al, tn, sizeof tn, &in) <= 0) { bad++; continue; }
                 { int k = in.has_rxt ? in.rxt.n : 0; int q; snprintf(c, sizeof c, "N0RLY-%d", k + 1); for (q = 0; q < 4; q++) t4[q] = (uint8_t)(TUP[q] + k); }
                 r = hb_relay(a, al, c, t4, out, sizeof out);
+                if (p1[1] == '-') { if (r) { bad++; printf("relay vector %d: relayed a frame that must not be relayed\n", cnt); } continue; }     /* '-': the relay must refuse */
                 d = r ? hb_decode(out, r, tn, sizeof tn, NULL) : -1;
                 if (r != bl || memcmp(out, b, bl) || d <= 0) { bad++; printf("relay vector %d: mismatch\n", cnt); }
             }
