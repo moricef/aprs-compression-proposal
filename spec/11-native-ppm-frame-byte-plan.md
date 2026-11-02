@@ -114,7 +114,7 @@ A relayed frame grows by **5 bytes for the first relay** (4 for the tuple, 1 for
 
 ![The fields of a LACF frame, the header and V bytes, the RXT block, and a worked example: 35 bytes, and 44 bytes after one relay hop](../docs/img/lacf-frame-layout.svg)
 
-The picture shows the fields in order, the header byte and `V` bit by bit, the RXT tuple, and one real packet as a LACF frame (35 bytes, hex) and after one relay hop (44 bytes). The example's 57% saving is for that one packet; real packets average about 44% (see "Size"). The same content as tables, with the example byte by byte, is in [`docs/lacf-frame-layout.md`](../docs/lacf-frame-layout.md); the bytes come from the reference code, and `python3 tools/lacf_diagram.py` redraws the picture.
+The picture shows the fields in order, the header byte and `V` bit by bit, the RXT tuple, and one real packet as a LACF frame (35 bytes, hex) and after one relay hop (44 bytes). The example's 57% saving is for that one packet; real packets average about 44% (see "Size"). The same content as tables, with the example byte by byte, is in [`docs/lacf-frame-layout.md`](../docs/lacf-frame-layout.md), and every byte and bit is defined in [`docs/lacf-byte-reference.md`](../docs/lacf-byte-reference.md); the bytes come from the reference code, and `python3 tools/lacf_diagram.py` redraws the picture.
 
 ## PPM payload rules (normative)
 

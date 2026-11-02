@@ -173,6 +173,7 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 ## Read more
 
 * [What a LACF frame looks like](docs/lacf-frame-layout.md): a picture and a byte-by-byte example
+* [LACF byte and bit reference](docs/lacf-byte-reference.md): what every byte and bit of the frame means
 * [Known issues and findings from testing](docs/known-issues.md): what other testers found, and what was fixed
 * [Spec 11, the byte plan for the first common format (draft)](spec/11-native-ppm-frame-byte-plan.md): hybrid B, native frame with PPM content, RXT at the end; work in progress
 * [Truncated payloads and integrity checks (work in progress)](docs/truncated-payloads-and-integrity.md): what a cut-short frame decodes to, the checks measured

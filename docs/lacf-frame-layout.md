@@ -4,7 +4,7 @@ LACF (LoRa APRS Compact Frame, [spec 11](../spec/11-native-ppm-frame-byte-plan.m
 
 ![The fields of a LACF frame, the header and V bytes, the RXT block, and a worked example of 35 bytes, and 44 bytes after one relay hop](img/lacf-frame-layout.svg)
 
-A larger PNG of the same picture is [`img/lacf-frame-layout.png`](img/lacf-frame-layout.png). The bytes in the picture come from the reference code (`tools/hb`); regenerate the picture with `python3 tools/lacf_diagram.py > docs/img/lacf-frame-layout.svg`.
+Every byte and bit in the picture is defined, with its values and what it does, in the [byte and bit reference](lacf-byte-reference.md). A larger PNG of the same picture is [`img/lacf-frame-layout.png`](img/lacf-frame-layout.png). The bytes in the picture come from the reference code (`tools/hb`); regenerate the picture with `python3 tools/lacf_diagram.py > docs/img/lacf-frame-layout.svg`.
 
 ## The fields, in the order they are sent
 
