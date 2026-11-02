@@ -17,7 +17,11 @@ nothing more than that yet. Licensed under the [MIT License](LICENSE).
 
 ## Try it
 
-The working firmware is on a public branch, with a page that says what it is for, what has been proven, what
+**LACF (spec 11, the current format).** Test firmware for the LILYGO LoRa32 V2.1 iGate and the LILYGO T-Deck Plus 433 tracker, flashable from a browser:
+<https://tiles.aivu.com/lacf>. For Dire Wolf on a Raspberry Pi: branch [`feature/lora-hybrid`](https://github.com/radiohound/direwolf/tree/feature/lora-hybrid).
+Test results: [docs/lacf-test-results-2026-11-01.md](docs/lacf-test-results-2026-11-01.md).
+
+**The earlier whole-text format.** The working firmware is on a public branch, with a page that says what it is for, what has been proven, what
 has not, and how to test it safely on spare hardware:
 
 * Branch: <https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression>

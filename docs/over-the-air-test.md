@@ -11,6 +11,10 @@ agrees byte-for-byte with the C reference. **Compressed frames have now crossed 
 ESP32 sender to a Direwolf receiver (24 October 2026, see "Result of the first over-the-air run" below).**
 The checklist tests A-D (two boards) and E-I (VHF) have not been run as written.
 
+*Note, 1 November 2026:* this checklist was written for the earlier whole-text format. For LACF (spec 11) the test firmware, with a browser flasher for the
+LoRa32 iGate and the T-Deck, is at <https://tiles.aivu.com/lacf>, and the results of the LACF tests run so far are in
+[lacf-test-results-2026-11-01.md](lacf-test-results-2026-11-01.md).
+
 ## What you need
 
 * Two boards with the same LoRa module and settings, a serial cable for each, and the firmware fork

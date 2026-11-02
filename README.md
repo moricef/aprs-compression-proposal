@@ -144,7 +144,13 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 
     make test        # checks the reference codec against the test vectors
 
-To try it on real radios, start with the [safe-testing page](https://github.com/radiohound/LoRa_APRS_iGate/blob/feature/order3-compression/tools/aprs_compress/EXPERIMENT.md)
-for the ESP32 firmware. Questions, results and problems are welcome as issues here.
+To try the current format (LACF, spec 11) on real radios, there is test firmware for the LILYGO LoRa32 V2.1 iGate and the LILYGO T-Deck Plus 433 tracker
+that you can flash from a browser, with the settings, the warnings and what has been tested: <https://tiles.aivu.com/lacf>. It is experimental. Receive is
+always on, transmit is a setting you choose, and a station that sends LACF is not heard by stations running stock firmware. For a Raspberry Pi with a LoRa HAT,
+the Dire Wolf branch is [`feature/lora-hybrid`](https://github.com/radiohound/direwolf/tree/feature/lora-hybrid) (install notes in its `scripts/hill-hybrid/README.txt`).
+The results so far are in [docs/lacf-test-results-2026-11-01.md](docs/lacf-test-results-2026-11-01.md).
+
+The earlier whole-text format has its own [safe-testing page](https://github.com/radiohound/LoRa_APRS_iGate/blob/feature/order3-compression/tools/aprs_compress/EXPERIMENT.md).
+Questions, results and problems are welcome as issues here.
 
 Licensed under the [MIT License](LICENSE).
