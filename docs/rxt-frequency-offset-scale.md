@@ -69,22 +69,29 @@ by copying the character, with no change of scale. If LACF alone used a differen
 A fourth idea, **D**, is to give the offset in parts per million of the carrier instead of Hz, so one scale serves 433 and 915 MHz alike (12 kHz is 28 ppm at 433 MHz and 13 ppm at 915 MHz). A receiver knows its own
 carrier, so it can turn ppm back into Hz. It is tidier, and it is a bigger change to the meaning of the field than A.
 
-## 5. Measured range (to be filled in)
+## 5. Measured range
 
-The collector keeps the offset of every decoded reception. The query [`tools/fo-distribution.py`](../tools/fo-distribution.py) (read only, run on the collector with `ssh droplet 'python3 -' < tools/fo-distribution.py`) gives the distribution of the absolute offset by band, the share of receptions beyond
-2.5, 5, 10 and 15 kHz, the offset in ppm, and, per sender and receiver pair, how much is a steady bias and how much scatters. The range and the first step above (12 kHz, 50 Hz) are my estimate from three of our own links;
-they should be set from those numbers before anyone is asked to agree.
+The collector keeps the offset of every decoded reception. The query [`tools/fo-distribution.py`](../tools/fo-distribution.py) (read only, run on the collector with `ssh droplet 'python3 -' < tools/fo-distribution.py`)
+was run on 2 November 2026. **The data are 433.775 MHz only**: there are no 868 or 915 MHz receptions in the collector.
 
 | Measure | Result |
 |---|---|
-| Decoded receptions with an offset, period | |
-| Share beyond 2.5 kHz / 5 kHz / 10 kHz / 15 kHz | |
-| Largest offset, p99 | |
-| Offset in ppm: median, p99 | |
-| Pairs with a median beyond 2.5 kHz, and their scatter | |
+| Decoded receptions with an offset, period | 770, 30 October to 2 November 2026 (UTC), one band (434 MHz), 6 of our own and other stations as senders |
+| Share beyond 2.5 kHz / 3.5 kHz / 5 kHz / 10 kHz | **42.3%** (326 of 770) / 9.6% / **0%** / 0% |
+| Median, 95th, 99th, largest | 2,188 Hz, 3,585 Hz, 3,918 Hz, **4,249 Hz** |
+| Offset in ppm: median, 99th, largest | 5 ppm, 9 ppm, 10 ppm |
+| Pairs (sender and receiver, 5 receptions or more) | 11; median |offset| 2,126 Hz, largest 3,424 Hz; **4 of 11 are beyond 2.5 kHz** |
+| Scatter within a pair (median absolute deviation) | median 108 Hz, largest 304 Hz |
+
+What the numbers say:
+
+* **Almost half of the receptions sit at the end of today's scale** (42.3% beyond 2.5 kHz), and nothing in this data is beyond 4.3 kHz.
+* **The offsets belong to boards, not to the network.** The LoRa32 (K6ATV-14) is 3.3 to 3.4 kHz away from the T-Deck and the hill (-3,424 and -3,350 Hz as receiver, +3,065 Hz as sender), two more of our stations are about 2.1 kHz away from it, and the T-Deck, the hill and a third station that both of them hear agree within 100 Hz (-94, -74 and +38 Hz). Three boards of six are 2 to 3.4 kHz off.
+* **Offsets are steady:** within a pair the scatter is about 100 to 300 Hz, so a scale with steps of 7% (about 250 Hz at 3 kHz) loses little.
+* **Range for this band:** everything fits in +-5 kHz (10 ppm of 433.775 MHz is 4.3 kHz). **For 868 and 915 MHz there is no data**: the same 10 ppm is 8.7 and 9.2 kHz, 20 ppm is 17 and 18 kHz.
 
 ## 6. To decide
 
-1. The range and the first step, from section 5 (or from ppm, option D).
+1. The range and the first step. The data fit two choices: **(a)** keep F4MLV's quadratic scale and widen it to +-5 kHz (one constant; all 770 receptions fit, a step of about 175 Hz at 3 kHz), which fits this band and would saturate for crystal boards at 868 or 915 MHz; **(b)** the logarithmic scale above, +-12 kHz, which also covers 915 MHz at 10 ppm, or option D (ppm of the carrier), which serves every band with one scale. The 12 kHz in section 2 is for 915 MHz, not for what we measured.
 2. Option A, B, C or D. A and D need F4MLV and Jon; K6ATV would raise it with them, not this document.
 3. If A or D: the same change in F4MLV's `rxt` branch, in the byte reference and in the iGate and tracker `rxt_scale.h`, in one step, so the scales never differ on the air.
