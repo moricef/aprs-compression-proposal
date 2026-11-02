@@ -142,13 +142,13 @@ Whether the content is LACF or plain is in the header (bit 1 of the kind), not i
 | V | 1 B | as above |
 | L | 1 B | the number of text characters coded, 1 to 255 (0 is dropped) |
 | CRC-16 | 2 B | a check on the text and addresses, sent **low byte first** |
-| PPM payload | n B | the text, coded with the table set; the length n is not sent, the receiver works it out |
+| PPM payload | n B | the text, coded with the table version; the length n is not sent, the receiver works it out |
 
 **The CRC** is CRC-16/X-25 (polynomial 0x1021 reflected, initial value 0xFFFF, result inverted). It is computed over, in this order: the header byte AND 0x07 (the reserved bit and the kind bits), V, the source as text, `>`, the destination as text, `:`, and the information field. It does not cover the path or the path count and RXT flag, which relays change, so a relay never recomputes it. A receiver that has the wrong table set, or a damaged source, destination or V, fails it.
 
 In the example `B1 A6` is the CRC `0xA6B1`, `10` is V (protocol version 2, table version 0) and `1B` is L = 27, the length of `LoRa APRS iGate on the hill`.
 
-**The payload** is the range-coder output of spec 01, which codes each character by how likely it is after the three before it, using the table set. The sender ends the payload in a fixed way (the "deterministic ending", on average 0.25 B more) so that a receiver can check it: it decodes, codes the text again, and **drops the frame unless the result matches the payload byte for byte**. A cut or damaged payload almost never survives that. The example's payload is the 10 bytes `93 AF 55 0A 8E 18 E2 07 49 5B`, which stand for the 27 characters.
+**The payload** is the range-coder output of spec 01, which codes each character by how likely it is after the three before it, using the table version. The sender ends the payload in a fixed way (the "deterministic ending", on average 0.25 B more) so that a receiver can check it: it decodes, codes the text again, and **drops the frame unless the result matches the payload byte for byte**. A cut or damaged payload almost never survives that. The example's payload is the 10 bytes `93 AF 55 0A 8E 18 E2 07 49 5B`, which stand for the 27 characters.
 
 ### 6.3 Plain content (kinds 0 and 1)
 

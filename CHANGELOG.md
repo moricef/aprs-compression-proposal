@@ -2,6 +2,13 @@
 
 LACF (spec 11) uses semantic versions: MAJOR = wire format version (the low six bits of `V`), MINOR = backward-compatible addition, PATCH = wording only. See "Versions" in `spec/11-native-ppm-frame-byte-plan.md`. The current number is in the file `VERSION`.
 
+## 2.0.1 - 2 November 2026 (wording only, no byte changes)
+
+Protocol version 2 and table version 0 are unchanged: every frame of 2.0.0 is a frame of 2.0.1. Documentation fixes after the layout settled:
+* the frame diagram no longer says "V starts with binary 11" or "V = 1" (V is `10`: protocol 2, table 0), and the header kind bits are shown as form and position block;
+* `docs/lacf-frame-layout.md`, `docs/lacf-byte-reference.md` and `docs/alternatives-considered.md` describe plain and LACF content, the four kinds and "table version" (not "table set");
+* spec 11: the header-gap note is closed, and the implementation notes say every kind of `3C FF 02` instead of kinds 2 and 3.
+
 ## 2.0.0 - 2 November 2026 (protocol version 2, table version 0)
 
 **Breaking.** Three changes to the bytes:

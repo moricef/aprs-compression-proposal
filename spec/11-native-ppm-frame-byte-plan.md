@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| Version | **2.0.0** (protocol version 2, table version 0). Check this number against `VERSION` and `CHANGELOG.md` in the repository: if yours is lower, you are not up to date. See "Versions" |
+| Version | **2.0.1** (protocol version 2, table version 0). Check this number against `VERSION` and `CHANGELOG.md` in the repository: if yours is lower, you are not up to date. See "Versions" |
 | Name | **LACF**, the **LoRa APRS Compact Frame**: the native frame `3C FF 02` with a PPM-coded content field (called hybrid B in `tools/hybrid/`) |
 | Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV and being reviewed. Implemented in the C reference (`tools/hb`), an independent Python implementation, the iGate (branch `feature/lacf`), the T-Deck tracker (branch `hybrid`) and Dire Wolf (branch `feature/lora-hybrid`); F4MLV's firmware does not implement it. The payload's integrity rules, the RXT tail and the receiver are tested (below).** |
 | Credit | **Co-developed with Fabrice Morel, F4MLV (moricef).** LACF is a hybrid of his native LoRa APRS frame and code and K6ATV's PPM compression, and the two are working on it together (issue 7 of moricef/LoRa_APRS_Tracker). RXT was created by Jon, N7UV (see `tools/hybrid/README.md`, Credit) |
@@ -361,7 +361,7 @@ So the plan meets the VHF level per hop for channel noise on every byte, and is 
 * **The RXT block is unauthenticated.** Only the LoRa CRC protects it, plus two cheap checks: the marked mask byte makes every cut inside the block fail, and the range check fails random bytes about 98% of the time, but a single-bit flip of a tuple byte stays in range 76% of the time. In a test block, 61% of single-bit flips were accepted with changed values, and a two-bit mask change that keeps the number of tuples (`0x83` to `0x85`) was accepted every time and silently moves the tuples to different path elements.
   A per-tuple check written by the relay that owns the tuple would add protection; a block CRC recomputed by every relay would not.
 
-Spec 11 spends 2 bytes on the content CRC-16 and none on the RXT block. **Adopted after review:** the content CRC also covers the kind bits, `V`, source and destination (no extra bytes), and `V` is mandatory in every frame of kinds 2 and 3, so the destination list has a version.
+Spec 11 spends 2 bytes on the content CRC-16 and none on the RXT block. **Adopted after review:** the content CRC also covers the kind bits, `V`, source and destination (no extra bytes), and `V` is mandatory in every frame, so the destination list has a version.
 
 **The RXT block** ([`tools/integrity/rxt_tail_test.py`](../tools/integrity/rxt_tail_test.py)), tested on 600 real packets carrying 0 to 3 tuples, with the rules above:
 
@@ -403,7 +403,7 @@ Status of 2 November 2026. The format is in early development and is still being
 
 ## Extending the format later
 
-The information kind (header bits 1 and 0) is full once kinds 2 and 3 are taken, so a future need does not have to squeeze into this header. **A new header is a new frame type byte** (`3C FF xx`), with its own layout, defined when it is warranted. Receivers drop any `3C FF` type they do not know and never show it as text, so a new type is invisible to old firmware.
+The information kind (header bits 1 and 0) is full now that all four kinds are used (form and position block), so a future need does not have to squeeze into this header. **A new header is a new frame type byte** (`3C FF xx`), with its own layout, defined when it is warranted. Receivers drop any `3C FF` type they do not know and never show it as text, so a new type is invisible to old firmware.
 Types in use or suggested: `01` plain text, `02` native (this plan), `03` capability frame (suggested in issue 7), `80` to `FF` the whole-packet PPM frames of spec 01 and spec 08. Several different headers can therefore live side by side, each used where it fits.
 Inside this header, the content field's version byte `V` is allocated append-only: its low three bits can name further table versions; relays copy the content field without reading it, so adding a table version changes nothing for them.
 
@@ -429,7 +429,7 @@ His tracker (`moricef/LoRa_APRS_Tracker`, branch `devel`, `src/lora_utils.cpp` a
 
 * **Receive:** the radio is read as raw bytes and only when the radio library reports no CRC error. A native frame (`3C FF 02`) is decoded to TNC2, its RXT block turned into a v2 text trailer, and passed on as a `3C FF 01` text frame, so everything after that sees ordinary text. Any other frame is read as text up to the first zero byte. **It does not drop an unknown `3C FF xx` type in that file**, which this plan requires (a `3C FF 81` frame would be shown as garbage); the check belongs with the new type.
 * **Transmit:** `txFormat` is 0 text, 1 native, 2 text and then native (two frames per packet, a transition mode). A packet that cannot be encoded natively goes as text; native frames are capped at 255 bytes. The tracker adds no RXT of its own.
-* **Where hybrid B plugs in:** the receive step (a new branch for kinds 2 and 3, producing the same TNC2 text) and the transmit step (a new `txFormat` value, falling back to native or text when PPM does not shrink the content). The setting is stored in the tracker's JSON configuration and, I did not check, in its web page.
+* **Where hybrid B plugs in:** the receive step (a new branch for every kind of `3C FF 02`, producing the same TNC2 text) and the transmit step (a new `txFormat` value, falling back to native or text when PPM does not shrink the content). The setting is stored in the tracker's JSON configuration and, I did not check, in its web page.
 * **Not read:** its digipeater code, if any, and its message handling, which should not depend on the frame format because everything after receive sees text.
 
 ### K6ATV's iGate fork (`LoRa_APRS_iGate`, branch `feature/order3-compression`, ESP32 LoRa32 v2.1; no RXT, no native frames)
@@ -439,7 +439,7 @@ His tracker (`moricef/LoRa_APRS_Tracker`, branch `devel`, `src/lora_utils.cpp` a
   So today a relay decodes the whole packet and encodes it again. For hybrid B the same path rules would have to run on the path decoded from the native front, with the content copied, not decoded and re-encoded.
 * **Duplicates:** `isIn25SegHashBuffer(sender, payload)` drops a repeat of the same sender and payload within 25 seconds. With hybrid B a relay could use the source from the native front and the content CRC-16 as the key, without decoding the content (for PPM kinds it has decoded it once anyway, to verify).
 * **Settings:** `compressTx` (on or off) and `compressFullEvery`; no `txFormat`. A `txFormat` like his tracker's (text, native, hybrid B, or both) would replace the boolean.
-* **Where hybrid B plugs in:** `readFrame` (native `3C FF 02` decode, kinds 2 and 3), the digipeater (path rewrite on the native front), `transmitText` (a new format), and the configuration. The iGate-to-APRS-IS side needs no change, since it uploads the decoded TNC2 text.
+* **Where hybrid B plugs in:** `readFrame` (native `3C FF 02` decode, every kind), the digipeater (path rewrite on the native front), `transmitText` (a new format), and the configuration. The iGate-to-APRS-IS side needs no change, since it uploads the decoded TNC2 text.
 
 ### K6ATV's Direwolf port (`~/direwolf`, branch `feature/lora-cad-live`; the hill Raspberry Pi test bench, not a deployment target)
 
@@ -454,7 +454,7 @@ His tracker (`moricef/LoRa_APRS_Tracker`, branch `devel`, `src/lora_utils.cpp` a
 
 * **The destination byte needs no disambiguation.** This plan defines the destination field of all four kinds as the code byte (escape plus an address element), and there is nothing to tell apart. Plain content is kinds 0 and 1 (decided 2 November 2026).
 * **Versions: decided.** `V = vvvvv ttt` is mandatory in every frame (1 byte; a plain frame adds 2 for the CRC): `vvvvv` is the protocol version (this document: 2), `ttt` the table version (destination list and LACF tables together; 0 is the first). The plain/LACF form is in the header (kind bit 1), not in `V`. Needs F4MLV's agreement.
-* **Header gap: closed in part.** The content CRC now covers the kind bits, `V`, source and destination. A flipped kind bit that turns kind 2 or 3 into 0 or 1 is not caught, since plain kinds carry no check; with channel noise it cannot pass the LoRa CRC, so it needs a relay or encoder fault.
+* **Header gap: closed in protocol version 2.** The content CRC covers the kind bits, `V`, source and destination, and plain content has its own CRC-16, so a flipped form or position bit fails the CRC like any other damage (tested: every such flip is dropped). The path count and the RXT bit are still not covered, because relays change them.
 * **Distribute destination-list updates over the air.** The list is small (62 destinations are about 310 bytes, two frames, about 18 s at SF12), so a station that sees an unknown list version could ask its nearest neighbour, or an iGate could fetch and verify it and pass it on. The PPM tables (about 150 KB, 600 full frames) cannot go this way. Needs a version field, a signature from a key built into the firmware, rate-limited requests, and old versions kept. Not designed.
 * **Upgrade path.** Receivers first and senders last, plain text as the fallback, the two reserved destination bits as a capability flag, unknown types dropped and never shown as text, old formats decoded indefinitely. Not written up.
 * **The two reserved destination bits: decided to stay reserved.** All compressed LoRa will use this format until a later version, so a "decodes hybrid B" flag is not needed now; senders set the bits to 0, receivers ignore them, and a future version can give them a meaning.

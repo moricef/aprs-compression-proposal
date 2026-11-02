@@ -88,7 +88,7 @@ exclusive: the like-for-like table shows a 438-style header and position with th
 Another effort covers some of the same ground. Fabrice Morel (F4MLV, moricef, France) has built a **native frame** for LoRa APRS,
 documented as a draft (`docs/LORA_APRS_NATIVE_FORMAT.md` and `..._DRAFT0.md` in moricef's `LoRa_APRS_iGate` repository,
 branch `rxt`) and already in moricef's T-Deck tracker (`devel` branch, setting `txFormat`: text, native or both). It marks
-its frames `3C FF 02`, so it cannot be confused with a plain frame (`01`) or an APRS-PPM frame (`81`, `C1`). LACF (spec 11) uses the same `3C FF 02` prefix, with kinds 2 and 3 for its own frames.
+its frames `3C FF 02`, so it cannot be confused with a plain frame (`01`) or an APRS-PPM frame (`81`, `C1`). LACF (spec 11) uses the same `3C FF 02` prefix, with all four kinds (plain or LACF content, with or without a position block) for its own frames.
 
 **What it is.** Each packet type gets its own binary layout: callsigns packed into a few bytes, the path as short
 codes (`WIDEn-N`), the position as numbers, and a fixed Huffman code for the free text. The iGate translates every

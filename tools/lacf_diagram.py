@@ -72,7 +72,7 @@ for name, size, sub, key, w, notes in fields:
             text(px + pw / 2, y0 + 46, sz, 11, fill=MUTED, anchor="middle")
             px += pw
         text(x + w / 2, y0 - 6, "Content field", 13, "bold", anchor="middle")
-        wr = textwrap.wrap("The text of the packet (or the comment after a position), coded by PPM. V = version, L = length, CRC-16 over the text and addresses.", int(w / 6.1))
+        wr = textwrap.wrap("The text of the packet (or the comment after a position), coded by PPM. V = protocol and table version, L = length, CRC-16 over the text and addresses.", int(w / 6.1))
         maxlines = max(maxlines, len(wr))
         for i, s_ in enumerate(wr):
             text(x + w / 2, y0 + bh + 18 + 14 * i, s_, 11, fill=MUTED, anchor="middle")
@@ -89,7 +89,7 @@ for name, size, sub, key, w, notes in fields:
 ynote = y0 + bh + 18 + 14 * maxlines + 12
 text(30, ynote, "Dashed boxes are optional. The position block exists only in kinds 1 and 3 (9 B for a plain position; longer with a timestamp, course or altitude).", 11.5, fill=MUTED)
 text(30, ynote + 16, "The RXT block only appears after a relay has added its measurements.", 11.5, fill=MUTED)
-text(30, ynote + 32, "Plain text (V starts with binary 11) replaces V L CRC payload when compression would not make the frame shorter.", 11.5, fill=MUTED)
+text(30, ynote + 32, "Plain content (header kind 0 or 1) is V, CRC and the text; the encoder uses it when LACF content (V L CRC payload) would not make the frame shorter.", 11.5, fill=MUTED)
 
 # ---------------------------------------------------------------- B. bit fields
 yb = ynote + 32 + 34
@@ -105,7 +105,7 @@ def bits(x, y, spec, title):
             text(cx + w / 2, y + 62 + 14 * k, ln, 11, fill=MUTED, anchor="middle")
         cx += w + 3
     return cx
-bits(30, yb + 28, [("7-4", 4, ["path elements", "(0 to 15)"], C["path"]), ("3", 1, ["RXT", "follows"], C["tuple"]), ("2", 1, ["reserved", "= 0"], "#eeeeee"), ("1", 1, ["form: 1 = LACF,", "0 = plain"], C["header"]), ("0", 1, ["1 = position", "block follows"], C["header"])], "Header byte")
+bits(30, yb + 28, [("7-4", 4, ["path elements", "(0 to 15)"], C["path"]), ("3", 1, ["RXT", "follows"], C["tuple"]), ("2", 1, ["reserved", "= 0"], "#eeeeee"), ("1-0", 2, ["kind: bit 1 = form", "(1 LACF, 0 plain);", "bit 0 = position block"], C["header"])], "Header byte")
 bits(580, yb + 28, [("vvvvv", 5, ["protocol version", "(2 today)"], C["vlc"]), ("ttt", 3, ["table version", "(0 today)"], C["payload"])], "V, the first byte of the content field")
 add_y = yb + 28 + 124
 text(30, add_y, "RXT tuple (4 bytes per relay, then one mask byte at the very end):", 13, "bold")
@@ -154,7 +154,7 @@ def cells(y, data, groups, caption):
 g1 = [
     (0, 3, "marker 3C FF 02", None, None), (3, 4, "header 23: 2 path elements, kind 3", None, None), (4, 9, "source N0CALL-9", None, None),
     (9, 10, "destination code 0 = APLRG1", None, None), (10, 12, "path: WIDE1-1, WIDE2-2", None, None),
-    (12, 21, "position block: ! 37°22.40'N 121°58.93'W, symbol >", None, None), (21, 25, "V = 1, L = 27 characters, CRC-16", None, None),
+    (12, 21, "position block: ! 37°22.40'N 121°58.93'W, symbol >", None, None), (21, 25, "V = 10 (protocol 2, table 0), L = 27 characters, CRC-16", None, None),
     (25, 35, "PPM payload = \"LoRa APRS iGate on the hill\"", None, None)]
 cols1 = [C["marker"], C["header"], C["source"], C["dest"], C["path"], C["pos"], C["vlc"], C["payload"]]
 g1 = [(a, b, l, cols1[i]) for i, (a, b, l, _, _) in enumerate(g1)]

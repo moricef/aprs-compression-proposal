@@ -21,7 +21,7 @@ DEST_LIST_PATH = os.path.join(TABLE_DIR, 'tocall_set1.txt')
 # Versions. SPEC_VERSION is the semantic version of spec 11. MAJOR = the protocol version, the top five bits of V (WIRE_VERSION); MINOR = a backward-compatible
 # addition; PATCH = wording only. The low three bits of V are the table version (tocall list and PPM tables together; table 0 is the first). Protocol 2: plain
 # content carries a CRC-16 and the plain/LACF form is kind bit 1; protocol 0 and 1 were only ever in test builds and are dropped.
-SPEC_VERSION = '2.0.0'
+SPEC_VERSION = '2.0.1'
 WIRE_VERSION = 2
 TABLE_VERSION = 0
 KNOWN_TABLES = (0,)

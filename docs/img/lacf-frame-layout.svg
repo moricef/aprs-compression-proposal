@@ -71,8 +71,9 @@
 <text x="803.0" y="106.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >Content field</text>
 <text x="803.0" y="196.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >The text of the packet (or the</text>
 <text x="803.0" y="210.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >comment after a position), coded by</text>
-<text x="803.0" y="224.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >PPM. V = version, L = length, CRC-16</text>
-<text x="803.0" y="238.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >over the text and addresses.</text>
+<text x="803.0" y="224.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >PPM. V = protocol and table version,</text>
+<text x="803.0" y="238.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >L = length, CRC-16 over the text and</text>
+<text x="803.0" y="252.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >addresses.</text>
 <rect x="920.0" y="112.0" width="148.0" height="66.0" rx="4" fill="#f9e08a" stroke="#8c959f" stroke-width="1" stroke-dasharray="5 4"/>
 <text x="994.0" y="137.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >RXT block</text>
 <text x="994.0" y="155.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="normal" fill="#1f2328" text-anchor="middle" >4 B per hop + 1</text>
@@ -82,7 +83,7 @@
 <text x="994.0" y="224.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >time to hop.</text>
 <text x="30.0" y="292.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#59636e" text-anchor="start" >Dashed boxes are optional. The position block exists only in kinds 1 and 3 (9 B for a plain position; longer with a timestamp, course or altitude).</text>
 <text x="30.0" y="308.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#59636e" text-anchor="start" >The RXT block only appears after a relay has added its measurements.</text>
-<text x="30.0" y="324.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#59636e" text-anchor="start" >Plain text (V starts with binary 11) replaces V L CRC payload when compression would not make the frame shorter.</text>
+<text x="30.0" y="324.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="normal" fill="#59636e" text-anchor="start" >Plain content (header kind 0 or 1) is V, CRC and the text; the encoder uses it when LACF content (V L CRC payload) would not make the frame shorter.</text>
 <text x="30.0" y="358.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#1f2328" text-anchor="start" >2. Two bytes in detail</text>
 <text x="30.0" y="386.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="start" >Header byte</text>
 <rect x="30.0" y="396.0" width="232.0" height="34.0" rx="4" fill="#d4c8f0" stroke="#8c959f" stroke-width="1" />
@@ -97,14 +98,11 @@
 <text x="355.0" y="418.0" font-family="ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >2</text>
 <text x="355.0" y="448.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >reserved</text>
 <text x="355.0" y="462.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >= 0</text>
-<rect x="387.0" y="396.0" width="58.0" height="34.0" rx="4" fill="#fdd0a2" stroke="#8c959f" stroke-width="1" />
-<text x="416.0" y="418.0" font-family="ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >1</text>
-<text x="416.0" y="448.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >form: 1 = LACF,</text>
-<text x="416.0" y="462.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >0 = plain</text>
-<rect x="448.0" y="396.0" width="58.0" height="34.0" rx="4" fill="#fdd0a2" stroke="#8c959f" stroke-width="1" />
-<text x="477.0" y="418.0" font-family="ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >0</text>
-<text x="477.0" y="448.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >1 = position</text>
-<text x="477.0" y="462.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >block follows</text>
+<rect x="387.0" y="396.0" width="116.0" height="34.0" rx="4" fill="#fdd0a2" stroke="#8c959f" stroke-width="1" />
+<text x="445.0" y="418.0" font-family="ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >1-0</text>
+<text x="445.0" y="448.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >kind: bit 1 = form</text>
+<text x="445.0" y="462.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >(1 LACF, 0 plain);</text>
+<text x="445.0" y="476.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#59636e" text-anchor="middle" >bit 0 = position block</text>
 <text x="580.0" y="386.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="start" >V, the first byte of the content field</text>
 <rect x="580.0" y="396.0" width="290.0" height="34.0" rx="4" fill="#f6c1d9" stroke="#8c959f" stroke-width="1" />
 <text x="725.0" y="418.0" font-family="ui-monospace, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" font-weight="bold" fill="#1f2328" text-anchor="middle" >vvvvv</text>
@@ -225,7 +223,7 @@
 <text x="427.5" y="812.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1f2328" text-anchor="start" >position block: ! 37°22.40'N 121°58.93'W, symbol &gt;</text>
 <line x1="528.0" y1="765.0" x2="618.0" y2="765.0" stroke="#8c959f" stroke-width="1.5" />
 <line x1="573.0" y1="765.0" x2="573.0" y2="785.0" stroke="#8c959f" stroke-width="1" />
-<text x="577.0" y="797.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1f2328" text-anchor="start" >V = 1, L = 27 characters, CRC-16</text>
+<text x="577.0" y="797.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1f2328" text-anchor="start" >V = 10 (protocol 2, table 0), L = 27 characters, CRC-16</text>
 <line x1="620.0" y1="765.0" x2="848.0" y2="765.0" stroke="#8c959f" stroke-width="1.5" />
 <line x1="734.0" y1="765.0" x2="734.0" y2="770.0" stroke="#8c959f" stroke-width="1" />
 <text x="738.0" y="782.0" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1f2328" text-anchor="start" >PPM payload = "LoRa APRS iGate on the hill"</text>
