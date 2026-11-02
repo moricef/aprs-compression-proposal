@@ -1,5 +1,15 @@
 # APRS-PPM: LoRa APRS packets about 40% smaller
 
+> **LACF 2.0.0 (2 November 2026): protocol version 2. It is not compatible with the earlier test builds (1 and 2 November).**
+> Plain-form frames now carry a CRC-16 (a plain frame cut before transmission used to be accepted as different text), the
+> plain or LACF form is in the header kind bits, and the version byte `V` is now the protocol version (5 bits) and the table
+> version (3 bits). A version 2 station and an earlier test build drop each other's LACF frames; plain APRS text is unaffected.
+> **Update every device that sends or receives LACF together:** the iGate, the tracker and the Raspberry Pi running Dire Wolf.
+> Version 2.0.0 was run on the air on 2 November 2026 between a LoRa32 iGate, a T-Deck Plus and a Dire Wolf hill station, with no
+> frame dropped. See the [changelog](CHANGELOG.md), [spec 11](spec/11-native-ppm-frame-byte-plan.md) (version 2.0.0, tag
+> [`v2.0.0`](https://github.com/radiohound/aprs-compression-proposal/tree/v2.0.0)) and the
+> [firmware page](https://tiles.aivu.com/lacf), where the version is on every download button.
+
 > **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out together with Fabrice Morel, F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), named **LACF**, the LoRa APRS Compact Frame, so a relay can rewrite the path and add an RXT measurement without decompressing anything.
 > The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a **draft** in early development and still being reviewed for change, implemented in test branches of the iGate, the T-Deck tracker and Dire Wolf, and tried on the air on 1 November 2026. **The whole-packet figures below (about half the bytes) describe the earlier standalone format, which is not the plan.** The older frames (`3C FF 81`, `3C FF C1`) described here still work as documented, and remain the only ones in released firmware.
 
