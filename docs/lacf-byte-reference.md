@@ -38,7 +38,8 @@ One byte, bit by bit:
 | 7-4 | path count | 0 to 15 | how many path elements follow the destination |
 | 3 | RXT flag | 0 = none, 1 = an RXT block ends the frame | a relay sets it when it appends its measurement |
 | 2 | reserved | must be 0 | a frame with this bit set is dropped |
-| 1-0 | kind | `10` (2) = the information field as text, PPM coded; `11` (3) = a position block, then the comment PPM coded | kinds 0 and 1 are not used and are dropped |
+| 1 | form | `1` = LACF (PPM-coded content); `0` = plain text, with a CRC | kinds 0 (plain) and 1 (plain with a position block) are the plain form; 2 and 3 are LACF |
+| 0 | position block | `1` = a position block follows the path and the content is only the comment; `0` = none, the content is the whole information field | |
 
 Examples: `23` = `0010 0011`: 2 path elements, no RXT block, kind 3. After a relay hop the header is `2B` = `0010 1011`: the same, with the RXT flag set.
 
@@ -73,9 +74,9 @@ The destination is one byte, `ff iiiiii`:
 | Bits | Name | What it does |
 |---|---|---|
 | 7-6 | `ff`, reserved | a sender sets them to 0 and a receiver ignores them, so a later version can give them a meaning; a relay copies them unchanged |
-| 5-0 | `iiiiii`, the code | 0 to 61 name the 62 most common destinations (device or software ids) of the table set; 62 is reserved (dropped); 63 is the escape: an address element follows (so 6 bytes in all) |
+| 5-0 | `iiiiii`, the code | 0 to 61 name the 62 most common destinations (device or software ids) of the table version; 62 is reserved (dropped); 63 is the escape: an address element follows (so 6 bytes in all) |
 
-Code 0 of table set 1 is `APLRG1` (the LoRa APRS iGate), so the byte `00` means `APLRG1`. A destination that is not in the list is sent as `3F` followed by an address element. A receiver also accepts the escape form for a destination that is in the list.
+Code 0 of table version 0 is `APLRG1` (the LoRa APRS iGate), so the byte `00` means `APLRG1`. A destination that is not in the list is sent as `3F` followed by an address element. A receiver also accepts the escape form for a destination that is in the list.
 
 ### 4.3 The source and the path
 
@@ -123,16 +124,18 @@ A receiver drops a block that no encoder could have produced: a timestamp above 
 
 ## 6. Content field
 
-The content field carries the text: the whole information field in kind 2, or the comment that is left after the position block in kind 3. It starts with the version byte `V`.
+The content field carries the text: the whole information field in kinds 0 and 2, or the comment that is left after the position block in kinds 1 and 3. It starts with the version byte `V`.
 
 ### 6.1 V, the version byte
 
 | Bits | Name | Values | What it does |
 |---|---|---|---|
-| 7-6 | `cc`, content coding | `00` = PPM coded; `11` = raw text; `01` and `10` are reserved (dropped) | tells how the rest is coded. The two good values differ in both bits, so one flipped bit lands on a reserved value and the frame is dropped, instead of turning PPM into unchecked raw text |
-| 5-0 | `vvvvvv`, table set | 1 to 63 (1 is the only one defined) | names the pair of PPM tables and the destination list the sender used. A receiver that does not hold that set drops the frame |
+| 7-3 | `vvvvv`, protocol version | 0 to 31 (2 is the only one defined; the test builds that sent `01`, `02`, `C1`, `C2` are not held and are dropped) | names the frame layout and the content rules the sender used. A receiver that does not hold it drops the frame |
+| 2-0 | `ttt`, table version | 0 to 7 (0 is the only one defined) | names the destination list and the pair of LACF tables, revised together. A receiver that does not hold it drops the frame |
 
-### 6.2 PPM content (`cc = 00`)
+Whether the content is LACF or plain is in the header (bit 1 of the kind), not in `V`.
+
+### 6.2 LACF content (kinds 2 and 3)
 
 | Part | Size | What it is |
 |---|---|---|
@@ -143,13 +146,13 @@ The content field carries the text: the whole information field in kind 2, or th
 
 **The CRC** is CRC-16/X-25 (polynomial 0x1021 reflected, initial value 0xFFFF, result inverted). It is computed over, in this order: the header byte AND 0x07 (the reserved bit and the kind bits), V, the source as text, `>`, the destination as text, `:`, and the information field. It does not cover the path or the path count and RXT flag, which relays change, so a relay never recomputes it. A receiver that has the wrong table set, or a damaged source, destination or V, fails it.
 
-In the example `D5 5E` is the CRC `0x5ED5`, `01` is V (PPM, table set 1) and `1B` is L = 27, the length of `LoRa APRS iGate on the hill`.
+In the example `B1 A6` is the CRC `0xA6B1`, `10` is V (protocol version 2, table version 0) and `1B` is L = 27, the length of `LoRa APRS iGate on the hill`.
 
 **The payload** is the range-coder output of spec 01, which codes each character by how likely it is after the three before it, using the table set. The sender ends the payload in a fixed way (the "deterministic ending", on average 0.25 B more) so that a receiver can check it: it decodes, codes the text again, and **drops the frame unless the result matches the payload byte for byte**. A cut or damaged payload almost never survives that. The example's payload is the 10 bytes `93 AF 55 0A 8E 18 E2 07 49 5B`, which stand for the 27 characters.
 
-### 6.3 Raw content (`cc = 11`)
+### 6.3 Plain content (kinds 0 and 1)
 
-When PPM would not make the text shorter (the rule is that PPM must satisfy 4 + n < 1 + L), the sender uses raw content: `V` followed directly by the text itself, up to the RXT block or the end of the frame. There is no L and no CRC, so raw text is protected only by the LoRa CRC.
+When PPM would not make the text shorter (the rule is that PPM must satisfy 4 + n < 3 + L), the sender uses plain content: `V`, then the 2-byte CRC (the same CRC-16 over the same input, low byte first), then the text itself, up to the RXT block or the end of the frame. There is no L. The CRC is what rejects a plain frame that was cut before transmission (protocol version 2; before it, plain text was protected only by the LoRa CRC).
 
 ### 6.4 What may not be in the text
 
@@ -189,7 +192,7 @@ The 35-byte frame and the 44-byte frame after one relay hop are shown byte by by
 
 ## 9. What a receiver drops
 
-A receiver drops the frame, silently, for any of: a marker it does not know; kind 0 or 1; header bit 2 set; a reserved destination code (62); a table-set version it does not hold; a content coding of `01` or `10`; an element that no encoder could produce (see section 4); a position block that no encoder could produce (section 5); an RXT tuple or mask that is impossible (section 7); a PPM payload that does not re-encode to the same bytes; or a CRC that does not match. It never shows such a frame as text and never passes it on.
+A receiver drops the frame, silently, for any of: a marker it does not know; header bit 2 set; a reserved destination code (62); a protocol or table version it does not hold; an element that no encoder could produce (see section 4); a position block that no encoder could produce (section 5); an RXT tuple or mask that is impossible (section 7); a PPM payload that does not re-encode to the same bytes; or a CRC that does not match. It never shows such a frame as text and never passes it on.
 
 ## Credit
 

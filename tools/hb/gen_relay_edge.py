@@ -21,7 +21,7 @@ d = H._parse(base); dest_at = d['path_start'] - 1
 f = bytearray(base); f[dest_at] |= 0xC0; add(bytes(f), 'ff bits set on the destination byte are copied')
 # 2. a listed destination sent in escape form (code 63 and the element) stays in escape form
 se_end = dest_at
-name = H.get_destlist(1)[base[dest_at] & 0x3F]
+name = H.get_destlist(0)[base[dest_at] & 0x3F]
 add(base[:dest_at] + b'\x3f' + H.enc_elem(name) + base[dest_at + 1:], 'a listed destination in escape form stays in escape form')
 # 3. seven tuples already in the frame and the first unused element is the eighth: it relays and adds no tuple of its own
 seven = H.encode(b'N0CALL-9>APLRG1,A1*,A2*,A3*,A4*,A5*,A6*,A7*,WIDE1-1:' + INFO)

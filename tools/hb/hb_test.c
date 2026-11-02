@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 
     if (!strcmp(argv[1], "gen")) {
         n = read_lines(NULL, lines, 20000);
-        printf("# Spec 11 test vectors: <frame hex> <TNC2 packet hex>. Table set 1 (V = cc 000001), destination list set 1. '-' = not encodable (a plain frame is sent).\n");
+        printf("# Spec 11 test vectors: <frame hex> <TNC2 packet hex>. Protocol version 2, table version 0 (V = 00010 000), destination list set 1. '-' = not encodable (a plain frame is sent).\n");
         for (i = 0; i < n; i++) { size_t w = hb_encode(lines[i], strlen(lines[i]), NULL, fr, sizeof fr, NULL); if (w) hexout(fr, w); else fputs("-", stdout); putchar(' '); hexout((uint8_t *)lines[i], strlen(lines[i])); putchar('\n'); }
         return 0;
     }
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
         return 0;
     }
     if (!strcmp(argv[1], "props") && argc > 2) {
-        /* counters by content type: [0] PPM content (cc = 0), [1] raw content (cc = 1) */
+        /* counters by content type: [0] PPM content (cc = 0), [1] plain content (cc = 1) */
         long frames[2] = {0}, intact_ok = 0, cut_n[2] = {0}, cut_acc[2] = {0}, app_n[2] = {0}, app_acc[2] = {0}, flip_n[2] = {0}, flip_acc[2] = {0}, flip_wrong[2] = {0};
         long reg_n[2][6] = {{0}}, reg_wrong[2][6] = {{0}}, rx_n = 0, rx_ok = 0, rxcut_n = 0, rxcut_acc = 0, rl_n = 0, rl_ok = 0, rl_copy = 0;
         static const char *regname[6] = { "prefix and header byte", "source and destination", "path", "position block", "content: V, L, CRC", "content: payload or text" };
@@ -182,12 +182,12 @@ int main(int argc, char **argv)
               if (r) { rl_n++; d = hb_decode(out, r, tn, sizeof tn, &in);
                        if (d > 0 && in.has_rxt) { size_t ca = 0; rl_ok++; while (ca < w && ca < r && fr[w - 1 - ca] == out[r - 1 - 5 - ca]) ca++; if (ca >= in.content_len) rl_copy++; } } }
         }
-        printf("%ld frames, %ld with PPM content and %ld with raw content; intact frames decoded to the original: %ld\n", frames[0] + frames[1], frames[0], frames[1], intact_ok);
+        printf("%ld frames, %ld with PPM content and %ld with plain content; intact frames decoded to the original: %ld\n", frames[0] + frames[1], frames[0], frames[1], intact_ok);
         { int kk;
         for (kk = 0; kk < 2; kk++) {
             int rg;
             size_t k = (size_t)kk;
-            printf("\n== %s content (%ld frames)\n", k ? "RAW" : "PPM", frames[k]);
+            printf("\n== %s content (%ld frames)\n", k ? "PLAIN" : "PPM", frames[k]);
             printf("every cut (1 byte up to all but one): %ld cuts, %ld accepted\n", cut_n[k], cut_acc[k]);
             printf("1 to 8 random bytes appended: %ld frames, %ld accepted\n", app_n[k], app_acc[k]);
             printf("every single-bit flip: %ld flips, %ld accepted, %ld of those with a different packet\n", flip_n[k], flip_acc[k], flip_wrong[k]);

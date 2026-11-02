@@ -18,7 +18,14 @@ INFO_MODEL_PATH = os.path.join(TABLE_DIR, 'model_hybridB_info_native.c')
 COMMENT_MODEL_PATH = os.path.join(TABLE_DIR, 'model_hybridB_comment.c')
 DEST_LIST_PATH = os.path.join(TABLE_DIR, 'tocall_set1.txt')
 
-KNOWN_VERSIONS = (1,)
+# Versions. SPEC_VERSION is the semantic version of spec 11. MAJOR = the protocol version, the top five bits of V (WIRE_VERSION); MINOR = a backward-compatible
+# addition; PATCH = wording only. The low three bits of V are the table version (tocall list and PPM tables together; table 0 is the first). Protocol 2: plain
+# content carries a CRC-16 and the plain/LACF form is kind bit 1; protocol 0 and 1 were only ever in test builds and are dropped.
+SPEC_VERSION = '2.0.0'
+WIRE_VERSION = 2
+TABLE_VERSION = 0
+KNOWN_TABLES = (0,)
+def make_v(proto=WIRE_VERSION, table=TABLE_VERSION): return (proto << 3) | table
 RELAY_CALL = 'N0RLY-1'
 RELAY_TUPLE = bytes([50, 20, 45, 10])  # decimal: the spec writes "50 20 45 10"
 TUPLE_MAX = (89, 88, 89, 89)
@@ -175,7 +182,7 @@ _destlist = {}
 
 
 def get_models(version):
-    if version not in KNOWN_VERSIONS:
+    if version not in KNOWN_TABLES:
         raise Drop('unknown_version')
     if version not in _models:
         _models[version] = (Model(INFO_MODEL_PATH), Model(COMMENT_MODEL_PATH))
@@ -183,7 +190,7 @@ def get_models(version):
 
 
 def get_destlist(version):
-    if version not in KNOWN_VERSIONS:
+    if version not in KNOWN_TABLES:
         raise Drop('unknown_version')
     if version not in _destlist:
         d = {}
@@ -438,27 +445,23 @@ def _parse(frame):
     kind = h & 3
     npath = h >> 4
     rxt = bool(h & 8)
-    if kind < 2:
-        raise Drop('kind')
     if h & 4:
         raise Drop('reserved_bit')
+    plain = kind < 2                        # kinds 0 and 1 carry plain content, kinds 2 and 3 LACF content; kinds 1 and 3 have a position block
     p = 4
     src, p = dec_elem(f, p)
     dest_codeless = None
-    if kind >= 2:
-        if p >= len(f):
-            raise Drop('truncated')
-        code = f[p] & 63
-        p += 1
-        if code == 62:
-            raise Drop('reserved_dest_code')
-        if code == 63:
-            dest, p = dec_elem(f, p)
-        else:
-            dest_codeless = code
-            dest = None
-    else:
+    if p >= len(f):
+        raise Drop('truncated')
+    code = f[p] & 63
+    p += 1
+    if code == 62:
+        raise Drop('reserved_dest_code')
+    if code == 63:
         dest, p = dec_elem(f, p)
+    else:
+        dest_codeless = code
+        dest = None
     path = []
     path_start = p
     for _ in range(npath):
@@ -467,7 +470,7 @@ def _parse(frame):
             raise Drop('wide_not_compliant')
         path.append(t)
     path_end = p
-    d = dict(frame=f, header=h, kind=kind, src=src, path=path, path_start=path_start,
+    d = dict(frame=f, header=h, kind=kind, plain=plain, src=src, path=path, path_start=path_start,
              path_end=path_end, rxt=rxt, dest=dest, dest_code=dest_codeless,
              front_end=path_start)
     # destination bytes (between source and path) are copied for relays
@@ -495,13 +498,10 @@ def _parse(frame):
             raise Drop('rxt_empty')
         if bits[-1] >= npath:
             raise Drop('rxt_bit_beyond_path')
-        # "at least 4k+1 bytes remain after the position block and, for PPM kinds, after the content CRC"
-        minstart = cstart
-        if kind >= 2:
-            if cstart >= len(f):
-                raise Drop('truncated')
-            if (f[cstart] >> 6) == 0:
-                minstart = cstart + 4
+        # "at least 4k+1 bytes remain after the position block and after V (plain: V and the CRC, 3 bytes; LACF: V, L and the CRC, 4 bytes)"
+        if cstart >= len(f):
+            raise Drop('truncated')
+        minstart = cstart + (3 if plain else 4)
         if end - minstart < 4 * k + 1:
             raise Drop('rxt_truncated')
         blk = f[end - 4 * k - 1:end - 1]
@@ -532,17 +532,12 @@ def _decode(frame):
     d = _parse(frame)
     f, kind = d['frame'], d['kind']
     p, end = d['cstart'], d['content_end']
-    if kind < 2:
-        text = f[p:end]
-        dest = d['dest']
-        info = rebuild_info(d['pfx'], d['alt_off'], d['alt_text'], text) if kind == 1 else text
-        return _tnc2(d['src'], dest, d['path'], info)
     if p >= end:
         raise Drop('truncated')
     V = f[p]
-    cc, ver = V >> 6, V & 63
-    if cc not in (0, 3):
-        raise Drop('reserved_coding')
+    proto, ver = V >> 3, V & 7
+    if proto != WIRE_VERSION:
+        raise Drop('unknown_version')
     infom, comm = get_models(ver)
     dest = d['dest']
     if dest is None:
@@ -551,12 +546,17 @@ def _decode(frame):
             raise Drop('dest_code_unknown')
         dest = dl[d['dest_code']]
     p += 1
-    if cc == 3:
-        text = f[p:end]
-        if kind == 3:
+    if d['plain']:
+        if p + 2 > end:
+            raise Drop('truncated')
+        crc = f[p] | f[p + 1] << 8
+        text = f[p + 2:end]
+        if kind & 1:
             info = rebuild_info(d['pfx'], d['alt_off'], d['alt_text'], text)
         else:
             info = text
+        if crc16_x25(crc_input(d['header'], V, d['src'], dest, info)) != crc:
+            raise Drop('crc')
         return _tnc2(d['src'], dest, d['path'], info)
     if p + 3 > end:
         raise Drop('truncated')
@@ -575,7 +575,7 @@ def _decode(frame):
         raise Drop('crc')
     if ppm_encode(model, text) != payload:
         raise Drop('not_canonical')
-    if not 4 + len(payload) < 1 + L:
+    if not 4 + len(payload) < 3 + L:
         raise Drop('should_be_raw')
     return _tnc2(d['src'], dest, d['path'], info)
 
@@ -626,7 +626,7 @@ def path_ok(tnc2):
     return sp is None or all(wide_ok(t) for t in sp[2])
 
 
-def encode(tnc2, version=1):
+def encode(tnc2, version=TABLE_VERSION):
     try:
         fr = _encode(bytes(tnc2), version)
     except (Drop, OverflowError):
@@ -676,21 +676,23 @@ def _encode(pkt, version):
         pfx, off, atext, _ = parse_pos(bp[0], 0)
         if rebuild_info(pfx, off, atext, bp[1]) == info:
             kind, block, text, model = 3, bp[0], bp[1], comm
-    header = (len(path) << 4) | kind
     L = len(text)
     if L > 255:
         return None
     ppm = None
     if L:
         payload = ppm_encode(model, text)
-        if 4 + len(payload) < 1 + L:
+        if 4 + len(payload) < 3 + L:                 # plain content is V, CRC-16 and the text: 3 + L bytes
             ppm = payload
-    if ppm is not None:
-        V = version
+    V = make_v(WIRE_VERSION, version)
+    if ppm is not None:                              # LACF content: kind 2 (whole information field) or 3 (position block + comment)
+        header = (len(path) << 4) | kind
         crc = crc16_x25(crc_input(header, V, src, dest, info))
         content = bytes([V, L, crc & 255, crc >> 8]) + ppm
-    else:
-        content = bytes([0xC0 | version]) + text
+    else:                                            # plain content: kind 0 or 1 (the same two with the LACF flag clear)
+        header = (len(path) << 4) | (kind - 2)
+        crc = crc16_x25(crc_input(header, V, src, dest, info))
+        content = bytes([V, crc & 255, crc >> 8]) + text
     return b'\x3c\xff\x02' + bytes([header]) + se + de + b''.join(pe) + block + content
 
 

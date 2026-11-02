@@ -31,7 +31,7 @@ with open(os.path.join(TEST, 'vectors_hb_reject_v1.txt'), 'rb') as _fh:
 def ppm_frames():
     out = []
     for fr, pkt in VEC:
-        if hb._parse(fr)['kind'] >= 2 and fr[hb._parse(fr)['cstart']] >> 6 == 0:
+        if not hb._parse(fr)['plain']:
             out.append((fr, pkt))
     return out
 
@@ -130,9 +130,17 @@ class Integrity(unittest.TestCase):
                 g[i] ^= 1 << bit
                 self.assertFalse(accepted(hb.decode(bytes(g))), (fr.hex(), bit))
 
+    def test_raw_flag_flip(self):
+        # header kind bit 1 turns LACF content into plain and plain into LACF: the layouts differ and the CRC covers the bit, so every such frame is dropped
+        for fr, pkt in VEC:
+            if not isinstance(hb.decode(fr), bytes):
+                continue
+            g = bytearray(fr); g[3] ^= 2
+            self.assertFalse(accepted(hb.decode(bytes(g))), fr.hex())
+
     def test_raw_vectors_exist_and_decode(self):
-        raw = [(f, p) for f, p in VEC if hb._parse(f)['kind'] >= 2 and f[hb._parse(f)['cstart']] >> 6 == 3]
-        self.assertGreater(len(raw), 10)
+        plain = [(f, p) for f, p in VEC if hb._parse(f)['plain']]
+        self.assertGreater(len(plain), 10)
 
 
 class Rxt(unittest.TestCase):

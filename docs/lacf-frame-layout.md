@@ -11,15 +11,15 @@ Every byte and bit in the picture is defined, with its values and what it does, 
 | Field | Size | What it holds |
 |---|---|---|
 | Marker | 3 B | `3C FF 02`: the native frame. Firmware that does not know it ignores the frame. |
-| Header | 1 B | Bits 7-4: number of path elements (0 to 15). Bit 3: an RXT block follows. Bit 2: reserved, 0. Bits 1-0: kind (2 = the information field as text, PPM coded; 3 = a position block, then the comment PPM coded). |
+| Header | 1 B | Bits 7-4: number of path elements (0 to 15). Bit 3: an RXT block follows. Bit 2: reserved, 0. Bit 1: the form (1 = LACF, PPM-coded content; 0 = plain text with a CRC). Bit 0: 1 = a position block follows the path, 0 = none. So kind 0 = plain, 1 = plain with a position block, 2 = LACF, 3 = LACF with a position block. |
 | Source | 5 B | The sender's callsign and SSID, packed. A name that does not fit goes as a text element. |
 | Destination | 1 B | A code from a list of 62 (which device or software sent the packet). 1 + 5 B when the destination is not in the list. |
 | Path | 1 B each, or 5 B | One byte for `WIDEn-N`; 5 bytes for a callsign. A path that breaks the APRS `WIDEn-N` rule is not carried. |
 | Position block | 9 B typical | Kind 3 only: data type, latitude, longitude, table and symbol, exactly. Longer with a timestamp, course or altitude. |
-| Content field | 4 B + n | `V` (1 B), `L` (1 B), CRC-16 (2 B), then the PPM payload (n B). Raw text (`V` starts with binary 11) is used instead when PPM would not make it shorter. |
+| Content field | 4 B + n | `V` (1 B), `L` (1 B), CRC-16 (2 B), then the PPM payload (n B). Plain text (`V` starts with binary 11) is used instead when PPM would not make it shorter. |
 | RXT block | 4 B per hop + 1 | Added by relays only: one tuple per relay (RSSI, SNR, frequency offset, time to hop), then a mask byte. |
 
-`V` is two bits of content coding (`00` = PPM, `11` = raw text) and six bits naming the table set (1 today), which also names the destination list. The CRC-16 covers the text, the kind bits, `V` and the source and destination, but not the path, which relays change.
+`V` is five bits of protocol version (2 today) and three bits of table version (0 today); the table version names the destination list and the LACF tables together. Whether the content is LACF or plain is in the header, not in `V`. The CRC-16 covers the text, the kind bits, `V` and the source and destination, but not the path, which relays change.
 
 ## The worked example
 
@@ -38,9 +38,9 @@ As a LACF frame (35 bytes, 57% smaller for this packet; the average on real pack
 | `09` | path element | `WIDE1-1` |
 | `12` | path element | `WIDE2-2` |
 | `00 01 B5 F8 16 55 EB 2F 3E` | position block | data type `!`, 37°22.40'N, table `/`, 121°58.93'W, symbol `>` |
-| `01` | V | PPM content, table set 1 |
+| `10` | V | protocol version 2 (`00010`), table version 0 (`000`) |
 | `1B` | L | 27 characters of text follow in coded form |
-| `D5 5E` | CRC-16 | `0x5ED5`, low byte first |
+| `B3 E0` | CRC-16 | `0xE0B3`, low byte first |
 | `93 AF 55 0A 8E 18 E2 07 49 5B` | PPM payload | `LoRa APRS iGate on the hill` in 10 bytes |
 
 After one relay hop (44 bytes): the relay changes the front of the frame and copies everything else byte for byte.

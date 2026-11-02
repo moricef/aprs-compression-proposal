@@ -39,20 +39,20 @@ def line(x1, y1, x2, y2, stroke=LINE, sw=1, dash=""):
 H = 0
 add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-labelledby="t d">')
 add('<title id="t">LACF frame layout</title>')
-add('<desc id="d">The fields of a LACF frame (LoRa APRS Compact Frame, spec 11 draft, kinds 2 and 3) and a worked example: a position beacon of 82 bytes as plain text is 35 bytes as a LACF frame and 44 bytes after one relay hop.</desc>')
+add('<desc id="d">The fields of a LACF frame (LoRa APRS Compact Frame, spec 11 draft) and a worked example: a position beacon of 82 bytes as plain text is 35 bytes as a LACF frame and 44 bytes after one relay hop.</desc>')
 rect(0, 0, W, 0, "#ffffff", stroke="#ffffff", rx=0)
 text(30, 38, "LACF frame layout", 24, "bold")
-text(30, 60, "LoRa APRS Compact Frame, spec 11 draft (kinds 2 and 3). A draft in early development; the format may change. Sizes are in bytes.", 13, fill=MUTED)
+text(30, 60, "LoRa APRS Compact Frame, spec 11 draft. A draft in early development; the format may change. Sizes are in bytes.", 13, fill=MUTED)
 
 # ---------------------------------------------------------------- A. the fields
 text(30, 100, "1. The fields, in the order they are sent", 16, "bold")
 fields = [
     ("Marker", "3 B", "3C FF 02", "marker", 104, ["Says this is a native frame. Other firmware ignores it."]),
-    ("Header", "1 B", "bit by bit below", "header", 92, ["Number of path elements, RXT flag, kind (2 or 3)."]),
+    ("Header", "1 B", "bit by bit below", "header", 92, ["Number of path elements, RXT flag, form (LACF or plain), position block."]),
     ("Source", "5 B", "callsign + SSID", "source", 108, ["The sender, packed into 5 bytes; unusual names go as text."]),
     ("Destination", "1 B", "table code", "dest", 110, ["Which device or software sent it (a list of 62); 1 + 5 B if not listed."]),
     ("Path", "1 B each", "or 5 B", "path", 112, ["One byte for WIDE1-1, WIDE2-2 and so on; 5 bytes for a callsign."]),
-    ("Position", "9 B", "kind 3 only", "pos", 100, ["Latitude, longitude and symbol, exact (lossless)."]),
+    ("Position", "9 B", "kinds 1 and 3", "pos", 100, ["Latitude, longitude and symbol, exact (lossless)."]),
     ("Content", "V L CRC + n", "", "vlc", 222, []),
     ("RXT block", "4 B per hop + 1", "added by relays", "tuple", 148, ["What each relay heard: signal, noise, offset, time to hop."]),
 ]
@@ -87,9 +87,9 @@ for name, size, sub, key, w, notes in fields:
             text(x + w / 2, y0 + bh + 18 + 14 * i, s_, 11, fill=MUTED, anchor="middle")
     x += w + gap
 ynote = y0 + bh + 18 + 14 * maxlines + 12
-text(30, ynote, "Dashed boxes are optional. The position block exists only in kind 3 (9 B for a plain position; longer with a timestamp, course or altitude).", 11.5, fill=MUTED)
+text(30, ynote, "Dashed boxes are optional. The position block exists only in kinds 1 and 3 (9 B for a plain position; longer with a timestamp, course or altitude).", 11.5, fill=MUTED)
 text(30, ynote + 16, "The RXT block only appears after a relay has added its measurements.", 11.5, fill=MUTED)
-text(30, ynote + 32, "Raw text (V starts with binary 11) replaces V L CRC payload when compression would not make the frame shorter.", 11.5, fill=MUTED)
+text(30, ynote + 32, "Plain text (V starts with binary 11) replaces V L CRC payload when compression would not make the frame shorter.", 11.5, fill=MUTED)
 
 # ---------------------------------------------------------------- B. bit fields
 yb = ynote + 32 + 34
@@ -105,8 +105,8 @@ def bits(x, y, spec, title):
             text(cx + w / 2, y + 62 + 14 * k, ln, 11, fill=MUTED, anchor="middle")
         cx += w + 3
     return cx
-bits(30, yb + 28, [("7-4", 4, ["path elements", "(0 to 15)"], C["path"]), ("3", 1, ["RXT", "follows"], C["tuple"]), ("2", 1, ["reserved", "= 0"], "#eeeeee"), ("1-0", 2, ["kind: 2 = text,", "3 = position", "+ comment"], C["header"])], "Header byte")
-bits(580, yb + 28, [("cc", 2, ["00 = PPM,", "11 = raw text"], C["vlc"]), ("vvvvvv", 6, ["version of the table set", "(1 today; it names the", "PPM tables and the destinations)"], C["payload"])], "V, the first byte of the content field")
+bits(30, yb + 28, [("7-4", 4, ["path elements", "(0 to 15)"], C["path"]), ("3", 1, ["RXT", "follows"], C["tuple"]), ("2", 1, ["reserved", "= 0"], "#eeeeee"), ("1", 1, ["form: 1 = LACF,", "0 = plain"], C["header"]), ("0", 1, ["1 = position", "block follows"], C["header"])], "Header byte")
+bits(580, yb + 28, [("vvvvv", 5, ["protocol version", "(2 today)"], C["vlc"]), ("ttt", 3, ["table version", "(0 today)"], C["payload"])], "V, the first byte of the content field")
 add_y = yb + 28 + 124
 text(30, add_y, "RXT tuple (4 bytes per relay, then one mask byte at the very end):", 13, "bold")
 tx = 30
