@@ -1,5 +1,7 @@
 # Hybrid frame layouts: size, relay and timing harness
 
+> **Note.** This harness compares layouts with simulated figures. Its "hybrid B" is the layout that became LACF, [spec 11](../../spec/11-native-ppm-frame-byte-plan.md), which is in early development and still being reviewed for change. The measured results for LACF (bytes on 14,305 real packets, airtime, ESP32 processor time) are in [`docs/hybrid-savings-and-timing.md`](../../docs/hybrid-savings-and-timing.md); where this harness says a figure is not measured, check there.
+
 Code behind [`docs/hybrid-layouts-results.pdf`](../../docs/hybrid-layouts-results.pdf). It compares three ways to lay out a compressed LoRa
 APRS frame, so the numbers can be checked and rerun on other captures (for example the Ariège and Arizona sets).
 

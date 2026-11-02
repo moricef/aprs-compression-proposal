@@ -1,6 +1,6 @@
 # Ambiguities found while writing hb.py from spec 11 (LACF, the LoRa APRS Compact Frame)
 
-Result: 500/500 encode, 500/500 decode, 246/246 relay (and 246/246 decode of the relayed frames) on the first run after one bug of mine (a decoder byte-index slip, not a spec issue) and one spec reading (item 1). Nothing was special-cased. "Confirmed" means the vectors would have failed under another reading; "untested" means the vectors never exercise the point, so my reading is only a guess.
+Result of the first run (the vector sets have grown since: 554 encode, 298 + 199 + 6 relay, 38 reject): 500/500 encode, 500/500 decode, 246/246 relay (and 246/246 decode of the relayed frames) on the first run after one bug of mine (a decoder byte-index slip, not a spec issue) and one spec reading (item 1). Nothing was special-cased. "Confirmed" means the vectors would have failed under another reading; "untested" means the vectors never exercise the point, so my reading is only a guess.
 
 ## Needed a second try
 
@@ -64,7 +64,7 @@ Result: 500/500 encode, 500/500 decode, 246/246 relay (and 246/246 decode of the
 
 38. **CLI input.** `gen` reads packet lines as raw bytes split on `\n` only (packets contain control bytes 0x1c..0x1f); a trailing `\r` is stripped and `#`-lines skipped. `recv` takes a frame hex per line, ignores text after the first space.
 39. **Hard to follow:** the spec jumps between "the content field" (V ... payload), "payload" and "text"; the sentence in Receiver 3 about where the RXT block starts ("at least 4k+1 bytes remain ... after the CRC") is easy to misread as the block starting at the CRC. A single worked example frame (hex, annotated) in the spec would have saved the most time: I derived the frame layout by decoding the first vector by eye.
-40. **The Size / Integrity / Open sections** state a measured result "Two independent implementations (C and Python) agree"; this implementation is a third, written from the text, and agrees on all 500 + 246 vectors; it does not test the damage statistics claimed there.
+40. **The Size / Integrity / Open sections** state a measured result "Two independent implementations (C and Python) agree"; this implementation is a third, written from the text, and agreed on all 500 + 246 vectors of the first run (now 554 + 503); it does not test the damage statistics claimed there.
 
 ## Resolved in the spec and the code (1 November 2026)
 
@@ -77,7 +77,7 @@ Every item above was answered by a spec sentence, a rule in the code, a vector, 
 | 3 | Decided: the encoder sends the hybrid frame whenever the packet is encodable and does not compare it with the plain frame. |
 | 4, 5, 6, 8 | The one-byte WIDE form wins when it matches exactly. A WIDE look-alike that breaks the APRS rule (`WIDE2-3`, `WIDE1-0`, `WIDE8-1`) was first coded as a callsign or text element; since 1 November it is **not carried: the packet is dropped and not repeated on RF** (spec 11, Non-compliant WIDE paths). SSID 31 uses the extra byte; a trailing star of a text element is one of its bytes. Edge vectors for each. |
 | 7 | The first character is the most significant base-40 digit (spec). |
-| 9 | The not-encodable cases are listed in the spec (empty element, text element over 31, more than 15 path elements, frame or information field over 255, missing `>` or `:`, a non-compliant WIDE path); 16 of the 553 vectors are `-`. |
+| 9 | The not-encodable cases are listed in the spec (empty element, text element over 31, more than 15 path elements, frame or information field over 255, missing `>` or `:`, a non-compliant WIDE path); 17 of the 554 vectors are `-`. |
 | 10 | Strict rule: the receiver drops every element no encoder can produce, also an SSID extra byte below 31 and a callsign digit above 36 (spec, reject vectors). |
 | 11 | The encoder must use the destination code when the destination is listed; a receiver also accepts the escape form (spec). |
 | 12, 22 | Kinds 0 and 1 are not used and are dropped (decided; reject vectors). |

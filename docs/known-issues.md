@@ -48,7 +48,7 @@ protects against this on the air, but the decoder did not itself reject such fra
 now rejects them: of 263 primed frames cut by 1 to 3 bytes, none decoded to wrong text. Full frames (`3C FF 81`)
 have no check byte, and adding one would cost a byte on every full frame. Measured on 14,298 real frames: a cut full frame is accepted with a wrong tail 100% of the time (see [truncated payloads and integrity](truncated-payloads-and-integrity.md)). Chosen for the LACF byte plan: a **round-trip check**, where
 the receiver decodes the frame, compresses the text again and drops the frame if the result differs from the bytes it
-received. It adds almost nothing on the air (+0.3 bytes for a deterministic ending) and rejected every cut frame in the test, but has not been tried on a radio. It would require every sender to produce exactly the same
+received. It adds almost nothing on the air (+0.3 bytes for a deterministic ending) and rejected every cut frame in the test. It is the receiver rule of LACF (spec 11) and has run in the test firmware on the air since 31 October 2026; tests continue. It would require every sender to produce exactly the same
 bytes for the same text, or its good frames would be dropped. And it is not free on the receiver: on a LILYGO LoRa32
 (ESP32-PICO-D4, 240 MHz, codec alone, no WiFi) one decode takes 12 to 29 ms (0.3 ms per character), so a round trip
 takes about 25 to 50 ms per received full frame. That is small against seconds between frames at SF12 and not small at
@@ -63,15 +63,14 @@ changed, which is another reason transmit is off by default. The ESP32 iGate, T-
 
 ### 4. Cost in flash
 
-The model is about 125 KB of flash. The iGate build with the decoder is at 96.2% of flash on a TTGO LoRa32, which is
-tight, and the T-Deck tracker build is at 72.5%. This limits which boards can carry it.
+The model is about 125 KB of flash. In an early build of the earlier format the iGate with the decoder was at 96.2% of flash on a TTGO LoRa32, and the T-Deck tracker at 72.5% (the next paragraph gives a later breakdown of the iGate branch). For LACF the measured figures are 91.4% (LoRa32 iGate) and 78.0% (T-Deck) in `docs/lacf-test-results-2026-11-01.md`. This limits which boards can carry it.
 
 Looking at where the flash goes in the ESP32 iGate branch (TTGO LoRa32 V2.1 target, 1,736,645 B, 88.3% of the 1.875 MB
 application slot): embedded web pages and images about 278 KB, the iGate's own code 131 KB, the PPM model and codec
 127 KB, and the Bluetooth controller about 123 KB. Nothing in the iGate uses Bluetooth. The cause is a `btStop()` call in
 `wifi_utils.cpp`, which makes the Arduino core link its Bluetooth support and keep the controller's RAM reserved. In a
 scratch copy with that one call removed the build was 1,608,377 B (81.8%), about 128 KB smaller, and static RAM was
-3.8 KB lower. **Only built, not run on a board**, and the free heap was not measured, so this is a lead and not a result.
+3.8 KB lower. That was a scratch build. The change is now in the LACF iGate firmware, which runs on a board, and the saving was measured again on 1 November 2026 on Ricardo Guzman's current iGate `main`: 1,602,737 B (81.5%) became 1,474,561 B (75.0%), with static RAM 3.8 KB lower (`docs/lacf-test-results-2026-11-01.md`). The free heap has not been measured.
 
 ## What the tests confirmed
 

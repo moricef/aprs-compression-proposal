@@ -3,7 +3,7 @@
 A summary of the ideas in this repo, with the saving each one is estimated to give for LoRa APRS and
 for traditional (VHF, AX.25) APRS. **All figures come from simulations and offline measurement on
 captured APRS-IS packets, except the over-the-air sizes noted in `docs/over-the-air-test.md`, which come from
-two short-range tests on 24 October 2026.** Details and caveats are in the linked files; read them before
+the short-range tests of 24 to 25 October 2026 (earlier whole-text format). LACF (spec 11) has its own measured figures in `docs/hybrid-savings-and-timing.md` and `docs/lacf-test-results-2026-11-01.md`.** Details and caveats are in the linked files; read them before
 quoting a number.
 
 How to read the numbers:
@@ -22,6 +22,7 @@ How to read the numbers:
 
 | # | Implementation | LoRa APRS: bytes / airtime saved | Traditional VHF APRS: bytes / airtime saved | Legacy stations | Status and source |
 |---|---|---|---|---|---|
+| 0 | **LACF** (spec 11, in early development and still being reviewed for change; the current LoRa format): the native frame with a PPM-coded content field and an optional RXT block | **43.8% / about 35%** on 14,305 real packets, no RXT (37.8% to 43.7% after one relay hop, depending on how RXT is counted) | n/a | Plain frames unchanged; a station that does not know the frame ignores it | Measured: `docs/hybrid-savings-and-timing.md`; spec 11; short on-air tests |
 | 1 | **Static compressed frame** (APRS-PPM): fixed trained table + range coder | **41% / about 32%** (43% / 34% with a 202 KB table) | Whole packet: **39% / 24%**. Needs a new frame type | Plain frames unchanged; legacy cannot decode the new frame, and it drops or ignores it | Codec tested on a PC; spec 01, `docs/per-country-estimate.md` |
 | 2 | Info field only compressed, standard AX.25 header (PID marker) | n/a | **20% / 12%** (22% / 14% without the 2-byte overhead) | Legacy decodes the frame and shows junk in the info; a Direwolf iGate does not gate it | Spec 07; legacy test `docs/legacy-decoder-test.md` |
 | 3 | Hybrid: keep source and destination addresses, compress path + info | n/a | **30% / 19%** (rough estimate from the earlier 20-minute data, not rerun) | Valid AX.25, callsign readable | Spec 07 |
@@ -50,6 +51,6 @@ already carry a repeated comment and path for almost nothing.
 | Static compression, LoRa and VHF | 135,299 unique packets from a three-hour capture (a European evening), held-out stations; more data did not help at a fixed table size | One window; the table is now limited by its format, not by data |
 | Priming | Python simulation of ideal coding on 3,000 sampled packets; consecutive identical packets removed | Assumes the receiver holds the reference; real receivers often do not (spec 08); not real codec bytes |
 | Airtime | Line fit (LoRa), assumed TXDELAY (VHF) | Ignores channel access and collisions |
-| Overall | None of it is on-air | The over-the-air test is not done |
+| Overall | Mostly simulation; short on-air tests exist (`docs/over-the-air-test.md`) | Few boards, short runs, no weak-signal test yet |
 
 Reproduce: see `docs/how-it-works.md`, `docs/per-country-estimate.md` and the tools in `tools/`.

@@ -265,8 +265,9 @@ Published figures for this combination, bytes saved against the plain frame incl
 | same | + packed position (optional, not in this plan) | 47.2% |
 | F4MLV Ariège, 8,062 packets (comment 15) | table v2 + lossless position, matched tables | 39.3% |
 | F4MLV Arizona, 2,659 packets (comment 15) | same | 43.8% |
+| K6ATV, 14,305 real packets, **measured** with the reference encoder, `V` and the CRC-16 included, no RXT ([`docs/hybrid-savings-and-timing.md`](../docs/hybrid-savings-and-timing.md)) | hybrid B as in this plan | **43.8%** (86.6 B to 48.7 B) |
 
-These do not include `V` and the CRC-16: the harness costs the PPM text with the native frame's own length byte, so the content field here is **3 bytes longer** than the harness assumes. With an average plain frame of 72 to 110 bytes that is roughly 3 to 4 points off each figure
+The first four rows do not include `V` and the CRC-16 (the measured row does): the harness costs the PPM text with the native frame's own length byte, so the content field here is **3 bytes longer** than the harness assumes. With an average plain frame of 72 to 110 bytes that is roughly 3 to 4 points off each figure
 (an estimate from the average frame lengths; not measured). Dropping `V` (folding the version into the header) would give one byte back. The 50.2% measured earlier on the whole-text test frame is the whole-packet figure and is not the figure for this plan.
 
 ## Integrity: what is measured
@@ -361,6 +362,8 @@ A **digipeater is a mode of an iGate (or of a tracker), not a separate profile**
 Open: who defines and maintains the profiles; how a role advertises what it supports (the two reserved destination bits, or a capability frame); and how many profile levels there are (for example level 0 plain text, level 1 hybrid B).
 
 ## Firmware integration notes (from reading his tracker code)
+
+*Dated 31 October 2026: these notes describe the code as it was read, before this plan was implemented. Since then the plan has been added in test branches of the iGate (`feature/lacf`), the tracker fork (`hybrid`) and Dire Wolf (`feature/lora-hybrid`; the branch named in the Dire Wolf note below is the one that was read). None of these adds RXT measurements or relays LACF frames yet. See "Not yet measured".*
 
 His tracker (`moricef/LoRa_APRS_Tracker`, branch `devel`, `src/lora_utils.cpp` and `lib/native_aprs/`; the native codec there is a copy of his iGate's, with the relay functions left out) does this today:
 

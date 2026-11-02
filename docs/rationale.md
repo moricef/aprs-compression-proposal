@@ -25,7 +25,7 @@ including the 3-byte header). `--min-count` prunes rare contexts and sets the ta
 | 20 | 39 KB | 42% |
 
 Model v1 is trained on all 14,186 packets at min count 8 (125 KB of flash). Expect about 48% on
-stations it has not seen. Training-set size matters less than the pruning level, but more data
+stations it has not seen (this is from the early, smaller corpus; the larger held-out study, a three-hour capture of 135,299 packets in `docs/per-country-estimate.md`, gives about 41% at a 144 KB table, and that is the figure to quote). Training-set size matters less than the pruning level, but more data
 helps the ratio at a given size a little.
 
 ## Compared with APRS 438
@@ -71,4 +71,4 @@ Moved to the phase 2 repo (`aprs-smarts`, `docs/other-mesh-systems.md`), togethe
 ## Limits of these numbers
 
 One 7-minute VHF window and about an hour of LoRa traffic. The LoRa packets are worldwide (mostly European); the VHF packets were taken within 2,500 km of central US. By callsign prefix the combined corpus is mostly non-US. Packets are
-unique full strings, so a station that beacons constantly counts once. No over-the-air test yet.
+unique full strings, so a station that beacons constantly counts once. Short over-the-air tests followed (24 October 2026 on; see `docs/over-the-air-test.md`).

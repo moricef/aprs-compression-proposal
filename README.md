@@ -1,4 +1,4 @@
-# APRS-PPM: LoRa APRS packets in half the bytes
+# APRS-PPM: LoRa APRS packets about 40% smaller, even with relay signal data added
 
 > **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out with F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), named **LACF**, the LoRa APRS Compact Frame, so a relay can rewrite the path and add an RXT measurement without decompressing anything.
 > The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a **draft** in early development and still being reviewed for change, implemented in test branches of the iGate, the T-Deck tracker and Dire Wolf, and tried on the air on 1 November 2026. **The whole-packet figures below (about half the bytes) describe the earlier standalone format, which is not the plan.** The older frames (`3C FF 81`, `3C FF C1`) described here still work as documented, and remain the only ones in released firmware.
@@ -13,11 +13,11 @@
 > bigger, so primed savings are about 2 points lower than quoted before this change.
 > Details and the test results: [known issues](docs/known-issues.md).
 
-**The same APRS packet, sent in 40 to 45% fewer bytes (the earlier whole-text format: about half), and turned back into the identical text at the other end.**
+**The same APRS packet, sent in about 40% fewer bytes (38 to 44% on one network's packets, even with the relay's signal data added; the earlier whole-text format saved 40 to 50%), and turned back into the identical text at the other end.**
 It extends APRS and does not replace it: stations that don't know about it carry on exactly as before.
 
-> An idea that is showing promise and needs more testing. It has been tried on three kinds of hardware over two links, and
-> replayed on tens of thousands of captured packets. What is proven and what is not is listed
+> An idea that is showing promise and needs more testing. The earlier whole-text format was tried on three kinds of hardware over two links, and
+> LACF (spec 11) has been run on an iGate, a T-Deck and a Dire Wolf station; both were replayed on tens of thousands of captured packets. What is proven and what is not is listed
 > [below](#what-this-does-not-show-yet).
 
 ## Why
@@ -131,7 +131,7 @@ fixed code that this model could in principle replace (not tried). The compariso
 * **LACF is newer and less tested.** It has run on a LoRa32 iGate, a T-Deck and a Dire Wolf hill station, a few metres apart and on one hill link. Not yet tried: a relay chain on the air,
   RXT through a real relay, a digipeater that forwards LACF frames, other boards, other spreading factors, long runs. The figures above come from replaying captured packets and from short
   on-air runs.
-* **Needs more testing.** So far two links and three kinds of hardware: a LILYGO LoRa32 V2.1 (ESP32), a LILYGO T-Deck and a
+* **Needs more testing (earlier format).** So far two links and three kinds of hardware: a LILYGO LoRa32 V2.1 (ESP32), a LILYGO T-Deck and a
   Raspberry Pi LoRa HAT running a branch of Direwolf. The longer link is about 2 miles, signal around -95 to -98 dBm at the
   gateway, one night, mild weather. Not yet tried: a busy channel, a really weak signal, other spreading factors, a stock
   iGate or tracker meeting a compressed frame.
@@ -151,14 +151,13 @@ fixed code that this model could in principle replace (not tried). The compariso
 | *Earlier whole-text format:* [ESP32 iGate firmware](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression) | Receive always on, transmit opt-in |
 | [Direwolf, LoRa HAT channel](https://github.com/radiohound/direwolf/tree/feature/lora-compression) | Receive always on, transmit opt-in; an iGate that expands compressed frames and gates them as normal packets |
 | [T-Deck tracker firmware](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/ppm-compression) | Receive always on, transmit opt-in |
-| [`spec/`](spec) and [`reference/`](reference) | The specifications, a plain-C codec, the frozen table and 129 worked examples (test vectors) to check an implementation against |
+| [`spec/`](spec) and [`reference/`](reference) | The specifications, a plain-C codec, the frozen table and 129 worked examples (test vectors) for the earlier format; the LACF reference code is in [`tools/hb`](tools/hb) with 554 encode, 503 relay and 38 rejection vectors in [`test/`](test) |
 
 These are shared so people can try the idea, not as a request. No pull request will be opened unless a maintainer says
 one would be welcome. They are not part of the Direwolf LoRa driver pull request (#638).
 
 ## Read more
 
-* [This page as a 4-page PDF](docs/brochure.pdf), with charts, to read or hand around
 * [Known issues and findings from testing](docs/known-issues.md): what other testers found, and what was fixed
 * [Spec 11, the byte plan for the first common format (draft)](spec/11-native-ppm-frame-byte-plan.md): hybrid B, native frame with PPM content, RXT at the end; work in progress
 * [Truncated payloads and integrity checks (work in progress)](docs/truncated-payloads-and-integrity.md): what a cut-short frame decodes to, the checks measured
@@ -170,7 +169,8 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 
 ## Try it
 
-    make test        # checks the reference codec against the test vectors
+    make test        # checks the reference codec against the test vectors (earlier format)
+    make hb-test     # checks the LACF (spec 11) reference code, its vectors and the cross-check
 
 To try the current format (LACF, spec 11) on real radios, there is test firmware for the LILYGO LoRa32 V2.1 iGate and the LILYGO T-Deck Plus 433 tracker
 that you can flash from a browser, with the settings, the warnings and what has been tested: <https://tiles.aivu.com/lacf>. It is experimental. Receive is

@@ -3,7 +3,7 @@
 This page answers three questions: what else could compress APRS packets, how does the best-known
 APRS-specific scheme (APRS 438) compare, and why the design in this repo is what it is. Measured
 figures come from the captured APRS-IS packets described in `docs/how-it-works.md`; anything not
-measured is marked. Nothing here has been tested over the air.
+measured is marked. The comparison figures are offline; the short over-the-air tests are in `docs/over-the-air-test.md`.
 
 ## What the compressor has to do
 
@@ -88,7 +88,7 @@ exclusive: the like-for-like table shows a 438-style header and position with th
 Another effort covers some of the same ground. moricef (F4MLV, France) has built a **native frame** for LoRa APRS,
 documented as a draft (`docs/LORA_APRS_NATIVE_FORMAT.md` and `..._DRAFT0.md` in moricef's `LoRa_APRS_iGate` repository,
 branch `rxt`) and already in moricef's T-Deck tracker (`devel` branch, setting `txFormat`: text, native or both). It marks
-its frames `3C FF 02`, so it cannot be confused with a plain frame (`01`) or an APRS-PPM frame (`81`, `C1`).
+its frames `3C FF 02`, so it cannot be confused with a plain frame (`01`) or an APRS-PPM frame (`81`, `C1`). LACF (spec 11) uses the same `3C FF 02` prefix, with kinds 2 and 3 for its own frames.
 
 **What it is.** Each packet type gets its own binary layout: callsigns packed into a few bytes, the path as short
 codes (`WIDEn-N`), the position as numbers, and a fixed Huffman code for the free text. The iGate translates every
@@ -125,10 +125,11 @@ native frame decoded back to the original packet; none failed to encode. The pro
   treat 44% as a rough figure; the held-out study is the larger one.
 
 **Where it leaves the two.** They solve different problems and can run side by side in one firmware (a T-Deck firmware
-carrying both has been built; it has not been run on the air yet). A natural combination is a native frame for structure and receiver data, with
-APRS-PPM for what is left as text; that has not been tried.
+carrying both was built). The combination of a native frame for structure and receiver data with PPM for what is left as text is LACF, [spec 11](../spec/11-native-ppm-frame-byte-plan.md): in early development, still being reviewed for change, and in short on-air tests since 31 October ([results](lacf-test-results-2026-11-01.md)).
 
 ## Why APRS-PPM was chosen
+
+*This section argues for the whole-text frame (the earlier format). The current direction is LACF ([spec 11](../spec/11-native-ppm-frame-byte-plan.md)), which keeps the PPM model for the text and uses the native frame for the structure.*
 
 1. **It works on 70-byte packets.** Because the statistics are learned in advance, it needs nothing
    from the packet itself, unlike zlib and the other adaptive coders.

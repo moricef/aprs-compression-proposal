@@ -1,5 +1,7 @@
 # Proposal draft 02 - Capability announcement
 
+> **Earlier format.** This draft describes the earlier whole-text frames (`3C FF 81`, `3C FF C1`), which are superseded for LoRa by LACF, [spec 11](11-native-ppm-frame-byte-plan.md), a draft in early development and still being reviewed for change.
+
 | | |
 |---|---|
 | Status | **Proposal draft by an individual. Not a standard. Not implemented or tested.** |

@@ -32,6 +32,8 @@ It is opt-in (transmit is off by default) and is not a pull request to anyone's 
 
 ## Results so far (simulation on captured packets; the first over-the-air results are in docs/over-the-air-test.md)
 
+*These results are for the earlier whole-text format. For LACF (spec 11), which is in early development and still being reviewed for change, see the [README](README.md) and [docs/hybrid-savings-and-timing.md](docs/hybrid-savings-and-timing.md).*
+
 **The test data.** A three-hour read-only APRS-IS capture (plus a 5-minute pilot) for about 25 countries,
 taken on an evening in Europe: 135,299 unique packets, of which 10,841 LoRa and 30,872 VHF packets were
 held out for testing. LoRa packets were chosen by device type, so they come mostly from Europe; VHF packets
@@ -63,7 +65,7 @@ because the preamble does not shrink). Full table and caveats in
   the table format and the model.
 * How often to send a full frame is a trade between saving and being decodable by receivers that missed the previous packet; the proposed default is every 2nd transmission for moving stations and every 4th to 8th for stationary ones (spec 08).
 * The figures do not add up, because the methods overlap.
-* **Over the air, so far, two links and three kinds of hardware** (24 to 25 October 2026: ESP32, Raspberry Pi with Direwolf, and T-Deck, in both directions, and a full-day run over about 2 miles; see `docs/over-the-air-test.md`). The other figures
+* **Over the air, so far, two links and three kinds of hardware** (24 to 25 October 2026: ESP32, Raspberry Pi with Direwolf, and T-Deck, in both directions, and a full-day run over about 2 miles; see `docs/over-the-air-test.md`). Tests of LACF (spec 11) followed from 31 October ([results so far](docs/lacf-test-results-2026-11-01.md)) and continue. The other figures
   come from simulation, which uses ideal coding length for the priming figures, an assumed TXDELAY for VHF
   airtime, and one evening of data (three hours, Europe).
 
@@ -73,15 +75,16 @@ the new VHF frames.
 
 ## Roadmap for LoRa APRS (suggested order)
 
+*This roadmap was written for the earlier whole-text format and predates LACF ([spec 11](spec/11-native-ppm-frame-byte-plan.md)), which is now the working direction; layers 1 to 3 below are the earlier format.*
+
 Most LoRa APRS devices are ESP32 boards, so this order favours what fits and what pays off there. Each
 layer works alone and adds to the one before. All savings are from simulation or arithmetic on captured
-packets (see "Results so far"); one LoRa link has been tested over the air (see
-`docs/over-the-air-test.md`), the VHF binding has not.
+packets (see "Results so far"); the earlier format has been tested over the air on three kinds of hardware (see
+`docs/over-the-air-test.md`) and LACF tests continue; the VHF binding has not been tested.
 
 1. **Static order-3 frame ([spec 01](spec/01-compressed-frames.md)) with capability learning
    ([spec 02](spec/02-capability-announcement.md)).** About 41% saved at a 144 KB table, 43% at 202 KB.
-   Built into the iGate firmware branch (receive always, transmit opt-in). *Tested over the air once, ESP32
-   to Direwolf: 12 of 12 decoded exactly. Next: two-board and weak-signal tests.* It is stateless: a receiver needs nothing it heard earlier.
+   The iGate firmware branch has receive always on and opt-in transmit; the capability announcement of spec 02 itself is only a proposal (not implemented). *Tested over the air since 24 October 2026 (ESP32, Direwolf and T-Deck; see `docs/over-the-air-test.md`). Weak-signal and other-board tests are still to do.* It is stateless: a receiver needs nothing it heard earlier.
 2. **A structured header for position packets ([draft 09](spec/09-structured-header-layout.md)).**
    Callsign, path, type and position in a compact layout; the comment with the order-3 model. About 6 to
    7 B smaller than layer 1 on a position packet (arithmetic, not built), and the biggest help for the
@@ -111,10 +114,10 @@ position packets fit; it has no comment field; and its position field is the ord
 
 | Part | Status |
 |---|---|
-| [01 Compressed frames (APRS-PPM)](spec/01-compressed-frames.md) | Spec + C reference codec + frozen model v1 + test vectors. Host-tested only |
+| [01 Compressed frames (APRS-PPM)](spec/01-compressed-frames.md) | Spec + C reference codec + frozen model v1 + test vectors. Host-tested, and tested over the air in short runs (24 to 25 October 2026) |
 | [02 Capability announcement](spec/02-capability-announcement.md) | Proposal draft: how a sender learns a station can decode compressed frames |
 | [07 AX.25 binding (VHF)](spec/07-ax25-binding.md) | Proposal draft: carry the same compressed payload in AX.25 info fields; smaller gain, marker undecided |
-| [08 Priming with a station's last full packet](spec/08-priming-from-previous-packet.md) | Wire format + C reference codec + 103 test vectors + firmware; about 65% saved on real LoRa pairs (real codec bytes), 62-70% in simulation. Host-tested only |
+| [08 Priming with a station's last full packet](spec/08-priming-from-previous-packet.md) | Wire format + C reference codec + 103 test vectors + firmware; about 65% saved on real LoRa pairs (real codec bytes), 62-70% in simulation. Host-tested, and tested over the air in short runs |
 | [09 Structured header for position packets](spec/09-structured-header-layout.md) | Idea: a compact fixed layout for callsign, path and position plus an order-3 comment; about 4-7 B smaller than order-3 alone on LoRa position packets (arithmetic) |
 | [11 Native PPM frame: byte plan](spec/11-native-ppm-frame-byte-plan.md) | **DRAFT, in early development and still being reviewed for change.** Byte plan for a first common format: moricef's native frame (`3C FF 02`) with a PPM-coded content field, the PPM payload integrity rules (deterministic ending, CRC-16, re-encode check), and the RXT block at the end of the frame with the mask byte last (tested against truncation). Test implementations exist (the C and Python reference, and test branches of the iGate, tracker and Dire Wolf) and have run on the air in short tests; expect the format to change |
 | [Direwolf notes](docs/direwolf-notes.md) | Where the Direwolf implementation is (LoRa HAT channel, built) and planning notes for the VHF part |
@@ -130,16 +133,26 @@ position packets fit; it has no comment field; and its position field is the ord
     spec/        the drafts
     reference/   plain-C codec (integer-only, C99)
     model/       frozen model v1 table + SHA-256
-    tools/       train_model.py (retrain), capture_aprsis.py (read-only APRS-IS capture)
-    test/        test vectors (fabricated packets) and the tool that checks them
+    tools/       train_model.py (retrain), capture_aprsis.py (read-only APRS-IS capture); tools/hb: C and Python reference of LACF (spec 11)
+    test/        test vectors (fabricated packets) and the tool that checks them; vectors_hb_*.txt are the LACF vectors
     docs/        measurements, notes
 
 ## Try it
 
-    make test                     # checks the reference codec against test/vectors_v1.txt
+    make test                     # checks the reference codec against test/vectors_v1.txt (earlier format)
+    make hb-test                  # checks the LACF (spec 11) reference code and its vectors
     build/ppm_tool stats < packets.txt
 
 ## Implementations
+
+**LACF (spec 11, in early development and still being reviewed for change)**
+
+* C and Python reference code (`tools/hb`; `make hb-test`), checked against 554 encode, 503 relay and 38 rejection vectors and against each other on 142,282 frames.
+* Test firmware, flashable from a browser: <https://tiles.aivu.com/lacf>. Sources: iGate [`feature/lacf`](https://github.com/radiohound/LoRa_APRS_iGate-1/tree/feature/lacf),
+  tracker [`hybrid`](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/hybrid), Dire Wolf [`feature/lora-hybrid`](https://github.com/radiohound/direwolf/tree/feature/lora-hybrid).
+  Test results: [docs/lacf-test-results-2026-11-01.md](docs/lacf-test-results-2026-11-01.md).
+
+**The earlier whole-text format (superseded by LACF)**
 
 * C reference codec (`reference/`), including primed frames; `make test` checks 26 full-frame and 103 primed
   test vectors, that a primed frame is rejected if the receiver's reference differs, and a collision test (a stale
@@ -166,4 +179,4 @@ position packets fit; it has no comment field; and its position field is the ord
 * Reframed as proposal drafts. Any project or extension name is left to whoever adopts it; no branding chosen.
 * Done once, 24 October 2026: ESP32 sender to Direwolf receiver, full and primed frames (`docs/over-the-air-test.md`).
   Direwolf transmit to an ESP32 receiver also done the same day (5 of 5 beacons decoded; full 25 B, primed 8 B against 57 B plain). A T-Deck tracker was tested in both directions as well, and a station running our Direwolf build expanded its compressed beacon and passed it to APRS-IS as a normal packet one second later. Still to do: two ESP32 units, a weak-signal run with lost frames, and a mixed network with a stock unit.
-* Nobody has been asked for anything yet. The branches are shown as an idea that works, not as a request, and no pull request will be opened unless a maintainer says one would be welcome.
+* No pull request has been opened for this work. The branches are shown as an idea being tested, not as a request, and no pull request will be opened unless a maintainer says one would be welcome. The format is being discussed with F4MLV in issue 7 of moricef/LoRa_APRS_Tracker.

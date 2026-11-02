@@ -1,5 +1,7 @@
 # 07 - AX.25 binding for compressed frames (VHF APRS)
 
+> **Earlier format.** This draft carries the earlier whole-text compressed payload on VHF. For LoRa the current format is LACF, [spec 11](11-native-ppm-frame-byte-plan.md), a draft in early development and still being reviewed for change; it does not cover the VHF binding.
+
 **Status: idea. The compression itself is tested on a PC; this way of carrying it on AX.25 is not tested
 against any real TNC, digipeater or iGate.**
 

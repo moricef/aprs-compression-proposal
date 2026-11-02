@@ -1,8 +1,10 @@
 # Proposal draft 08 - Priming the model with a station's previous packet
 
+> **Earlier format.** This draft describes the earlier whole-text frames (`3C FF 81`, `3C FF C1`), which are superseded for LoRa by LACF, [spec 11](11-native-ppm-frame-byte-plan.md), a draft in early development and still being reviewed for change. LACF has no primed frames.
+
 | | |
 |---|---|
-| Status | **Not a standard. Implemented in the ESP32 firmware fork and a Direwolf branch; tested over the air once at short range (24 Oct 2026, `docs/over-the-air-test.md`); lost-frame behaviour not yet seen on air.** |
+| Status | **Not a standard. Implemented in the ESP32 and T-Deck firmware forks and a Direwolf branch; tested over the air in short runs (from 24 Oct 2026, `docs/over-the-air-test.md`); the lost-frame behaviour was seen once, in the full-day run (6 primed frames dropped because their full frame was missed).** |
 | Depends on | 01 Compressed frames |
 | Changes to existing APRS | None to plain packets. A new frame variant; needs state at both ends |
 | Evidence | `tools/delta_sim.py` (ideal-cost simulation on an hour of APRS-IS capture) and `tools/receiver_sim.py` (does the receiver hold the reference) |

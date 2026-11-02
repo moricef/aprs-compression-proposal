@@ -1,5 +1,7 @@
 # Proposal draft 09 - A structured header for position packets, order-3 for the comment
 
+> **Earlier format.** This draft describes the earlier whole-text frames (`3C FF 81`, `3C FF C1`), which are superseded for LoRa by LACF, [spec 11](11-native-ppm-frame-byte-plan.md), a draft in early development and still being reviewed for change. The idea of a structured header is carried out, in a different form, by LACF (spec 11: native addresses and position block, PPM for the text).
+
 | | |
 |---|---|
 | Status | **Idea with arithmetic from measured parts. Not specified, not built, not tested on air.** |

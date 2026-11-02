@@ -2,6 +2,8 @@
 
 Short answers, from what has been measured. The details are in [DETAILS.md](../DETAILS.md) and [the over-the-air test log](over-the-air-test.md).
 
+*Most answers below were written for the earlier whole-text format (`3C FF 81`, `3C FF C1`). The current format, LACF ([spec 11](../spec/11-native-ppm-frame-byte-plan.md)), is in early development and still being reviewed for change; it also leaves plain frames untouched, receives always and transmits only when you choose it.*
+
 ## Does an iGate with the PPM code still work on ordinary LoRa APRS packets?
 
 Yes. A plain frame goes through exactly as before; the compressed-frame check only acts on frames that carry the compressed marker. The same iGate also reads compressed frames, so it handles both kinds on one channel.
@@ -16,7 +18,7 @@ In the ESP32 firmware the expanded packet is the only copy there is. APRS-IS, th
 
 ## Is the text really identical?
 
-Yes. The compression is lossless: every frame we compared with what was sent expanded to the same text, and the reference codec reproduces 129 worked examples exactly (26 full frames and 103 primed ones, each written down as bytes on the air and the text they must expand to).
+Yes. The compression is lossless: every frame we compared with what was sent expanded to the same text, and the reference codec reproduces 129 worked examples exactly (26 full frames and 103 primed ones, each written down as bytes on the air and the text they must expand to). For LACF the C and Python reference code reproduce 554 such examples and reject 38 invalid frames.
 
 ## Do I have to change my tracker or my iGate?
 
@@ -32,7 +34,7 @@ A primed frame depends on the same station's last full frame. If that was missed
 
 ## Where does this stand?
 
-It is an idea that is showing promise and needs more testing. It has worked on three kinds of hardware over two links, and on tens of thousands of replayed packets. More links, a busier channel, weaker signals and other spreading factors are the next things to try. The branches are there so people can try it.
+It is an idea that is showing promise and needs more testing. The earlier format worked on three kinds of hardware over two links; LACF has run on an iGate, a T-Deck and a Dire Wolf station, and both were replayed on tens of thousands of packets. More links, a busier channel, weaker signals and other spreading factors are the next things to try. The branches are there so people can try it.
 
 ## How do I try it?
 

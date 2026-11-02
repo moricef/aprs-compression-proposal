@@ -1,17 +1,19 @@
 # Proposal draft 01 - Compressed frames for APRS (APRS-PPM)
 
+> **Earlier format.** This draft describes the earlier whole-text frames (`3C FF 81`, `3C FF C1`), which are superseded for LoRa by LACF, [spec 11](11-native-ppm-frame-byte-plan.md), a draft in early development and still being reviewed for change.
+
 | | |
 |---|---|
 | Status | **Proposal draft by an individual. Not a standard, not endorsed by any organization.** |
 | Author | Walter Dunckel, K6ATV |
 | Targets | APRS over amateur-radio LoRa (this part); AX.25 info field (see 07-ax25-binding.md) |
 | Changes to existing APRS | None. Additive: a new frame header that existing stations ignore |
-| Implementation | Reference C codec, one firmware fork and a Direwolf branch, host-tested. **Tested over the air once at short range** (24 Oct 2026, both directions, `docs/over-the-air-test.md`); weak-signal and other-board tests not done |
+| Implementation | Reference C codec, firmware forks of the iGate and the T-Deck tracker and a Direwolf branch, host-tested. **Tested over the air in short runs** (from 24 Oct 2026, several boards, both directions, a full-day run; `docs/over-the-air-test.md`); weak-signal and other-board tests not done |
 | Name | "APRS-PPM" is a working name for this proposal only; the name of an adopted extension is for the standards body to decide |
 
 ## Summary
 
-An optional way to send the same APRS text packet in about half the bytes on a LoRa link, using a
+An optional way to send the same APRS text packet in about 40% to 50% fewer bytes on a LoRa link (41% on stations the table had not seen), using a
 fixed, versioned, publicly documented statistical model. Stations that do not implement it never
 see a compressed frame as valid APRS and are unaffected.
 
@@ -26,7 +28,7 @@ through an AX.25 binding: see 07-ax25-binding.md.
 
 ## What it is
 
-A way to send an ordinary APRS text packet in roughly half the bytes on a LoRa link. It is not a
+A way to send an ordinary APRS text packet in roughly 40% to 50% fewer bytes on a LoRa link. It is not a
 new idea: it is prediction by partial matching (PPM, an order-3 context model with "method C"
 escape weights) feeding a range coder. The one design choice that matters for 40-100 byte packets
 is that the context statistics are trained ahead of time on real APRS traffic and shipped as a

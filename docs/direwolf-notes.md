@@ -1,6 +1,6 @@
 # Notes: implementing this in Direwolf
 
-**Status.** The **LoRa HAT channel** part is implemented and has been tested over the air: branch
+**Status.** The LACF frame (spec 11) is in the branch [`feature/lora-hybrid`](https://github.com/radiohound/direwolf/tree/feature/lora-hybrid) (directives `LORAHYBRIDRX` and `LORAHYBRID`; install notes in `scripts/hill-hybrid/README.txt`); it is in early development and has run on the hill station since 1 November 2026. The rest of this page is about the earlier whole-text format. The **LoRa HAT channel** part of that is implemented and has been tested over the air: branch
 [`feature/lora-compression`](https://github.com/radiohound/direwolf/tree/feature/lora-compression) of the
 `radiohound/direwolf` fork (receive always on, opt-in transmit with `LORACOMPRESS`, primed frames; instructions for
 getting, building and using it are in its `doc/LoRa-Compression.md`). It sits on top of the LoRa driver of pull request
