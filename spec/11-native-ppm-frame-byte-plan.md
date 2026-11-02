@@ -24,6 +24,8 @@ Agreed with F4MLV as the scope of the first experimental common format (comment 
 
     3C FF 02 | header | source | destination | path... | [position block] | content field | [RXT block]
 
+A picture of the whole frame, with a worked example, is at the end of this section.
+
 `3C FF 02`, the header byte, the address elements, the path and the position block are defined exactly in Conformance. Only the kinds 2 and 3 below exist; a receiver drops any other kind. The frame has PPM-coded content (two header values), a destination table, a rule for when to fall back to raw text, and the RXT block at the end.
 
 ### Header byte
@@ -107,6 +109,12 @@ This placement (end of frame, mask byte last) is K6ATV's proposal in issue 7 (co
 
 A relay builds its outgoing frame from the front: new header and path, then the position block and content (the content field) copied byte for byte, then the old tuples, its own tuple and the new mask. If there was no block it creates one (tuple, mask) and sets header bit 3.
 A relayed frame grows by **5 bytes for the first relay** (4 for the tuple, 1 for the mask) and 4 for each further one.
+
+### The frame as a picture
+
+![The fields of a LACF frame, the header and V bytes, the RXT block, and a worked example: 35 bytes, and 44 bytes after one relay hop](../docs/img/lacf-frame-layout.svg)
+
+The picture shows the fields in order, the header byte and `V` bit by bit, the RXT tuple, and one real packet as a LACF frame (35 bytes, hex) and after one relay hop (44 bytes). The example's 57% saving is for that one packet; real packets average about 44% (see "Size"). The same content as tables, with the example byte by byte, is in [`docs/lacf-frame-layout.md`](../docs/lacf-frame-layout.md); the bytes come from the reference code, and `python3 tools/lacf_diagram.py` redraws the picture.
 
 ## PPM payload rules (normative)
 

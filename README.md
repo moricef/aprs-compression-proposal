@@ -41,7 +41,11 @@ predicted from the three before it.
 LACF, the *LoRa APRS Compact Frame*, is the native LoRa APRS frame (`3C FF 02`) with a PPM-coded **content field**: the addresses and path are packed into a few bytes,
 and only the text of the packet (or the comment after a position) is compressed, with a CRC-16 over the text and the addresses so a damaged or cut frame is dropped, not
 mis-read. A relay adds an optional **RXT block** (what each hop heard: signal strength, signal-to-noise, frequency offset, time to hop) at the end without touching the content. Stations that do not
-know the frame ignore it. The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a draft. Measured on 14,305 real packets
+know the frame ignore it. The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a draft.
+
+![The fields of a LACF frame, the header and V bytes, the RXT block, and a worked example: 35 bytes, and 44 bytes after one relay hop](docs/img/lacf-frame-layout.svg)
+
+The picture is explained field by field, with the example byte by byte, in [docs/lacf-frame-layout.md](docs/lacf-frame-layout.md). Measured on 14,305 real packets
 ([docs/hybrid-savings-and-timing.md](docs/hybrid-savings-and-timing.md)):
 
 | What is compared | Plain | LACF | Bytes saved | Airtime saved, SF7 / SF12 |
@@ -168,6 +172,7 @@ one would be welcome. They are not part of the Direwolf LoRa driver pull request
 
 ## Read more
 
+* [What a LACF frame looks like](docs/lacf-frame-layout.md): a picture and a byte-by-byte example
 * [Known issues and findings from testing](docs/known-issues.md): what other testers found, and what was fixed
 * [Spec 11, the byte plan for the first common format (draft)](spec/11-native-ppm-frame-byte-plan.md): hybrid B, native frame with PPM content, RXT at the end; work in progress
 * [Truncated payloads and integrity checks (work in progress)](docs/truncated-payloads-and-integrity.md): what a cut-short frame decodes to, the checks measured
