@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Status | **Proposal draft by an individual. Not a standard, not endorsed by any organization.** |
+| Status | **Proposal draft. Not a standard, not endorsed by any organization.** |
 | Author | Walter Dunckel, K6ATV |
 | Credit | Fabrice Morel, F4MLV (moricef) and K6ATV are working together on the current format, LACF ([spec 11](11-native-ppm-frame-byte-plan.md)), a hybrid of his native LoRa APRS frame and code and this PPM compression. |
 | Targets | APRS over amateur-radio LoRa (this part); AX.25 info field (see 07-ax25-binding.md) |

@@ -80,7 +80,7 @@ the new VHF frames.
 Most LoRa APRS devices are ESP32 boards, so this order favours what fits and what pays off there. Each
 layer works alone and adds to the one before. All savings are from simulation or arithmetic on captured
 packets (see "Results so far"); the earlier format has been tested over the air on three kinds of hardware (see
-`docs/over-the-air-test.md`) and LACF tests continue; the VHF binding has not been tested.
+`docs/over-the-air-test.md`) and LACF tests continue; the VHF binding has never been tried (only a software simulation of how an unmodified Direwolf reacts to such frames).
 
 1. **Static order-3 frame ([spec 01](spec/01-compressed-frames.md)) with capability learning
    ([spec 02](spec/02-capability-announcement.md)).** About 41% saved at a 144 KB table, 43% at 202 KB.

@@ -258,18 +258,19 @@ Each receiver verifies the content once (CRC and re-encode); a relay copies it w
 
 ## Size
 
-Published figures for this combination, bytes saved against the plain frame including the 3-byte prefix, full frames only (N=1), no RXT, harness results and not RF measurements:
+Figures for this combination, bytes saved against the plain frame including the 3-byte prefix, full frames only (N=1), no RXT. None of them is an RF measurement: they are harness results, the encoder run on captured packets, or estimates:
 
-| Data | Combination | Saved |
-|---|---|---|
-| K6ATV APRS-IS capture, 93,145 held-out packets | hybrid B + tocall table + lossless position | 46.2% |
-| same | + packed position (optional, not in this plan) | 47.2% |
-| F4MLV Ariège, 8,062 packets (comment 15) | table v2 + lossless position, matched tables | 39.3% |
-| F4MLV Arizona, 2,659 packets (comment 15) | same | 43.8% |
-| K6ATV, 14,305 real packets, **measured** with the reference encoder, `V` and the CRC-16 included, no RXT ([`docs/hybrid-savings-and-timing.md`](../docs/hybrid-savings-and-timing.md)) | hybrid B as in this plan | **43.8%** (86.6 B to 48.7 B) |
+| Data | Combination | Harness result (without `V` and the CRC-16) | Current frame (with `V` and the CRC-16) |
+|---|---|---|---|
+| K6ATV APRS-IS capture, 93,145 held-out packets | hybrid B + tocall table + lossless position | 46.2% | **41.9% measured** (81.3 B to 47.2 B; 313 packets that cannot be encoded counted as plain frames) |
+| same | + packed position (optional, not in this plan; no encoder) | 47.2% | about 43% estimated |
+| F4MLV Ariège, 8,062 packets (comment 15) | table v2 + lossless position, matched tables | 39.3% | about 35% estimated |
+| F4MLV Arizona, 2,659 packets (comment 15) | same | 43.8% | about 40% estimated |
+| K6ATV, 14,305 real packets ([`docs/hybrid-savings-and-timing.md`](../docs/hybrid-savings-and-timing.md)) | hybrid B as in this plan | not run | **43.8% measured** (86.6 B to 48.7 B) |
 
-The first four rows do not include `V` and the CRC-16 (the measured row does): the harness costs the PPM text with the native frame's own length byte, so the content field here is **3 bytes longer** than the harness assumes. With an average plain frame of 72 to 110 bytes that is roughly 3 to 4 points off each figure
-(an estimate from the average frame lengths; not measured). Dropping `V` (folding the version into the header) would give one byte back. The 50.2% measured earlier on the whole-text test frame is the whole-packet figure and is not the figure for this plan.
+"Measured" means the current reference encoder (`tools/hb`) was run on the packets, with `V`, the CRC-16 and the deterministic ending, no RXT. "Estimated" is used where we do not have the packets or an encoder: the harness figure minus the extra bytes, divided by the mean plain frame of that set. The extra bytes are `V` (1), the CRC-16 (2) and the ending (0.25 on average), 3.25 in all (measured: 2.25 for the CRC-16 and the ending, plus 1 for `V`); using 3.0 or 3.5 bytes moves each estimate by about 0.3 points. The mean plain frame is 81.3 B for the first two rows (measured); 74.8 B for Ariège, worked out from F4MLV's own figures (0.613 bytes per packet is a 0.82-point change, comment 15); and 86.6 B for Arizona, assumed from our own 14,305 packets because his mean is not published. His own re-run with the current encoder would replace these estimates.
+
+Dropping `V` (folding the version into the header) would give one byte back. The 50.2% measured earlier on the whole-text test frame is the whole-packet figure and is not the figure for this plan.
 
 ## Integrity: what is measured
 

@@ -43,7 +43,7 @@ These mixes combine the origin result for all packets with the relay result for 
 
 Row 1 is how well the text is compressed. Row 2 is what a network sees if it adds RXT and nothing else changes: it pays for the extra data and gets no credit for it, so it is the lowest. Row 3 is the fair comparison for a network that wants the RXT data either way. Anything added to the frame later lowers the saving by its own size, and the figures should be recomputed then.
 
-**Your mileage may vary.** The result depends on the relay share, the path lengths and the mix of packet types (Mic-E and telemetry compress less than positions with comments). Another network measured 39.3% (Ariège, in bytes) and 43.8% (Arizona, in bytes) on its own packets with an earlier harness; the gap to the figure above is not explained, and the numbers should be read as "about a third less airtime, a little less where traffic is mostly relayed". The earlier 46.2% figure came from a harness with a different baseline and is not comparable.
+**Your mileage may vary.** The result depends on the relay share, the path lengths and the mix of packet types (Mic-E and telemetry compress less than positions with comments). Another network measured 39.3% (Ariège, in bytes) and 43.8% (Arizona, in bytes) on its own packets with an earlier harness that left out `V` and the CRC-16; estimated for the current frame these are about 35% and about 40% (spec 11, "Size"), and our own held-out stations give 41.9% measured with the current encoder, and the numbers should be read as "about a third less airtime, a little less where traffic is mostly relayed". The earlier 46.2% figure came from a harness with a different baseline and is not comparable.
 
 ## Processor time on an ESP32
 

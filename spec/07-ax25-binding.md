@@ -4,8 +4,8 @@
 
 **Credit:** Fabrice Morel, F4MLV (moricef) and K6ATV are working together on the current LoRa format, LACF ([spec 11](11-native-ppm-frame-byte-plan.md)), a hybrid of his native LoRa APRS frame and code and this PPM compression.
 
-**Status: idea. The compression itself is tested on a PC; this way of carrying it on AX.25 is not tested
-against any real TNC, digipeater or iGate.**
+**Status: idea. The compression itself is tested on a PC. This way of carrying it on VHF/AX.25 has never been tried: no compressed frame has been sent or received on VHF, and
+there is no modified Direwolf for the VHF side. The only VHF checks are software simulations in which an unmodified Direwolf was fed generated audio, to see how legacy software reacts to such frames (`docs/legacy-decoder-test.md`).**
 
 Part 01 describes the codec and the LoRa binding (a three-byte header). VHF APRS carries the same
 APRS packets inside AX.25 unconnected (UI) frames, so the same codec and the same model v1 apply.
@@ -164,7 +164,7 @@ checks the FCS itself: the host sends and receives frames without it. Such a TNC
 non-standard FCS, and it drops incoming frames whose FCS does not match, so a station behind one could
 neither send nor receive the alternative-FCS frame. Only software modems (Direwolf, a sound-card
 modem) can use it. So the baseline needs to work with the **standard FCS and a PID marker**, which
-any TNC passes through. Tested with a running Direwolf (`docs/legacy-decoder-test.md`): such frames
+any TNC passes through. In a simulation with a running, unmodified Direwolf fed generated audio (`docs/legacy-decoder-test.md`; no radio): such frames
 are logged as junk and handed to KISS clients, but not gated to APRS-IS. The alternative FCS is an
 option for stations where both ends use software modems.
 
@@ -235,8 +235,8 @@ keep legacy iGates from gating junk, is also not repeated by that digipeater. Ma
 protects APRS-IS and loses legacy digipeating. Keeping PID 0xF0 and putting the marker in the info
 field gets digipeating and loses the protection, unless the marker begins with something iGates
 discard (Direwolf's iGate drops a leading `?`, a generic query; whether other iGates and the APRS-IS
-servers do is untested). This was confirmed by running Direwolf as a digipeater and an iGate on generated audio
-(`docs/legacy-decoder-test.md`): a PID 0xF1 frame was neither repeated nor gated; the same frame with
+servers do is untested). This was seen in a simulation, with an unmodified Direwolf as a digipeater and an iGate fed generated audio
+(`docs/legacy-decoder-test.md`; no radio): a PID 0xF1 frame was neither repeated nor gated; the same frame with
 PID 0xF0 was repeated (4 of 4 eligible) and gated (5 of 6). aprx, read from source, treats only
 control 0x03 with PID 0xF0 as APRS.
 

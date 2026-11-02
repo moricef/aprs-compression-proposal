@@ -73,6 +73,21 @@ Settings-file damage, same board (`main` against the safe-save branch, which was
 | Dire Wolf `lorahybrid_test` | 322 checks, 0 failed (11 fail on the code before the WIDE update) |
 | Browser Update button | tested on the LoRa32 and the T-Deck: program identical to the published file, settings unchanged |
 
+## 4b. Held-out stations, current encoder (1 November 2026)
+
+The held-out set of the earlier size study was rebuilt with `tools/hybrid/prep.py --test-buckets 3` from the 24-hour APRS-IS capture (93,145 packets from 1,669 stations; the same counts as before) and encoded with the current reference encoder (`tools/hb`, spec 11 frame with `V` and the CRC-16, table set 1, no RXT). The packets hold real callsigns and are not published; only the totals are.
+
+| Measure | Result |
+|---|---|
+| Packets encodable as LACF | 92,832 of 93,145 (313 would be sent as plain frames) |
+| Kind 3 (position block) / kind 2 | 77,193 / 15,639 |
+| Mean plain frame (3-byte prefix plus text) | 81.3 B |
+| Mean LACF frame (plain where not encodable) | 47.2 B |
+| Bytes saved | **41.9%** (42.1% on the encodable packets alone) |
+| The harness figure for the same packets (without `V` and CRC-16) | 46.2% |
+
+The 4.3-point difference to the harness figure is what spec 11 estimated for the 3 bytes of `V` and CRC-16. The tables were trained only on the other stations of the same capture (callsign-hash buckets 3 to 9; the test stations are buckets 0 to 2), so these stations were not in training (`tools/hybrid/tables/README.md`).
+
 ## 5. Not re-verified
 
 These were observed earlier in this work and noted from the collector's reports. They were not repeated and no log is attached here.
