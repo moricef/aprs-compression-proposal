@@ -154,7 +154,7 @@ The serial log prints a format line only for an LACF frame; a frame with no such
 ### Not measured
 
 * An earlier-format frame arriving on the air: nobody sends one, so the drop path is covered by the host tests only.
-* The T-Deck's Web-Conf access point: it joined once after this build. The same joins failed on the 1 November build, and an unmodified upstream build joined too; memory is the likely cause but is not proved, and repeat joins have not been done.
+* The T-Deck's Web-Conf access point: after the 2 November build (the plain `WiFi.mode(WIFI_AP)` call, and the earlier whole-text codec removed) the author joined it many times with no failure (the number was not counted). The same joins failed on the 1 November build, and an unmodified upstream build joined too; memory is the likely cause but is not proved. Treated as closed.
 * The browser Update button on these builds (tested on the 1 November files).
 
 ## 8. 2 November 2026: the relay with RXT on the air
