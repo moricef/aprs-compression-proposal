@@ -2,13 +2,6 @@
 
 LACF (spec 11) uses semantic versions: MAJOR = wire format version (the low six bits of `V`), MINOR = backward-compatible addition, PATCH = wording only. See "Versions" in `spec/11-native-ppm-frame-byte-plan.md`. The current number is in the file `VERSION`.
 
-## 2.0.1 - 2 November 2026 (wording only, no byte changes)
-
-Protocol version 2 and table version 0 are unchanged: every frame of 2.0.0 is a frame of 2.0.1. Documentation fixes after the layout settled:
-* the frame diagram no longer says "V starts with binary 11" or "V = 1" (V is `10`: protocol 2, table 0), and the header kind bits are shown as form and position block;
-* `docs/lacf-frame-layout.md`, `docs/lacf-byte-reference.md` and `docs/alternatives-considered.md` describe plain and LACF content, the four kinds and "table version" (not "table set");
-* spec 11: the header-gap note is closed, and the implementation notes say every kind of `3C FF 02` instead of kinds 2 and 3.
-
 ## 2.0.0 - 2 November 2026 (protocol version 2, table version 0)
 
 **Breaking.** Three changes to the bytes:
@@ -23,6 +16,7 @@ Protocol version 2 and table version 0 are unchanged: every frame of 2.0.0 is a 
 * Test builds before this version sent `V` as `cc vvvvvv` (`01`, `02`, `C1`, `C2`). Those values read as protocol versions 0 and 24 and are dropped.
 * The LACF payload, the tables, the destination list and the RXT block are unchanged.
 * On the air, 2 November 2026 (LoRa32 iGate, T-Deck Plus tracker, hill Pi with Dire Wolf; 433 MHz, SF12): every exchange decoded with `V = 0x10` and a valid CRC, in both directions, with no frame dropped: T-Deck to LoRa32 (plain form, kind 1), LoRa32 to T-Deck and back through a relay with an RXT tuple (LACF form, kind 3), the hill to both ESP32 boards (LACF, kind 3, 39 B instead of 57 B) and a plain text frame re-encoded by the LoRa32 digipeater (kind 1). One site, a few metres apart, no range or error-rate measurement; truncated and modified frames were not sent over RF.
+* Documentation: the frame diagram and the docs describe plain and LACF content, the four kinds, `V = 10` (protocol 2, table 0) and "table version".
 * Tests: C and Python references agree (0 disagreements on 3,000 packets and 143,224 damaged frames); every cut of every plain frame is rejected; F4MLV's cases A, B and C replay as expected (software replay, not RF).
 
 ## 1.0.0 - 1 November 2026 (wire format version 1, test builds only)

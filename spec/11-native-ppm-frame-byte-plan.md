@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| Version | **2.0.1** (protocol version 2, table version 0). Check this number against `VERSION` and `CHANGELOG.md` in the repository: if yours is lower, you are not up to date. See "Versions" |
+| Version | **2.0.0** (protocol version 2, table version 0). Check this number against `VERSION` and `CHANGELOG.md` in the repository: if yours is lower, you are not up to date. See "Versions" |
 | Name | **LACF**, the **LoRa APRS Compact Frame**: the native frame `3C FF 02` with a PPM-coded content field (called hybrid B in `tools/hybrid/`) |
 | Status | **First draft of the byte plan F4MLV asked for in issue 7 of moricef/LoRa_APRS_Tracker (comments 14 to 17). Written by K6ATV and being reviewed. Implemented in the C reference (`tools/hb`), an independent Python implementation, the iGate (branch `feature/lacf`), the T-Deck tracker (branch `hybrid`) and Dire Wolf (branch `feature/lora-hybrid`); F4MLV's firmware does not implement it. The payload's integrity rules, the RXT tail and the receiver are tested (below).** |
 | Credit | **Co-developed with Fabrice Morel, F4MLV (moricef).** LACF is a hybrid of his native LoRa APRS frame and code and K6ATV's PPM compression, and the two are working on it together (issue 7 of moricef/LoRa_APRS_Tracker). RXT was created by Jon, N7UV (see `tools/hybrid/README.md`, Credit) |
