@@ -174,9 +174,26 @@ The relay build (iGate `27dbbfb`, tracker `d9c4f5b`) was flashed to the LoRa32 a
 * **No loop:** the LoRa32 did not relay its own beacon after the T-Deck's relay of it, and the T-Deck's relay of the LoRa32's frame was not repeated.
 * **Host tests of the same code:** the iGate wrapper test (604 checks) and the tracker's googletest suite (11 cases) include a sample of the spec relay vectors; the reference passes all 298 + 199 + 8 in C and in Python.
 
+### What the hill (Dire Wolf, K6ATV-10) logged for the same window
+
+Source: the collector database, read-only query of 2 November 2026, 08:20 to 08:35 PST (16:20 to 16:35 UTC).
+
+| Relay | Relayed frame at the hill | Logged by the hill |
+|---|---|---|
+| LoRa32, 08:23:55 | 67 B | **not logged** |
+| LoRa32, 08:24:25 | 34 B, path `K6ATV-14*`, RSSI -67 dBm, SNR 6.0 dB | yes (08:24:27) |
+| LoRa32, 08:26:54 | 67 B, RSSI -68, SNR 6.0 | yes (08:26:57) |
+| LoRa32, 08:27:16 | 67 B, RSSI -67, SNR 5.2 | yes (08:27:19) |
+| LoRa32, 08:29:03 | 67 B, RSSI -68, SNR 4.8 | yes (08:29:06) |
+| T-Deck, 08:30:00 | 38 B, path `K6ATV-4*`, RSSI -96, SNR 0.5 | yes (08:30:02) |
+
+* **The hill decoded every relay it heard**: class `hybrid`, outcome `ok`, 34, 67 and 38 bytes on the air, and the plain frame it would have been (42, 91 and 51 bytes). That is 5 of the 6 relays; the first LoRa32 relay is not in the log (cause not found: the hill heard the T-Deck's direct beacons at only -95 to -98 dBm, SNR from 1 to -11 dB, so it may simply have been at the edge, or the frame collided).
+* **The relay brought the T-Deck's beacons to the hill at a useful level**: the LoRa32's relays arrived at -67 dBm, the T-Deck's own frames at -95 to -98 dBm.
+* **Standard frame relayed as LACF:** at 08:31:59 the LoRa32 relayed a standard text beacon of K6ATV-22 as an LACF frame of 32 bytes (48 as text). It carries no tuple: a frame that was not LACF has none to extend. The hill decoded it but logged it as `parse_failed`, because the source's SSID is 22 and AX.25 cannot hold an SSID above 15 (the known Dire Wolf limit), not because of the relay.
+* **Frequency offsets, three boards:** the hill hears the T-Deck at -51 to -62 Hz, the LoRa32 hears the T-Deck at -3.2 to -3.3 kHz, and the hill hears the LoRa32 at +2.8 to +3.0 kHz. So the hill and the T-Deck agree within 60 Hz and the LoRa32 is about 3 kHz (7 ppm at 433.775 MHz) away from both: the offset belongs to that board's crystal, not to every pair.
+
 ### Not measured
 
-* **The hill:** that the Dire Wolf station received the relayed frames, and what it logged for them (the collector query for this has not been run).
 * **A frame through two relays.** One hop was run in each direction.
 * **A packet near the 255-byte limit on the air:** the rule that leaves the tuple out is tested on the host only.
 * **Busy channel, other spreading factors, other boards.**

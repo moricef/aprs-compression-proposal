@@ -17,7 +17,8 @@ Offsets beyond 2.5 kHz are ordinary. They come from the crystals of two boards, 
 
 On our own boards (433.775 MHz, SF12, 125 kHz, collector rows of 2 November 2026): the LoRa32 hears the T-Deck at about **-3.3 kHz** and the hill at about **-3.2 kHz**; the hill hears the LoRa32 at
 about **+3.0 kHz** (the same pair, with the sign reversed); and the LoRa32 hears another of our stations at about -2.1 kHz. The first three are past the end of the scale, so the field holds no information
-about them: it says "at least 2.4 kHz". The offset of a given sender and receiver is mostly a steady bias of their two
+about them: it says "at least 2.4 kHz". The same collector rows show where the offset comes from: the hill hears the T-Deck at only -51 to -62 Hz, so those two boards agree and the **LoRa32 is about 3 kHz (7 ppm) away from both**. It is one board's crystal, not
+every pair. That board is a LILYGO LoRa32 V2.1, a type that is common for iGates, so other stations with such boards would probably saturate too (not measured on other boards). The offset of a given sender and receiver is mostly a steady bias of their two
 crystals, so the value would be most useful for finding a board whose crystal has drifted or is off, and that is exactly where the scale saturates.
 
 ## 2. The proposal

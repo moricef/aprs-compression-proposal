@@ -398,7 +398,7 @@ Status of 2 November 2026. The format is in early development and is still being
 **Still open**
 
 * **A relay in Dire Wolf.** It counts the tuples of a frame it receives; the AX.25 frame cannot carry them, so it does not pass them on and does not relay LACF.
-* **A chain of two relays over RF.** One relay hop has been run on the air in each direction (iGate to T-Deck and T-Deck to LoRa32), not one frame through two relays, and the hill's reception of the relayed frames has not been checked in the collector. F4MLV's own firmware does not implement this plan.
+* **A chain of two relays over RF.** One relay hop has been run on the air in each direction (iGate to T-Deck and T-Deck to LoRa32), not one frame through two relays. The hill's Dire Wolf logged and decoded 5 of the 6 relays of the test (all at the predicted size; the sixth is not in its log), see the test results, section 8. F4MLV's own firmware does not implement this plan.
 * **More conditions.** Other boards and spreading factors, a busy or weak channel, long runs. The tests so far are short runs on one LoRa32, one T-Deck and one Dire Wolf station.
 
 ## Extending the format later
