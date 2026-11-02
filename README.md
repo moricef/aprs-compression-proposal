@@ -1,6 +1,6 @@
 # APRS-PPM: LoRa APRS packets about 40% smaller, even with relay signal data added
 
-> **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out with F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), named **LACF**, the LoRa APRS Compact Frame, so a relay can rewrite the path and add an RXT measurement without decompressing anything.
+> **WORK IN PROGRESS: the direction has changed.** The first common LoRa APRS format is being worked out together with Fabrice Morel, F4MLV (moricef) in [issue 7 of moricef/LoRa_APRS_Tracker](https://github.com/moricef/LoRa_APRS_Tracker/issues/7): his native frame with the content coded by PPM (hybrid B), named **LACF**, the LoRa APRS Compact Frame, so a relay can rewrite the path and add an RXT measurement without decompressing anything.
 > The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a **draft** in early development and still being reviewed for change, implemented in test branches of the iGate, the T-Deck tracker and Dire Wolf, and tried on the air on 1 November 2026. **The whole-packet figures below (about half the bytes) describe the earlier standalone format, which is not the plan.** The older frames (`3C FF 81`, `3C FF C1`) described here still work as documented, and remain the only ones in released firmware.
 
 > **Breaking change, 26 October 2026: upgrade if you built an earlier version.** After an independent tester showed that a
@@ -180,5 +180,15 @@ The results so far are in [docs/lacf-test-results-2026-11-01.md](docs/lacf-test-
 
 The earlier whole-text format has its own [safe-testing page](https://github.com/radiohound/LoRa_APRS_iGate/blob/feature/order3-compression/tools/aprs_compress/EXPERIMENT.md).
 Questions, results and problems are welcome as issues here.
+
+## Credits
+
+* **Fabrice Morel, F4MLV (moricef):** co-developer of LACF. It combines his native LoRa APRS frame and code (draft 0) with the PPM compression, and the two are working on it together (issue 7 of moricef/LoRa_APRS_Tracker). His T-Deck tracker firmware is the base of the T-Deck test build.
+* **Walter Dunckel, K6ATV:** the APRS-PPM compression and the PPM-coded content field of LACF.
+* **Jon, N7UV:** RXT, the per-hop reception measurements, and its early adoption on the Arizona network.
+* **Ricardo Guzman, CA2RXU:** the LoRa APRS iGate and Tracker firmware that the iGate test build is based on.
+* **John Langner, WB2OSZ:** Dire Wolf, which the hill test station runs.
+
+Credit says who did the work. It does not mean the people named have reviewed or endorsed this proposal, which is in early development.
 
 Licensed under the [MIT License](LICENSE).

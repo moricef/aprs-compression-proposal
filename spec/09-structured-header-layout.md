@@ -7,7 +7,7 @@
 | Status | **Idea with arithmetic from measured parts. Not specified, not built, not tested on air.** |
 | Depends on | 01 Compressed frames |
 | Changes to existing APRS | None to plain packets. A new frame type, like 01 |
-| Credit | The idea of a fixed binary layout for a position beacon comes from APRS 438 (ON4AA). This draft is an independent sketch; check 438's terms before reusing any of its layout |
+| Credit | Fabrice Morel, F4MLV (moricef) and K6ATV are working together on the current format, LACF ([spec 11](11-native-ppm-frame-byte-plan.md)), a hybrid of his native LoRa APRS frame and code and this PPM compression. The idea of a fixed binary layout for a position beacon comes from APRS 438 (ON4AA). This draft is an independent sketch; check 438's terms before reusing any of its layout |
 
 ## Summary
 

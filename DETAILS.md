@@ -10,7 +10,7 @@ decode, and a binding for VHF/AX.25. It extends APRS; it does not replace it, an
 keep working. Phase 2, the harder "smarts" work (smarter digipeating, path learning, reach-aware
 repeating, a measured pilot), is in the companion repo `aprs-smarts` (not yet public).
 
-**This is a draft by one person. It is not a standard.** The compressed-frame format is in early
+**This is a draft. It is not a standard.** The PPM compression is K6ATV's; the current format, LACF, combines it with the native LoRa APRS frame and code of Fabrice Morel, F4MLV (moricef), and the two are working on it together. The compressed-frame format is in early
 development and is being tested over the air: it started on 24 October 2026 with an ESP32 and a Raspberry Pi running Direwolf
 (both directions, every packet decoded exactly; see [docs/over-the-air-test.md](docs/over-the-air-test.md)), and the tests continue, now
 with the current format (LACF, spec 11) on an iGate, a T-Deck tracker and a Direwolf station
@@ -169,7 +169,7 @@ position packets fit; it has no comment field; and its position field is the ord
   `radiohound/direwolf` fork, with its own instructions in `doc/LoRa-Compression.md`. It sits on the LoRa driver
   of the pending pull request #638 and is **not** part of that pull request. The VHF/AX.25 side of Direwolf is still
   only planned (`docs/direwolf-notes.md`).
-* **T-Deck tracker** (a fork of the LoRa APRS Tracker firmware of moricef): receive always on, opt-in transmit. Branch
+* **T-Deck tracker** (a fork of the LoRa APRS Tracker firmware of Fabrice Morel, F4MLV, moricef): receive always on, opt-in transmit. Branch
   [`ppm-compression`](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/ppm-compression), start at
   its `docs/APRS-PPM-TDECK.md`.
 * An STM32WLE5 tracker build is a candidate; nothing is built.

@@ -16,7 +16,7 @@ sent and compared with the original, and the run reports decode failures (must b
 
 ## Credit
 
-**RXT was created by Jon N7UV**: digipeaters appending per-hop reception measurements (RSSI, SNR, frequency offset, time to hop). moricef worked
+**RXT was created by Jon N7UV**: digipeaters appending per-hop reception measurements (RSSI, SNR, frequency offset, time to hop). Fabrice Morel, F4MLV (moricef), worked
 with Jon on its extensions and its integration into the native format: the RXT v2 format and the native-frame version with its mask byte
 (`docs/RXT.md`, `docs/RXT_V2.md` in `moricef/LoRa_APRS_iGate`, branch `rxt`). This harness only counts its size. The native part and several of the other ideas come from his native LoRa APRS frame (`moricef/LoRa_APRS_iGate` branch `rxt`,
 `moricef/LoRa_APRS_Tracker` branch `devel`) and his measurements on the Ariège and Arizona captures: a native frame that structures the

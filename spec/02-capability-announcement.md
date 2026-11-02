@@ -6,6 +6,7 @@
 |---|---|
 | Status | **Proposal draft by an individual. Not a standard. Not implemented or tested.** |
 | Depends on | 01 Compressed frames |
+| Credit | Fabrice Morel, F4MLV (moricef) and K6ATV are working together on the current format, LACF ([spec 11](11-native-ppm-frame-byte-plan.md)), a hybrid of his native LoRa APRS frame and code and this PPM compression. |
 | Changes to existing APRS | None for the baseline method; the optional explicit marker and binary form are new frame/token types |
 
 ## Summary

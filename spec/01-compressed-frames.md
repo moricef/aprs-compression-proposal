@@ -6,6 +6,7 @@
 |---|---|
 | Status | **Proposal draft by an individual. Not a standard, not endorsed by any organization.** |
 | Author | Walter Dunckel, K6ATV |
+| Credit | Fabrice Morel, F4MLV (moricef) and K6ATV are working together on the current format, LACF ([spec 11](11-native-ppm-frame-byte-plan.md)), a hybrid of his native LoRa APRS frame and code and this PPM compression. |
 | Targets | APRS over amateur-radio LoRa (this part); AX.25 info field (see 07-ax25-binding.md) |
 | Changes to existing APRS | None. Additive: a new frame header that existing stations ignore |
 | Implementation | Reference C codec, firmware forks of the iGate and the T-Deck tracker and a Direwolf branch, host-tested. **Tested over the air in short runs** (from 24 Oct 2026, several boards, both directions, a full-day run; `docs/over-the-air-test.md`); weak-signal and other-board tests not done |

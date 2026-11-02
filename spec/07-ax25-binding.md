@@ -2,6 +2,8 @@
 
 > **Earlier format.** This draft carries the earlier whole-text compressed payload on VHF. For LoRa the current format is LACF, [spec 11](11-native-ppm-frame-byte-plan.md), a draft in early development and still being reviewed for change; it does not cover the VHF binding.
 
+**Credit:** Fabrice Morel, F4MLV (moricef) and K6ATV are working together on the current LoRa format, LACF ([spec 11](11-native-ppm-frame-byte-plan.md)), a hybrid of his native LoRa APRS frame and code and this PPM compression.
+
 **Status: idea. The compression itself is tested on a PC; this way of carrying it on AX.25 is not tested
 against any real TNC, digipeater or iGate.**
 
