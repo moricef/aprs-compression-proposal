@@ -56,6 +56,16 @@ then carries the RXT data. On the air (1 November 2026, a LoRa32 iGate, a T-Deck
 39 B against 57 B, and the LACF frames received were decoded to the exact text sent. The measurements are in [docs/lacf-test-results-2026-11-01.md](docs/lacf-test-results-2026-11-01.md).
 These figures are from one network's packets and will differ elsewhere.
 
+```
+As the origin sends it (14,305 real packets):
+plain  ███████████████████████████████████  86.6 B
+LACF   ███████████████████                  48.7 B  43.8% smaller
+
+After one relay hop (4,368 relayed packets); the LACF frame carries the relay's RXT data, the plain packet none:
+plain  ██████████████████████████████████   84.8 B
+LACF   █████████████████████                52.8 B  37.8% smaller
+```
+
 ### The earlier whole-text format (superseded by LACF; the results below are for it)
 
 Two kinds of compressed frame:
@@ -94,7 +104,7 @@ Airtime at SF12, from the LoRa airtime formula (not measured on air): the 57-byt
 1.5 s as a full frame and 1.0 s as a primed frame**. The preamble does not shrink, so time saved is a little less
 than bytes saved.
 
-### On 1,037 live packets (replayed, 24 October 2026)
+### On 1,037 live packets (replayed, 24 October 2026; the earlier whole-text format, not LACF)
 
 Fresh LoRa APRS-IS traffic captured read-only after both formats were built. Each packet is compressed and the
 result decoded back; the average size is what is on the air.
