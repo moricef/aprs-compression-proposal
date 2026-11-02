@@ -13,7 +13,7 @@
 > bigger, so primed savings are about 2 points lower than quoted before this change.
 > Details and the test results: [known issues](docs/known-issues.md).
 
-**The same APRS packet, sent in about half the bytes, and turned back into the identical text at the other end.**
+**The same APRS packet, sent in 40 to 45% fewer bytes (the earlier whole-text format: about half), and turned back into the identical text at the other end.**
 It extends APRS and does not replace it: stations that don't know about it carry on exactly as before.
 
 > An idea that is showing promise and needs more testing. It has been tried on three kinds of hardware over two links, and
@@ -36,6 +36,28 @@ ships with the software. The method is called **PPM**, *prediction by partial ma
 from 1984 (Cleary and Witten) whose PPMd variant is a standard method in 7-Zip and RAR archives. Here, each character is
 predicted from the three before it.
 
+### The current format: LACF (spec 11)
+
+LACF, the *LoRa APRS Compact Frame*, is the native LoRa APRS frame (`3C FF 02`) with a PPM-coded **content field**: the addresses and path are packed into a few bytes,
+and only the text of the packet (or the comment after a position) is compressed, with a CRC-16 over the text and the addresses so a damaged or cut frame is dropped, not
+mis-read. A relay adds an optional **RXT block** (what each hop heard: signal strength, signal-to-noise, frequency offset, time to hop) at the end without touching the content. Stations that do not
+know the frame ignore it. The byte plan is [spec 11](spec/11-native-ppm-frame-byte-plan.md), a draft. Measured on 14,305 real packets
+([docs/hybrid-savings-and-timing.md](docs/hybrid-savings-and-timing.md)):
+
+| What is compared | Plain | LACF | Bytes saved | Airtime saved, SF7 / SF12 |
+|---|---|---|---|---|
+| As the origin sends it, no RXT (14,305 packets) | 86.6 B | 48.7 B | **43.8%** | 36.3% / 35.0% |
+| After one relay hop, compression alone (RXT left out on both sides, 4,368 packets) | 84.8 B | 47.8 B | 43.7% | 36.4% / 34.9% |
+| After one relay hop, LACF with its RXT block against a plain packet without it | 84.8 B | 52.8 B | 37.8% | 31.2% / 30.2% |
+| After one relay hop, like for like (the plain packet carries the same RXT data as text) | 91.8 B | 52.8 B | 42.5% | 35.6% / 34.3% |
+
+The airtime saving is smaller than the byte saving because every LoRa frame pays a fixed preamble and header; relayed traffic lowers it further, because the frame
+then carries the RXT data. On the air (1 November 2026, a LoRa32 iGate, a T-Deck tracker and a Dire Wolf hill station) beacons were 29 B against 50 B, 58 B against 89 B and
+39 B against 57 B, and the LACF frames received were decoded to the exact text sent. The measurements are in [docs/lacf-test-results-2026-11-01.md](docs/lacf-test-results-2026-11-01.md).
+These figures are from one network's packets and will differ elsewhere.
+
+### The earlier whole-text format (superseded by LACF; the results below are for it)
+
 Two kinds of compressed frame:
 
 * **Full frame** (`3C FF 81`): the whole packet, compressed. Anyone with the table can read it. About **40 to 50% smaller**: 41% on stations the table had never seen, 47% over the full-day radio test below.
@@ -47,7 +69,9 @@ Two kinds of compressed frame:
 A station sends a full frame at least every second packet by default (a stationary one can send them less often), so a lost
 frame costs little. If compression would not save anything, the plain frame goes out instead.
 
-## Results
+## Results of the earlier whole-text format
+
+These are the first results (24 to 25 October 2026), for the whole-text frames `3C FF 81` and `3C FF C1` described above. The LACF results are in the section above.
 
 ### On real radios (24 to 25 October 2026)
 
@@ -104,6 +128,9 @@ fixed code that this model could in principle replace (not tried). The compariso
 
 ## What this does not show yet
 
+* **LACF is newer and less tested.** It has run on a LoRa32 iGate, a T-Deck and a Dire Wolf hill station, a few metres apart and on one hill link. Not yet tried: a relay chain on the air,
+  RXT through a real relay, a digipeater that forwards LACF frames, other boards, other spreading factors, long runs. The figures above come from replaying captured packets and from short
+  on-air runs.
 * **Needs more testing.** So far two links and three kinds of hardware: a LILYGO LoRa32 V2.1 (ESP32), a LILYGO T-Deck and a
   Raspberry Pi LoRa HAT running a branch of Direwolf. The longer link is about 2 miles, signal around -95 to -98 dBm at the
   gateway, one night, mild weather. Not yet tried: a busy channel, a really weak signal, other spreading factors, a stock
@@ -120,7 +147,8 @@ fixed code that this model could in principle replace (not tried). The compariso
 
 | Where | What |
 |---|---|
-| [ESP32 iGate firmware](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression) | Receive always on, transmit opt-in |
+| [LACF test firmware page](https://tiles.aivu.com/lacf) | Browser flasher for the LoRa32 iGate and the T-Deck Plus, with the settings and warnings. Sources: iGate [`feature/lacf`](https://github.com/radiohound/LoRa_APRS_iGate-1/tree/feature/lacf), tracker [`hybrid`](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/hybrid), Dire Wolf [`feature/lora-hybrid`](https://github.com/radiohound/direwolf/tree/feature/lora-hybrid) |
+| *Earlier whole-text format:* [ESP32 iGate firmware](https://github.com/radiohound/LoRa_APRS_iGate/tree/feature/order3-compression) | Receive always on, transmit opt-in |
 | [Direwolf, LoRa HAT channel](https://github.com/radiohound/direwolf/tree/feature/lora-compression) | Receive always on, transmit opt-in; an iGate that expands compressed frames and gates them as normal packets |
 | [T-Deck tracker firmware](https://github.com/radiohound/LoRa_APRS_Tracker-moricef/tree/ppm-compression) | Receive always on, transmit opt-in |
 | [`spec/`](spec) and [`reference/`](reference) | The specifications, a plain-C codec, the frozen table and 129 worked examples (test vectors) to check an implementation against |
